@@ -17,9 +17,12 @@ import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.JwtEncoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
- import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
+import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
+import org.springframework.security.web.SecurityFilterChain;
 
- import com.nimbusds.jose.JOSEException;
+import com.eadgequry.auth.services.CustomUserDetailsService;
+import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.jwk.JWKSet;
 import com.nimbusds.jose.jwk.RSAKey;
 import com.nimbusds.jose.jwk.source.JWKSource;
@@ -45,10 +48,7 @@ public class JwtSecurityConfiguration {
     @Bean
     SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http.authorizeHttpRequests(auth -> {
-            auth.requestMatchers("/login","/home").permitAll();
-            auth.requestMatchers("/admin/**").hasRole("ADMIN");
-            auth.requestMatchers("/guide/**").hasAnyRole("ADMIN", "GUIDE");
-            auth.requestMatchers("/voyager/**").hasAnyRole("ADMIN", "GUIDE", "VOYAGER");
+            auth.requestMatchers("/login", "/actuator/**", "/.well-known/jwks.json").permitAll();
             auth.anyRequest().authenticated();
         });
 
