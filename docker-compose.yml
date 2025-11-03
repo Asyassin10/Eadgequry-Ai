@@ -1,0 +1,34 @@
+version: "3.9"
+
+services:
+  naming-server:
+    build:
+      context: ./naming-server
+    container_name: naming-server
+    ports:
+      - "8761:8761"
+    networks:
+      - edagequry-net
+
+  api-gatway:
+    build:
+      context: ./api-gatway
+    container_name: api-gatway
+    ports:
+      - "8765:8765"
+    depends_on:
+      - naming-server
+    networks:
+      - edagequry-net
+
+  zipkin:
+    image: openzipkin/zipkin
+    container_name: zipkin
+    ports:
+      - "9411:9411"
+    networks:
+      - edagequry-net
+
+networks:
+  edagequry-net:
+    driver: bridge

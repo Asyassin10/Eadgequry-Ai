@@ -1,0 +1,3 @@
+api-gatway : 8765
+naming-server :8761
+Zipkin : 9411

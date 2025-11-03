@@ -1,0 +1,151 @@
+# Maven
+target/
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+release.properties
+dependency-reduced-pom.xml
+buildNumber.properties
+.mvn/timing.properties
+.mvn/wrapper/maven-wrapper.jar
+
+# Gradle 
+.gradle
+build/
+!gradle/wrapper/gradle-wrapper.jar
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+# JAR/WAR/EAR Files
+*.jar
+*.war
+*.ear
+*.zip
+*.tar.gz
+*.rar
+
+# Log Files
+*.log
+logs/
+log/
+
+# IDE - IntelliJ IDEA
+.idea/
+*.iws
+*.iml
+*.ipr
+out/
+.idea_modules/
+
+# IDE - Eclipse
+.classpath
+.project
+.settings/
+.metadata
+bin/
+tmp/
+*.tmp
+*.bak
+*.swp
+*~.nib
+local.properties
+.loadpath
+.recommenders
+
+# IDE - VS Code
+.vscode/
+*.code-workspace
+.history/
+
+# IDE - NetBeans
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
+
+# Linux
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+.nfs*
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+*.stackdump
+[Dd]esktop.ini
+$RECYCLE.BIN/
+*.cab
+*.msi
+*.msix
+*.msm
+*.msp
+*.lnk
+
+# Spring Boot
+application-local.properties
+application-local.yml
+application-dev.properties
+application-dev.yml
+
+# Sensitive Files
+*.env
+.env.local
+.env.*.local
+secrets/
+*.key
+*.pem
+*.p12
+*.jks
+
+# Docker (keep docker-compose.yml but ignore some files)
+.docker/
+docker-compose.override.yml
+
+ 
+
+# Node (if you add frontend later)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+yarn.lock
+
+# Temporary Files
+*.tmp
+*.temp
+temp/
+tmp/
+
+# Test Coverage
+coverage/
+*.lcov
+.nyc_output/
+
+# Backup files
+*.bak
+*.backup
+*.old
+
+# Compiled class files
+*.class
+
+# Package Files
+*.nar
+
+# Virtual machine crash logs
+hs_err_pid*
+replay_pid*
