@@ -44,7 +44,8 @@ public class CustomUserDetailsService implements UserDetailsService {
 
         @Override
         public Collection<? extends GrantedAuthority> getAuthorities() {
-            return List.of(new SimpleGrantedAuthority("ROLE_" + user.getRole().getName().name()));
+            // Return empty list - no role-based authentication
+            return List.of(new SimpleGrantedAuthority("USER"));
         }
 
         @Override public String getPassword() { return user.getPassword(); }
