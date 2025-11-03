@@ -15,7 +15,14 @@ public class SecurityConfig {
         http
             .csrf(csrf -> csrf.disable())
             .authorizeExchange(exchange -> exchange
-                .pathMatchers("/auth/login", "/auth/.well-known/jwks.json", "/auth/actuator/**").permitAll()
+                .pathMatchers(
+                    "/auth/login",
+                    "/auth/register",
+                    "/auth/health",
+                    "/auth/test-password-encoder",
+                    "/auth/.well-known/jwks.json",
+                    "/auth/actuator/**"
+                ).permitAll()
                 .anyExchange().authenticated()
             )
             .oauth2ResourceServer(oauth2 -> oauth2
