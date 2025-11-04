@@ -11,9 +11,9 @@ public record ProfileResponse(
     Long id,
     Long userId,
     String name,
-    String email,
     String avatarUrl,
     String bio,
+    String preferences,
     LocalDateTime createdAt,
     LocalDateTime updatedAt
 ) {
@@ -22,9 +22,9 @@ public record ProfileResponse(
             profile.getId(),
             profile.getUserId(),
             profile.getName(),
-            profile.getEmail(),
             profile.getAvatarUrl(),
             profile.getBio(),
+            profile.getPreferences(),
             profile.getCreatedAt(),
             profile.getUpdatedAt()
         );

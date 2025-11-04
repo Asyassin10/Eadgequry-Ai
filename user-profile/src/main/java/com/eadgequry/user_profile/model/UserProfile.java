@@ -21,14 +21,14 @@ public class UserProfile {
     @Column(name = "name", nullable = false)
     private String name;
 
-    @Column(name = "email", nullable = false, unique = true)
-    private String email;
-
     @Column(name = "avatar_url", length = 500)
     private String avatarUrl;
 
     @Column(name = "bio", columnDefinition = "TEXT")
     private String bio;
+
+    @Column(name = "preferences", columnDefinition = "JSON")
+    private String preferences; // Stored as JSON string for flexibility
 
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
@@ -51,10 +51,9 @@ public class UserProfile {
     public UserProfile() {
     }
 
-    public UserProfile(Long userId, String name, String email) {
+    public UserProfile(Long userId, String name) {
         this.userId = userId;
         this.name = name;
-        this.email = email;
     }
 
     // Getters and Setters
@@ -82,14 +81,6 @@ public class UserProfile {
         this.name = name;
     }
 
-    public String getEmail() {
-        return email;
-    }
-
-    public void setEmail(String email) {
-        this.email = email;
-    }
-
     public String getAvatarUrl() {
         return avatarUrl;
     }
@@ -104,6 +95,14 @@ public class UserProfile {
 
     public void setBio(String bio) {
         this.bio = bio;
+    }
+
+    public String getPreferences() {
+        return preferences;
+    }
+
+    public void setPreferences(String preferences) {
+        this.preferences = preferences;
     }
 
     public LocalDateTime getCreatedAt() {
@@ -128,7 +127,7 @@ public class UserProfile {
                 "id=" + id +
                 ", userId=" + userId +
                 ", name='" + name + '\'' +
-                ", email='" + email + '\'' +
+                ", avatarUrl='" + avatarUrl + '\'' +
                 ", createdAt=" + createdAt +
                 '}';
     }

@@ -30,7 +30,7 @@ public class ProfileService {
      * Create a new user profile
      * Called by Auth Service after user registration via REST POST
      *
-     * @param request CreateProfileRequest containing userId, name, email
+     * @param request CreateProfileRequest containing userId and name
      * @return ProfileResponse with created profile data
      * @throws IllegalArgumentException if validation fails or profile already exists
      */
@@ -45,16 +45,10 @@ public class ProfileService {
             throw new IllegalArgumentException("Profile already exists for user ID: " + request.userId());
         }
 
-        // Check if email already exists
-        if (profileRepository.existsByEmail(request.email())) {
-            throw new IllegalArgumentException("Profile already exists for email: " + request.email());
-        }
-
         // Create new profile
         UserProfile profile = new UserProfile();
         profile.setUserId(request.userId());
         profile.setName(request.name());
-        profile.setEmail(request.email());
 
         // Save profile
         UserProfile savedProfile = profileRepository.save(profile);
@@ -82,7 +76,7 @@ public class ProfileService {
 
     /**
      * Update user profile
-     * Allows updating name, avatar_url, and bio
+     * Allows updating name, avatar_url, bio, and preferences
      *
      * @param userId User ID
      * @param request UpdateProfileRequest with fields to update
@@ -114,6 +108,11 @@ public class ProfileService {
         if (request.bio() != null) {
             profile.setBio(request.bio());
             logger.debug("Updated bio for user ID: {}", userId);
+        }
+
+        if (request.preferences() != null) {
+            profile.setPreferences(request.preferences());
+            logger.debug("Updated preferences for user ID: {}", userId);
         }
 
         // Save updated profile

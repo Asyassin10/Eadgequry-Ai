@@ -34,7 +34,7 @@ public class ProfileController {
      * Called by Auth Service after user registration
      *
      * POST /profiles
-     * Request body: { "userId": 1, "name": "John Doe", "email": "john@example.com" }
+     * Request body: { "userId": 1, "name": "John Doe" }
      * Response: 201 Created with ProfileResponse
      */
     @PostMapping
@@ -89,7 +89,7 @@ public class ProfileController {
      * Update user profile
      *
      * PUT /profiles/{user_id}
-     * Request body: { "name": "John Smith", "avatarUrl": "https://...", "bio": "..." }
+     * Request body: { "name": "John Smith", "avatarUrl": "https://...", "bio": "...", "preferences": "{...}" }
      * Response: 200 OK with updated ProfileResponse
      */
     @PutMapping("/{user_id}")
