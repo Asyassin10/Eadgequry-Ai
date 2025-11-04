@@ -17,6 +17,10 @@ import com.eadgequry.auth.dto.UpdateEmailRequest;
 import com.eadgequry.auth.dto.UpdatePasswordRequest;
 import com.eadgequry.auth.dto.UserResponse;
 import com.eadgequry.auth.dto.VerifyEmailRequest;
+import com.eadgequry.auth.event.EmailUpdatedEvent;
+import com.eadgequry.auth.event.EventProducer;
+import com.eadgequry.auth.event.ForgotPasswordEvent;
+import com.eadgequry.auth.event.UserRegisteredEvent;
 import com.eadgequry.auth.model.User;
 import com.eadgequry.auth.repository.UserRepository;
 
@@ -28,12 +32,14 @@ public class AuthService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final ProfileServiceClient profileServiceClient;
+    private final EventProducer eventProducer;
 
     public AuthService(UserRepository userRepository, PasswordEncoder passwordEncoder,
-                      ProfileServiceClient profileServiceClient) {
+                      ProfileServiceClient profileServiceClient, EventProducer eventProducer) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.profileServiceClient = profileServiceClient;
+        this.eventProducer = eventProducer;
     }
 
     @Transactional
@@ -72,6 +78,22 @@ public class AuthService {
             throw new RuntimeException("Failed to create user profile: " + e.getMessage());
         }
 
+        // Publish Kafka event for email verification
+        try {
+            String verificationToken = UUID.randomUUID().toString();
+            // TODO: Store verification token in database
+            UserRegisteredEvent event = new UserRegisteredEvent(
+                savedUser.getId(),
+                savedUser.getName(),
+                savedUser.getEmail(),
+                verificationToken
+            );
+            eventProducer.publishUserRegistered(event);
+        } catch (Exception e) {
+            logger.error("Failed to publish UserRegisteredEvent for user ID: {}", savedUser.getId(), e);
+            // Don't fail registration if notification fails
+        }
+
         return UserResponse.fromUser(savedUser);
     }
 
@@ -95,9 +117,21 @@ public class AuthService {
         String resetToken = UUID.randomUUID().toString();
 
         // TODO: Store reset token in database with expiration time
-        // TODO: Publish Kafka event to Notification Service
 
-        logger.info("Password reset token generated for user: {}", user.getEmail());
+        // Publish Kafka event to Notification Service
+        try {
+            ForgotPasswordEvent event = new ForgotPasswordEvent(
+                user.getId(),
+                user.getName(),
+                user.getEmail(),
+                resetToken
+            );
+            eventProducer.publishForgotPassword(event);
+            logger.info("ForgotPasswordEvent published for user: {}", user.getEmail());
+        } catch (Exception e) {
+            logger.error("Failed to publish ForgotPasswordEvent for user: {}", user.getEmail(), e);
+            throw new RuntimeException("Failed to send password reset email");
+        }
 
         return "Password reset link sent to email";
     }
@@ -183,13 +217,31 @@ public class AuthService {
             throw new IllegalArgumentException("Email already in use");
         }
 
+        // Store old email before updating
+        String oldEmail = user.getEmail();
+
         // Update email and reset verification
         user.setEmail(request.newEmail());
         user.setEmailVerifiedAt(null); // Reset verification status
         userRepository.save(user);
 
-        // TODO: Publish Kafka event to send verification email to new address
-        // TODO: Publish Kafka event to notify old email about the change
+        // Publish Kafka event to notify both old and new email addresses
+        try {
+            String verificationToken = UUID.randomUUID().toString();
+            // TODO: Store verification token in database
+            EmailUpdatedEvent event = new EmailUpdatedEvent(
+                user.getId(),
+                user.getName(),
+                oldEmail,
+                request.newEmail(),
+                verificationToken
+            );
+            eventProducer.publishEmailUpdated(event);
+            logger.info("EmailUpdatedEvent published for user ID: {}", userId);
+        } catch (Exception e) {
+            logger.error("Failed to publish EmailUpdatedEvent for user ID: {}", userId, e);
+            // Don't fail the email update if notification fails
+        }
 
         logger.info("Email updated successfully for user ID: {}", userId);
 
