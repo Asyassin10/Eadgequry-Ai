@@ -33,15 +33,6 @@ public class AuthController {
         }
     }
 
-    @GetMapping("/test-password-encoder")
-    public ResponseEntity<?> testPasswordEncoder() {
-        boolean works = authService.testPasswordEncoder("password123");
-        return ResponseEntity.ok(Map.of(
-            "passwordEncoderWorks", works,
-            "message", works ? "Password encoder is working correctly" : "Password encoder has issues"
-        ));
-    }
-
     @GetMapping("/health")
     public ResponseEntity<?> health() {
         return ResponseEntity.ok(Map.of(

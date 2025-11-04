@@ -50,7 +50,7 @@ public class JwtSecurityConfiguration {
     @Bean
     SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http.authorizeHttpRequests(auth -> {
-            auth.requestMatchers("/login", "/register", "/health", "/test-password-encoder", "/actuator/**", "/.well-known/jwks.json").permitAll();
+            auth.requestMatchers("/login", "/register", "/health", "/actuator/**", "/.well-known/jwks.json").permitAll();
             auth.anyRequest().authenticated();
         });
 

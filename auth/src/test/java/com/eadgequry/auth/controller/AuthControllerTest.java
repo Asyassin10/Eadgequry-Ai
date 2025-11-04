@@ -92,26 +92,6 @@ class AuthControllerTest {
     }
 
     @Test
-    void testPasswordEncoder_Success() throws Exception {
-        when(authService.testPasswordEncoder(any(String.class))).thenReturn(true);
-
-        mockMvc.perform(get("/test-password-encoder"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.passwordEncoderWorks").value(true))
-                .andExpect(jsonPath("$.message").value("Password encoder is working correctly"));
-    }
-
-    @Test
-    void testPasswordEncoder_Failure() throws Exception {
-        when(authService.testPasswordEncoder(any(String.class))).thenReturn(false);
-
-        mockMvc.perform(get("/test-password-encoder"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.passwordEncoderWorks").value(false))
-                .andExpect(jsonPath("$.message").value("Password encoder has issues"));
-    }
-
-    @Test
     void health_Success() throws Exception {
         mockMvc.perform(get("/health"))
                 .andExpect(status().isOk())
