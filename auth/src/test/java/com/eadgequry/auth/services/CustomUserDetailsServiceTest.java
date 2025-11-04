@@ -56,7 +56,8 @@ class CustomUserDetailsServiceTest {
         assertThat(userDetails.getUsername()).isEqualTo("john@example.com");
         assertThat(userDetails.getPassword()).isEqualTo("$2a$10$encodedPassword");
         assertThat(userDetails.getAuthorities()).hasSize(1);
-        assertThat(userDetails.getAuthorities()).contains(new SimpleGrantedAuthority("USER"));
+        GrantedAuthority authority = userDetails.getAuthorities().iterator().next();
+        assertThat(authority.getAuthority()).isEqualTo("USER");
         assertThat(userDetails.isAccountNonExpired()).isTrue();
         assertThat(userDetails.isAccountNonLocked()).isTrue();
         assertThat(userDetails.isCredentialsNonExpired()).isTrue();

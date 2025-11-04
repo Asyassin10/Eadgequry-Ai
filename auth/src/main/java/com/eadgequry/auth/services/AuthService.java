@@ -42,20 +42,4 @@ public class AuthService {
 
         return UserResponse.fromUser(savedUser);
     }
-
-    public boolean testPasswordEncoder(String rawPassword) {
-        String encoded = passwordEncoder.encode(rawPassword);
-        boolean matches = passwordEncoder.matches(rawPassword, encoded);
-        System.out.println("=== Password Encoder Test ===");
-        System.out.println("Raw: " + rawPassword);
-        System.out.println("Encoded: " + encoded);
-        System.out.println("Matches: " + matches);
-
-        // Test with known hash
-        String knownHash = "$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy";
-        boolean matchesKnown = passwordEncoder.matches("password123", knownHash);
-        System.out.println("Known hash matches 'password123': " + matchesKnown);
-
-        return matches && matchesKnown;
-    }
 }

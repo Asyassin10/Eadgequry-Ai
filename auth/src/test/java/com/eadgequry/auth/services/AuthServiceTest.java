@@ -153,27 +153,4 @@ class AuthServiceTest {
 
         verify(userRepository, never()).existsByEmail(anyString());
     }
-
-    @Test
-    void testPasswordEncoder_ReturnsTrue() {
-        when(passwordEncoder.encode(anyString())).thenReturn("$2a$10$encodedPassword");
-        when(passwordEncoder.matches(anyString(), anyString())).thenReturn(true);
-
-        boolean result = authService.testPasswordEncoder("password123");
-
-        assertThat(result).isTrue();
-        verify(passwordEncoder).encode("password123");
-        verify(passwordEncoder, atLeast(2)).matches(anyString(), anyString());
-    }
-
-    @Test
-    void testPasswordEncoder_ReturnsFalse_WhenEncodedDoesNotMatch() {
-        when(passwordEncoder.encode(anyString())).thenReturn("$2a$10$encodedPassword");
-        when(passwordEncoder.matches(anyString(), anyString())).thenReturn(false);
-
-        boolean result = authService.testPasswordEncoder("password123");
-
-        assertThat(result).isFalse();
-        verify(passwordEncoder).encode("password123");
-    }
 }
