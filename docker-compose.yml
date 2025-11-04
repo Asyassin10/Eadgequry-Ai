@@ -83,6 +83,25 @@ services:
     networks:
       - edagequry-net
 
+  mysql-user-profile:
+    image: mysql:8.0
+    container_name: mysql-user-profile
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: eadgequry-user-profile
+      MYSQL_USER: profileuser
+      MYSQL_PASSWORD: profilepassword
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql-user-profile-data:/var/lib/mysql
+    networks:
+      - edagequry-net
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 20s
+      retries: 10
+
   sonarqube-db:
     image: postgres:15-alpine
     container_name: sonarqube-postgres
@@ -131,6 +150,7 @@ networks:
 
 volumes:
   mysql-data:
+  mysql-user-profile-data:
   sonarqube-db-data:
   sonarqube-data:
   sonarqube-extensions:
