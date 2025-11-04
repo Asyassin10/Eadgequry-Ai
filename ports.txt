@@ -4,3 +4,4 @@ auth : 8081
 zipkin : 9411
 mysql : 3306
 phpmyadmin : 8080
+user-profile : 8082

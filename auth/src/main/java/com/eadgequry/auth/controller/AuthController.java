@@ -36,15 +36,7 @@ public class AuthController {
                     .body(Map.of("error", "Registration failed: " + e.getMessage()));
         }
     }
-
-    @GetMapping("/test-password-encoder")
-    public ResponseEntity<?> testPasswordEncoder() {
-        boolean works = authService.testPasswordEncoder("password123");
-        return ResponseEntity.ok(Map.of(
-            "passwordEncoderWorks", works,
-            "message", works ? "Password encoder is working correctly" : "Password encoder has issues"
-        ));
-    }
+ 
         @GetMapping("/test")
     public ResponseEntity<?> test() {
         return ResponseEntity.ok(Map.of(
