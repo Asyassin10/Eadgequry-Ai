@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verify Your New Email</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .container {
+            background-color: #f4f4f4;
+            padding: 30px;
+            border-radius: 10px;
+        }
+        .header {
+            background-color: #2196F3;
+            color: white;
+            padding: 20px;
+            text-align: center;
+            border-radius: 10px 10px 0 0;
+        }
+        .content {
+            background-color: white;
+            padding: 30px;
+            border-radius: 0 0 10px 10px;
+        }
+        .button {
+            display: inline-block;
+            padding: 12px 30px;
+            background-color: #2196F3;
+            color: white !important;
+            text-decoration: none;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 12px;
+            color: #777;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Verify Your New Email</h1>
+        </div>
+        <div class="content">
+            <p>Hi <strong th:text="${userName}">User</strong>,</p>
+
+            <p>You recently changed the email address for your Eadgequry account to this email address.</p>
+
+            <p>Please verify this email address by clicking the button below:</p>
+
+            <div style="text-align: center;">
+                <a th:href="${verificationLink}" class="button">Verify Email Address</a>
+            </div>
+
+            <p>If the button doesn't work, you can copy and paste this link into your browser:</p>
+            <p style="word-break: break-all; color: #2196F3;" th:text="${verificationLink}">verification link</p>
+
+            <p><strong>This link will expire in 24 hours.</strong></p>
+
+            <p>If you didn't change your email address, please ignore this email or contact support if you're concerned about your account security.</p>
+
+            <p>Best regards,<br>The Eadgequry Team</p>
+        </div>
+        <div class="footer">
+            <p>&copy; 2025 Eadgequry. All rights reserved.</p>
+        </div>
+    </div>
+</body>
+</html>
