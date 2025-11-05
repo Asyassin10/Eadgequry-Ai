@@ -15,6 +15,17 @@ public class SecurityConfig {
         http
             .csrf(csrf -> csrf.disable())
             .authorizeExchange(exchange -> exchange
+                // Public OpenAPI/Swagger endpoints
+                .pathMatchers(
+                    "/swagger-ui.html",
+                    "/swagger-ui/**",
+                    "/v3/api-docs/**",
+                    "/webjars/**",
+                    "/auth/v3/api-docs/**",
+                    "/auth/swagger-ui/**",
+                    "/profiles/v3/api-docs/**",
+                    "/profiles/swagger-ui/**"
+                ).permitAll()
                 // Public Auth endpoints
                 .pathMatchers(
                     "/auth/login",
