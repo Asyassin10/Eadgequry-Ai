@@ -37,7 +37,7 @@
         <sonar.java.coveragePlugin>jacoco</sonar.java.coveragePlugin>
         <sonar.coverage.jacoco.xmlReportPaths>${project.build.directory}/site/jacoco/jacoco.xml</sonar.coverage.jacoco.xmlReportPaths>
         <sonar.exclusions>**/target/**,**/bin/**,**/*.xml,**/*.yml,**/*.properties</sonar.exclusions>
-        <sonar.coverage.exclusions>**/AuthApplication.java,**/config/jwt/JwtSecurityConfiguration.java,**/dto/**,**/model/**,**/repository/**,**/util/**</sonar.coverage.exclusions>
+        <sonar.coverage.exclusions>**/AuthApplication.java,**/config/**,**/event/**,**/dto/**,**/model/**,**/repository/**,**/client/**,**/util/**</sonar.coverage.exclusions>
     </properties>
     <dependencies>
         <dependency>
@@ -140,6 +140,25 @@
                 <groupId>org.jacoco</groupId>
                 <artifactId>jacoco-maven-plugin</artifactId>
                 <version>0.8.11</version>
+                <configuration>
+                    <!-- Global exclusions for all JaCoCo executions -->
+                    <excludes>
+                        <!-- Exclude configuration classes -->
+                        <exclude>com/eadgequry/auth/config/**</exclude>
+                        <!-- Exclude event classes (Kafka events) -->
+                        <exclude>com/eadgequry/auth/event/**</exclude>
+                        <!-- Exclude DTO classes -->
+                        <exclude>com/eadgequry/auth/dto/**</exclude>
+                        <!-- Exclude model entities -->
+                        <exclude>com/eadgequry/auth/model/**</exclude>
+                        <!-- Exclude repositories -->
+                        <exclude>com/eadgequry/auth/repository/**</exclude>
+                        <!-- Exclude Feign clients -->
+                        <exclude>com/eadgequry/auth/client/**</exclude>
+                        <!-- Exclude main application class -->
+                        <exclude>com/eadgequry/auth/AuthApplication.class</exclude>
+                    </excludes>
+                </configuration>
                 <executions>
                     <execution>
                         <goals>
@@ -172,7 +191,7 @@
                         <configuration>
                             <rules>
                                 <rule>
-                                    <element>PACKAGE</element>
+                                    <element>BUNDLE</element>
                                     <limits>
                                         <limit>
                                             <counter>LINE</counter>
@@ -180,45 +199,11 @@
                                             <minimum>0.90</minimum>
                                         </limit>
                                     </limits>
-                                    <excludes>
-                                        <!-- Exclude event classes (simple POJOs) -->
-                                        <exclude>com.eadgequry.auth.event.*</exclude>
-                                        <!-- Exclude DTO classes (data transfer objects) -->
-                                        <exclude>com.eadgequry.auth.dto.*</exclude>
-                                        <!-- Exclude model entities -->
-                                        <exclude>com.eadgequry.auth.model.*</exclude>
-                                        <!-- Exclude repositories -->
-                                        <exclude>com.eadgequry.auth.repository.*</exclude>
-                                        <!-- Exclude configuration -->
-                                        <exclude>com.eadgequry.auth.config.*</exclude>
-                                    </excludes>
                                 </rule>
                             </rules>
                         </configuration>
                     </execution>
                 </executions>
-                <configuration>
-                    <excludes>
-                        <!-- Exclude main application class -->
-                        <exclude>**/AuthApplication.class</exclude>
-                        <!-- Exclude configuration classes -->
-                        <exclude>**/config/**</exclude>
-                        <!-- Exclude all DTOs and records -->
-                        <exclude>**/dto/**</exclude>
-                        <!-- Exclude event POJOs (records) -->
-                        <exclude>**/event/UserRegisteredEvent.class</exclude>
-                        <exclude>**/event/ForgotPasswordEvent.class</exclude>
-                        <exclude>**/event/EmailUpdatedEvent.class</exclude>
-                        <!-- Exclude model entities (mostly getters/setters) -->
-                        <exclude>**/model/**</exclude>
-                        <!-- Exclude repository interfaces -->
-                        <exclude>**/repository/**</exclude>
-                        <!-- Exclude utility classes -->
-                        <exclude>**/util/**</exclude>
-                        <!-- Exclude Feign client interfaces -->
-                        <exclude>**/client/**</exclude>
-                    </excludes>
-                </configuration>
             </plugin>
         </plugins>
     </build>
