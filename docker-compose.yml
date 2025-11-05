@@ -101,6 +101,21 @@ services:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
       timeout: 20s
       retries: 10
+  phpmyadmin-user-profile:
+    image: phpmyadmin/phpmyadmin
+    container_name: phpmyadmin-user-profile
+    environment:
+      PMA_HOST: mysql-user-profile
+      PMA_PORT: 3306
+      PMA_USER: profileuser
+      PMA_PASSWORD: profilepassword
+      MYSQL_ROOT_PASSWORD: rootpassword
+    ports:
+      - "8083:80"
+    depends_on:
+      - mysql-user-profile
+    networks:
+      - edagequry-net
 
   sonarqube-db:
     image: postgres:15-alpine
@@ -187,16 +202,7 @@ services:
       timeout: 10s
       retries: 5
 
-  # MailHog - SMTP testing server (Development only)
-  # View emails at http://localhost:8025
-  mailhog:
-    image: mailhog/mailhog:latest
-    container_name: mailhog
-    ports:
-      - "1025:1025"  # SMTP port
-      - "8025:8025"  # Web UI port
-    networks:
-      - edagequry-net
+
 
 networks:
   edagequry-net:
