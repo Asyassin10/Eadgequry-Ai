@@ -69,7 +69,7 @@ class AuthServicePasswordEmailTest {
         ForgotPasswordRequest request = new ForgotPasswordRequest("john@example.com");
 
         ProfileResponse profileResponse = new ProfileResponse(
-                1L, "John Doe", "Software Engineer", "Company", null, "Bio", null, null
+                1L, 1L, "John Doe", null, "Bio", null, null, null
         );
 
         when(userRepository.findByEmail("john@example.com")).thenReturn(Optional.of(testUser));
@@ -132,7 +132,7 @@ class AuthServicePasswordEmailTest {
 
         assertThat(result).isEqualTo("Password reset link sent to email");
         verify(eventProducer).publishForgotPassword(argThat(event ->
-                event.userName().equals("User") // Should use default name
+                event.name().equals("User") // Should use default name
         ));
     }
 
@@ -141,7 +141,7 @@ class AuthServicePasswordEmailTest {
         ForgotPasswordRequest request = new ForgotPasswordRequest("john@example.com");
 
         ProfileResponse profileResponse = new ProfileResponse(
-                1L, "John Doe", "Software Engineer", "Company", null, "Bio", null, null
+                1L, 1L, "John Doe", null, "Bio", null, null, null
         );
 
         when(userRepository.findByEmail("john@example.com")).thenReturn(Optional.of(testUser));
@@ -279,7 +279,7 @@ class AuthServicePasswordEmailTest {
         UpdateEmailRequest request = new UpdateEmailRequest("newemail@example.com", "currentPassword");
 
         ProfileResponse profileResponse = new ProfileResponse(
-                1L, "John Doe", "Software Engineer", "Company", null, "Bio", null, null
+                1L, 1L, "John Doe", null, "Bio", null, null, null
         );
 
         when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
@@ -397,7 +397,7 @@ class AuthServicePasswordEmailTest {
 
         assertThat(result).isEqualTo("Email updated successfully. Please verify your new email.");
         verify(eventProducer).publishEmailUpdated(argThat(event ->
-                event.userName().equals("User") // Should use default name
+                event.name().equals("User") // Should use default name
         ));
     }
 }
