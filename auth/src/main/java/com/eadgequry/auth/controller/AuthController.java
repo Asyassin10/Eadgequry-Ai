@@ -11,10 +11,12 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.eadgequry.auth.dto.ForgotPasswordRequest;
 import com.eadgequry.auth.dto.RegisterRequest;
+import com.eadgequry.auth.dto.ResetPasswordRequest;
 import com.eadgequry.auth.dto.UpdateEmailRequest;
 import com.eadgequry.auth.dto.UpdatePasswordRequest;
 import com.eadgequry.auth.dto.UserResponse;
@@ -80,12 +82,14 @@ public class AuthController {
 
     /**
      * Verify email endpoint (public)
-     * POST /verify-email
-     * Request: { "token": "verification-token" }
+     * GET /verify-email?token=verification-token
+     * Called when user clicks verification link in email
      */
-    @PostMapping("/verify-email")
-    public ResponseEntity<?> verifyEmail(@RequestBody VerifyEmailRequest request) {
+    @GetMapping("/verify-email")
+    public ResponseEntity<?> verifyEmail(@RequestParam("token") String token) {
         try {
+            // Create VerifyEmailRequest from token parameter
+            VerifyEmailRequest request = new VerifyEmailRequest(token);
             String message = authService.verifyEmail(request);
             return ResponseEntity.ok(Map.of("message", message));
         } catch (IllegalArgumentException e) {
@@ -93,6 +97,48 @@ public class AuthController {
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Map.of("error", "Failed to verify email: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * Password reset GET endpoint (public)
+     * GET /reset-password?token=reset-token
+     * Called when user clicks password reset link in email
+     * This validates the token and can return frontend URL or token validity status
+     */
+    @GetMapping("/reset-password")
+    public ResponseEntity<?> getResetPassword(@RequestParam("token") String token) {
+        try {
+            if (token == null || token.trim().isEmpty()) {
+                return ResponseEntity.badRequest().body(Map.of("error", "Reset token is required"));
+            }
+            // Return token validity - frontend can use this to show password reset form
+            return ResponseEntity.ok(Map.of(
+                "message", "Token is valid. Please submit new password.",
+                "token", token
+            ));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Failed to validate reset token: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * Password reset POST endpoint (public)
+     * POST /reset-password
+     * Request: { "token": "reset-token", "newPassword": "new-password" }
+     * Actually resets the password
+     */
+    @PostMapping("/reset-password")
+    public ResponseEntity<?> resetPassword(@RequestBody ResetPasswordRequest request) {
+        try {
+            String message = authService.resetPassword(request);
+            return ResponseEntity.ok(Map.of("message", message));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Failed to reset password: " + e.getMessage()));
         }
     }
 
