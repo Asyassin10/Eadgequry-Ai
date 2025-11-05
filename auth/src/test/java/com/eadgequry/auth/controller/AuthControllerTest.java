@@ -14,6 +14,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.when;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -214,7 +215,8 @@ class AuthControllerTest {
     }
 
     @Test
-    void getResetPassword_NullToken() throws Exception {
+    void getResetPassword_MissingToken() throws Exception {
+        // When required @RequestParam is missing, Spring returns 400 automatically
         mockMvc.perform(get("/reset-password"))
                 .andExpect(status().isBadRequest());
     }
@@ -266,7 +268,6 @@ class AuthControllerTest {
     // ==================== Update Password Tests (Protected) ====================
 
     @Test
-    @WithMockUser
     void updatePassword_Success() throws Exception {
         UpdatePasswordRequest request = new UpdatePasswordRequest("oldPassword", "newPassword123");
 
@@ -274,6 +275,7 @@ class AuthControllerTest {
                 .thenReturn("Password updated successfully");
 
         mockMvc.perform(put("/users/password")
+                        .with(jwt().jwt(jwt -> jwt.claim("sub", 1L)))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
@@ -281,7 +283,6 @@ class AuthControllerTest {
     }
 
     @Test
-    @WithMockUser
     void updatePassword_WrongCurrentPassword() throws Exception {
         UpdatePasswordRequest request = new UpdatePasswordRequest("wrongPassword", "newPassword123");
 
@@ -289,6 +290,7 @@ class AuthControllerTest {
                 .thenThrow(new IllegalArgumentException("Current password is incorrect"));
 
         mockMvc.perform(put("/users/password")
+                        .with(jwt().jwt(jwt -> jwt.claim("sub", 1L)))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest())
@@ -296,7 +298,6 @@ class AuthControllerTest {
     }
 
     @Test
-    @WithMockUser
     void updatePassword_InternalError() throws Exception {
         UpdatePasswordRequest request = new UpdatePasswordRequest("oldPassword", "newPassword123");
 
@@ -304,6 +305,7 @@ class AuthControllerTest {
                 .thenThrow(new RuntimeException("Database error"));
 
         mockMvc.perform(put("/users/password")
+                        .with(jwt().jwt(jwt -> jwt.claim("sub", 1L)))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isInternalServerError())
@@ -313,7 +315,6 @@ class AuthControllerTest {
     // ==================== Update Email Tests (Protected) ====================
 
     @Test
-    @WithMockUser
     void updateEmail_Success() throws Exception {
         UpdateEmailRequest request = new UpdateEmailRequest("newemail@example.com", "currentPassword");
 
@@ -321,6 +322,7 @@ class AuthControllerTest {
                 .thenReturn("Email updated successfully. Please verify your new email.");
 
         mockMvc.perform(put("/users/email")
+                        .with(jwt().jwt(jwt -> jwt.claim("sub", 1L)))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
@@ -328,7 +330,6 @@ class AuthControllerTest {
     }
 
     @Test
-    @WithMockUser
     void updateEmail_EmailAlreadyInUse() throws Exception {
         UpdateEmailRequest request = new UpdateEmailRequest("existing@example.com", "currentPassword");
 
@@ -336,6 +337,7 @@ class AuthControllerTest {
                 .thenThrow(new IllegalArgumentException("Email already in use"));
 
         mockMvc.perform(put("/users/email")
+                        .with(jwt().jwt(jwt -> jwt.claim("sub", 1L)))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest())
@@ -343,7 +345,6 @@ class AuthControllerTest {
     }
 
     @Test
-    @WithMockUser
     void updateEmail_WrongPassword() throws Exception {
         UpdateEmailRequest request = new UpdateEmailRequest("newemail@example.com", "wrongPassword");
 
@@ -351,6 +352,7 @@ class AuthControllerTest {
                 .thenThrow(new IllegalArgumentException("Password is incorrect"));
 
         mockMvc.perform(put("/users/email")
+                        .with(jwt().jwt(jwt -> jwt.claim("sub", 1L)))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest())
@@ -358,7 +360,6 @@ class AuthControllerTest {
     }
 
     @Test
-    @WithMockUser
     void updateEmail_InternalError() throws Exception {
         UpdateEmailRequest request = new UpdateEmailRequest("newemail@example.com", "currentPassword");
 
@@ -366,6 +367,7 @@ class AuthControllerTest {
                 .thenThrow(new RuntimeException("Database error"));
 
         mockMvc.perform(put("/users/email")
+                        .with(jwt().jwt(jwt -> jwt.claim("sub", 1L)))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isInternalServerError())
