@@ -23,7 +23,9 @@ import com.eadgequry.auth.event.EventProducer;
 import com.eadgequry.auth.event.ForgotPasswordEvent;
 import com.eadgequry.auth.event.UserRegisteredEvent;
 import com.eadgequry.auth.model.User;
+import com.eadgequry.auth.model.VerificationToken;
 import com.eadgequry.auth.repository.UserRepository;
+import com.eadgequry.auth.repository.VerificationTokenRepository;
 
 @Service
 public class AuthService {
@@ -34,13 +36,16 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final ProfileServiceClient profileServiceClient;
     private final EventProducer eventProducer;
+    private final VerificationTokenRepository verificationTokenRepository;
 
     public AuthService(UserRepository userRepository, PasswordEncoder passwordEncoder,
-                      ProfileServiceClient profileServiceClient, EventProducer eventProducer) {
+                      ProfileServiceClient profileServiceClient, EventProducer eventProducer,
+                      VerificationTokenRepository verificationTokenRepository) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.profileServiceClient = profileServiceClient;
         this.eventProducer = eventProducer;
+        this.verificationTokenRepository = verificationTokenRepository;
     }
 
     @Transactional
@@ -79,10 +84,20 @@ public class AuthService {
             throw new RuntimeException("Failed to create user profile: " + e.getMessage());
         }
 
-        // Publish Kafka event for email verification
+        // Generate and store verification token
         try {
             String verificationToken = UUID.randomUUID().toString();
-            // TODO: Store verification token in database
+            LocalDateTime expiresAt = LocalDateTime.now().plusHours(24); // Token expires in 24 hours
+
+            VerificationToken token = new VerificationToken(
+                savedUser.getId(),
+                verificationToken,
+                expiresAt
+            );
+            verificationTokenRepository.save(token);
+            logger.info("Verification token created for user ID: {}", savedUser.getId());
+
+            // Publish Kafka event for email verification
             UserRegisteredEvent event = new UserRegisteredEvent(
                 savedUser.getId(),
                 savedUser.getName(),
@@ -91,7 +106,7 @@ public class AuthService {
             );
             eventProducer.publishUserRegistered(event);
         } catch (Exception e) {
-            logger.error("Failed to publish UserRegisteredEvent for user ID: {}", savedUser.getId(), e);
+            logger.error("Failed to create verification token or publish event for user ID: {}", savedUser.getId(), e);
             // Don't fail registration if notification fails
         }
 
@@ -148,16 +163,36 @@ public class AuthService {
         request.validate();
         logger.info("Email verification request with token");
 
-        // TODO: Validate token from database
-        // For now, this is a placeholder implementation
+        // 1. Look up the token in the verification_tokens table
+        VerificationToken verificationToken = verificationTokenRepository.findByToken(request.token())
+                .orElseThrow(() -> new IllegalArgumentException("Invalid verification token"));
 
-        // In production, you would:
-        // 1. Look up the token in a verification_tokens table
-        // 2. Check if it's expired
+        // 2. Check if token is expired
+        if (verificationToken.isExpired()) {
+            logger.warn("Verification token expired for user ID: {}", verificationToken.getUserId());
+            throw new IllegalArgumentException("Verification token has expired. Please request a new one.");
+        }
+
         // 3. Get the associated user
-        // 4. Set emailVerifiedAt timestamp
+        User user = userRepository.findById(verificationToken.getUserId())
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
 
-        logger.info("Email verification successful");
+        // Check if email is already verified
+        if (user.getEmailVerifiedAt() != null) {
+            logger.info("Email already verified for user ID: {}", user.getId());
+            // Delete the token since it's no longer needed
+            verificationTokenRepository.delete(verificationToken);
+            return "Email already verified";
+        }
+
+        // 4. Set emailVerifiedAt timestamp
+        user.setEmailVerifiedAt(LocalDateTime.now());
+        userRepository.save(user);
+
+        // 5. Delete the used token
+        verificationTokenRepository.delete(verificationToken);
+
+        logger.info("Email verification successful for user ID: {}", user.getId());
 
         return "Email verified successfully";
     }
@@ -248,15 +283,28 @@ public class AuthService {
         // Store old email before updating
         String oldEmail = user.getEmail();
 
+        // Delete any existing verification tokens for this user
+        verificationTokenRepository.deleteByUserId(userId);
+
         // Update email and reset verification
         user.setEmail(request.newEmail());
         user.setEmailVerifiedAt(null); // Reset verification status
         userRepository.save(user);
 
-        // Publish Kafka event to notify both old and new email addresses
+        // Generate and store new verification token
         try {
             String verificationToken = UUID.randomUUID().toString();
-            // TODO: Store verification token in database
+            LocalDateTime expiresAt = LocalDateTime.now().plusHours(24); // Token expires in 24 hours
+
+            VerificationToken token = new VerificationToken(
+                user.getId(),
+                verificationToken,
+                expiresAt
+            );
+            verificationTokenRepository.save(token);
+            logger.info("New verification token created for user ID: {}", userId);
+
+            // Publish Kafka event to notify both old and new email addresses
             EmailUpdatedEvent event = new EmailUpdatedEvent(
                 user.getId(),
                 user.getName(),
@@ -267,7 +315,7 @@ public class AuthService {
             eventProducer.publishEmailUpdated(event);
             logger.info("EmailUpdatedEvent published for user ID: {}", userId);
         } catch (Exception e) {
-            logger.error("Failed to publish EmailUpdatedEvent for user ID: {}", userId, e);
+            logger.error("Failed to create verification token or publish event for user ID: {}", userId, e);
             // Don't fail the email update if notification fails
         }
 
