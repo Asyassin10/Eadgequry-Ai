@@ -1,9 +1,13 @@
 package com.eadgequry.auth.services;
 
+import com.eadgequry.auth.client.ProfileServiceClient;
+import com.eadgequry.auth.client.dto.CreateProfileRequest;
 import com.eadgequry.auth.dto.RegisterRequest;
 import com.eadgequry.auth.dto.UserResponse;
+import com.eadgequry.auth.event.EventProducer;
 import com.eadgequry.auth.model.User;
 import com.eadgequry.auth.repository.UserRepository;
+import com.eadgequry.auth.repository.VerificationTokenRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -27,6 +31,15 @@ class AuthServiceTest {
     @Mock
     private PasswordEncoder passwordEncoder;
 
+    @Mock
+    private ProfileServiceClient profileServiceClient;
+
+    @Mock
+    private EventProducer eventProducer;
+
+    @Mock
+    private VerificationTokenRepository verificationTokenRepository;
+
     @InjectMocks
     private AuthService authService;
 
@@ -39,7 +52,6 @@ class AuthServiceTest {
 
         savedUser = new User();
         savedUser.setId(1L);
-        savedUser.setName("John Doe");
         savedUser.setEmail("john@example.com");
         savedUser.setPassword("$2a$10$encodedPassword");
         savedUser.setProvider("local");
@@ -50,18 +62,22 @@ class AuthServiceTest {
         when(userRepository.existsByEmail(anyString())).thenReturn(false);
         when(passwordEncoder.encode(anyString())).thenReturn("$2a$10$encodedPassword");
         when(userRepository.save(any(User.class))).thenReturn(savedUser);
+        when(verificationTokenRepository.save(any())).thenReturn(null);
+        doNothing().when(eventProducer).publishUserRegistered(any());
 
         UserResponse response = authService.register(validRequest);
 
         assertThat(response).isNotNull();
         assertThat(response.id()).isEqualTo(1L);
-        assertThat(response.name()).isEqualTo("John Doe");
         assertThat(response.email()).isEqualTo("john@example.com");
         assertThat(response.provider()).isEqualTo("local");
 
         verify(userRepository).existsByEmail("john@example.com");
         verify(passwordEncoder).encode("password123");
         verify(userRepository).save(any(User.class));
+        verify(profileServiceClient).createProfile(any(CreateProfileRequest.class));
+        verify(verificationTokenRepository).save(any());
+        verify(eventProducer).publishUserRegistered(any());
     }
 
     @Test

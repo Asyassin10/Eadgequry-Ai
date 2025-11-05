@@ -35,7 +35,7 @@ class AuthControllerTest {
     @Test
     void register_Success() throws Exception {
         RegisterRequest request = new RegisterRequest("John Doe", "john@example.com", "password123");
-        UserResponse response = new UserResponse(1L, "John Doe", "john@example.com", "local", null);
+        UserResponse response = new UserResponse(1L, "john@example.com", "local", null);
 
         when(authService.register(any(RegisterRequest.class))).thenReturn(response);
 
@@ -44,7 +44,6 @@ class AuthControllerTest {
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").value(1))
-                .andExpect(jsonPath("$.name").value("John Doe"))
                 .andExpect(jsonPath("$.email").value("john@example.com"))
                 .andExpect(jsonPath("$.provider").value("local"));
     }
