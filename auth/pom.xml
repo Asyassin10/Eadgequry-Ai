@@ -205,16 +205,18 @@
                         <exclude>**/config/**</exclude>
                         <!-- Exclude all DTOs and records -->
                         <exclude>**/dto/**</exclude>
-                        <!-- Exclude event classes -->
-                        <exclude>**/event/**</exclude>
+                        <!-- Exclude event POJOs (records) -->
+                        <exclude>**/event/UserRegisteredEvent.class</exclude>
+                        <exclude>**/event/ForgotPasswordEvent.class</exclude>
+                        <exclude>**/event/EmailUpdatedEvent.class</exclude>
                         <!-- Exclude model entities (mostly getters/setters) -->
                         <exclude>**/model/**</exclude>
                         <!-- Exclude repository interfaces -->
                         <exclude>**/repository/**</exclude>
                         <!-- Exclude utility classes -->
                         <exclude>**/util/**</exclude>
-                        <!-- Exclude client DTOs -->
-                        <exclude>**/client/dto/**</exclude>
+                        <!-- Exclude Feign client interfaces -->
+                        <exclude>**/client/**</exclude>
                     </excludes>
                 </configuration>
             </plugin>
