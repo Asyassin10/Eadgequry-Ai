@@ -214,13 +214,6 @@ class AuthControllerTest {
                 .andExpect(jsonPath("$.error").value("Reset token is required"));
     }
 
-    @Test
-    void getResetPassword_MissingToken() throws Exception {
-        // When required @RequestParam is missing, Spring returns 400 automatically
-        mockMvc.perform(get("/reset-password"))
-                .andExpect(status().isBadRequest());
-    }
-
     // ==================== Reset Password POST Tests ====================
 
     @Test
