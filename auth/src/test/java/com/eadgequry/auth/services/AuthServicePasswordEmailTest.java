@@ -208,7 +208,7 @@ class AuthServicePasswordEmailTest {
         UpdatePasswordRequest request = new UpdatePasswordRequest("oldPassword", "newPassword123");
 
         when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
-        when(passwordEncoder.matches("oldPassword", testUser.getPassword())).thenReturn(true);
+        when(passwordEncoder.matches("oldPassword", "$2a$10$encodedOldPassword")).thenReturn(true);
         when(passwordEncoder.encode("newPassword123")).thenReturn("$2a$10$encodedNewPassword");
         when(userRepository.save(any(User.class))).thenReturn(testUser);
 
@@ -216,7 +216,7 @@ class AuthServicePasswordEmailTest {
 
         assertThat(result).isEqualTo("Password updated successfully");
         verify(userRepository).findById(1L);
-        verify(passwordEncoder).matches("oldPassword", testUser.getPassword());
+        verify(passwordEncoder).matches("oldPassword", "$2a$10$encodedOldPassword");
         verify(passwordEncoder).encode("newPassword123");
         verify(userRepository).save(testUser);
     }
@@ -240,13 +240,13 @@ class AuthServicePasswordEmailTest {
         UpdatePasswordRequest request = new UpdatePasswordRequest("wrongPassword", "newPassword123");
 
         when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
-        when(passwordEncoder.matches("wrongPassword", testUser.getPassword())).thenReturn(false);
+        when(passwordEncoder.matches("wrongPassword", "$2a$10$encodedOldPassword")).thenReturn(false);
 
         assertThatThrownBy(() -> authService.updatePassword(1L, request))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("Current password is incorrect");
 
-        verify(passwordEncoder).matches("wrongPassword", testUser.getPassword());
+        verify(passwordEncoder).matches("wrongPassword", "$2a$10$encodedOldPassword");
         verify(userRepository, never()).save(any());
     }
 
@@ -267,7 +267,7 @@ class AuthServicePasswordEmailTest {
 
         assertThatThrownBy(() -> authService.updatePassword(1L, request))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("New password must be at least 6 characters");
+                .hasMessage("New password must be at least 8 characters");
 
         verify(userRepository, never()).findById(anyLong());
     }
@@ -283,7 +283,7 @@ class AuthServicePasswordEmailTest {
         );
 
         when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
-        when(passwordEncoder.matches("currentPassword", testUser.getPassword())).thenReturn(true);
+        when(passwordEncoder.matches("currentPassword", "$2a$10$encodedOldPassword")).thenReturn(true);
         when(userRepository.existsByEmail("newemail@example.com")).thenReturn(false);
         doNothing().when(verificationTokenRepository).deleteByUserId(1L);
         when(userRepository.save(any(User.class))).thenReturn(testUser);
@@ -295,7 +295,7 @@ class AuthServicePasswordEmailTest {
 
         assertThat(result).isEqualTo("Email updated successfully. Please verify your new email.");
         verify(userRepository).findById(1L);
-        verify(passwordEncoder).matches("currentPassword", testUser.getPassword());
+        verify(passwordEncoder).matches("currentPassword", "$2a$10$encodedOldPassword");
         verify(userRepository).existsByEmail("newemail@example.com");
         verify(verificationTokenRepository).deleteByUserId(1L);
         verify(userRepository).save(testUser);
@@ -321,13 +321,13 @@ class AuthServicePasswordEmailTest {
         UpdateEmailRequest request = new UpdateEmailRequest("newemail@example.com", "wrongPassword");
 
         when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
-        when(passwordEncoder.matches("wrongPassword", testUser.getPassword())).thenReturn(false);
+        when(passwordEncoder.matches("wrongPassword", "$2a$10$encodedOldPassword")).thenReturn(false);
 
         assertThatThrownBy(() -> authService.updateEmail(1L, request))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("Password is incorrect");
 
-        verify(passwordEncoder).matches("wrongPassword", testUser.getPassword());
+        verify(passwordEncoder).matches("wrongPassword", "$2a$10$encodedOldPassword");
         verify(userRepository, never()).existsByEmail(anyString());
     }
 
@@ -336,7 +336,7 @@ class AuthServicePasswordEmailTest {
         UpdateEmailRequest request = new UpdateEmailRequest("existing@example.com", "currentPassword");
 
         when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
-        when(passwordEncoder.matches("currentPassword", testUser.getPassword())).thenReturn(true);
+        when(passwordEncoder.matches("currentPassword", "$2a$10$encodedOldPassword")).thenReturn(true);
         when(userRepository.existsByEmail("existing@example.com")).thenReturn(true);
 
         assertThatThrownBy(() -> authService.updateEmail(1L, request))
@@ -353,7 +353,7 @@ class AuthServicePasswordEmailTest {
 
         assertThatThrownBy(() -> authService.updateEmail(1L, request))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("Email is required");
+                .hasMessage("New email is required");
 
         verify(userRepository, never()).findById(anyLong());
     }
@@ -364,7 +364,7 @@ class AuthServicePasswordEmailTest {
 
         assertThatThrownBy(() -> authService.updateEmail(1L, request))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("Email is required");
+                .hasMessage("New email is required");
 
         verify(userRepository, never()).findById(anyLong());
     }
@@ -375,7 +375,7 @@ class AuthServicePasswordEmailTest {
 
         assertThatThrownBy(() -> authService.updateEmail(1L, request))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("Password is required");
+                .hasMessage("Password is required for email update");
 
         verify(userRepository, never()).findById(anyLong());
     }
@@ -385,7 +385,7 @@ class AuthServicePasswordEmailTest {
         UpdateEmailRequest request = new UpdateEmailRequest("newemail@example.com", "currentPassword");
 
         when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
-        when(passwordEncoder.matches("currentPassword", testUser.getPassword())).thenReturn(true);
+        when(passwordEncoder.matches("currentPassword", "$2a$10$encodedOldPassword")).thenReturn(true);
         when(userRepository.existsByEmail("newemail@example.com")).thenReturn(false);
         doNothing().when(verificationTokenRepository).deleteByUserId(1L);
         when(userRepository.save(any(User.class))).thenReturn(testUser);
