@@ -57,8 +57,14 @@ public class JwtSecurityConfiguration {
             "/.well-known/jwks.json",
             "/verify-email",
             "/forgot-password",
+            "/reset-password",
             "/test",
-            "/test-password-encoder"
+            "/test-password-encoder",
+            // OpenAPI/Swagger endpoints (public access)
+            "/v3/api-docs/**",
+            "/swagger-ui/**",
+            "/swagger-ui.html",
+            "/webjars/**"
         ).permitAll();
         auth.anyRequest().authenticated();
     });
