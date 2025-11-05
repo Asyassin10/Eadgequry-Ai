@@ -37,7 +37,7 @@
 		<sonar.java.coveragePlugin>jacoco</sonar.java.coveragePlugin>
 		<sonar.coverage.jacoco.xmlReportPaths>${project.build.directory}/site/jacoco/jacoco.xml</sonar.coverage.jacoco.xmlReportPaths>
 		<sonar.exclusions>**/target/**,**/bin/**,**/*.xml,**/*.yml,**/*.properties</sonar.exclusions>
-		<sonar.coverage.exclusions>**/UserProfileApplication.java,**/config/**,**/event/**,**/dto/**,**/model/**,**/repository/**,**/client/**,**/util/**</sonar.coverage.exclusions>
+		<sonar.coverage.exclusions>**/UserProfileApplication.java,**/config/**,**/event/**,**/dto/**,**/model/**,**/repository/**,**/client/**,**/util/**,**/exception/ProfileNotFoundException.java</sonar.coverage.exclusions>
 	</properties>
 	<dependencies>
 		<dependency>
@@ -124,19 +124,21 @@
 					<!-- Global exclusions for all JaCoCo executions -->
 					<excludes>
 						<!-- Exclude configuration classes -->
-						<exclude>com/eadgequry/userprofile/config/**</exclude>
+						<exclude>com/eadgequry/user_profile/config/**</exclude>
 						<!-- Exclude event classes (Kafka events) -->
-						<exclude>com/eadgequry/userprofile/event/**</exclude>
+						<exclude>com/eadgequry/user_profile/event/**</exclude>
 						<!-- Exclude DTO classes -->
-						<exclude>com/eadgequry/userprofile/dto/**</exclude>
+						<exclude>com/eadgequry/user_profile/dto/**</exclude>
 						<!-- Exclude model entities -->
-						<exclude>com/eadgequry/userprofile/model/**</exclude>
+						<exclude>com/eadgequry/user_profile/model/**</exclude>
 						<!-- Exclude repositories -->
-						<exclude>com/eadgequry/userprofile/repository/**</exclude>
+						<exclude>com/eadgequry/user_profile/repository/**</exclude>
 						<!-- Exclude Feign clients -->
-						<exclude>com/eadgequry/userprofile/client/**</exclude>
+						<exclude>com/eadgequry/user_profile/client/**</exclude>
+						<!-- Exclude simple exception POJOs -->
+						<exclude>com/eadgequry/user_profile/exception/ProfileNotFoundException.class</exclude>
 						<!-- Exclude main application class -->
-						<exclude>com/eadgequry/userprofile/UserProfileApplication.class</exclude>
+						<exclude>com/eadgequry/user_profile/UserProfileApplication.class</exclude>
 					</excludes>
 				</configuration>
 				<executions>
