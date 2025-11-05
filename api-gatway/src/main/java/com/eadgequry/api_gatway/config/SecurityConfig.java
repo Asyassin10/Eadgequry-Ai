@@ -21,6 +21,7 @@ public class SecurityConfig {
                     "/auth/register",
                     "/auth/forgot-password",
                     "/auth/verify-email",
+                    "/auth/reset-password",
                     "/auth/health",
                     "/auth/test",
                     "/auth/test-password-encoder",
