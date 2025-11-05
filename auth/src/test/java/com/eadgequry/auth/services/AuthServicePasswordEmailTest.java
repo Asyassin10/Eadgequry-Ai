@@ -189,7 +189,7 @@ class AuthServicePasswordEmailTest {
 
         assertThatThrownBy(() -> authService.resetPassword(request))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("Password must be at least 6 characters");
+                .hasMessage("New password must be at least 8 characters long");
     }
 
     @Test
@@ -198,7 +198,7 @@ class AuthServicePasswordEmailTest {
 
         assertThatThrownBy(() -> authService.resetPassword(request))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("Password must be at least 6 characters");
+                .hasMessage("New password must be at least 8 characters long");
     }
 
     // ==================== Update Password Tests ====================
