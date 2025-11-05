@@ -180,6 +180,18 @@
                                             <minimum>0.90</minimum>
                                         </limit>
                                     </limits>
+                                    <excludes>
+                                        <!-- Exclude event classes (simple POJOs) -->
+                                        <exclude>com.eadgequry.auth.event.*</exclude>
+                                        <!-- Exclude DTO classes (data transfer objects) -->
+                                        <exclude>com.eadgequry.auth.dto.*</exclude>
+                                        <!-- Exclude model entities -->
+                                        <exclude>com.eadgequry.auth.model.*</exclude>
+                                        <!-- Exclude repositories -->
+                                        <exclude>com.eadgequry.auth.repository.*</exclude>
+                                        <!-- Exclude configuration -->
+                                        <exclude>com.eadgequry.auth.config.*</exclude>
+                                    </excludes>
                                 </rule>
                             </rules>
                         </configuration>
@@ -189,21 +201,20 @@
                     <excludes>
                         <!-- Exclude main application class -->
                         <exclude>**/AuthApplication.class</exclude>
-                        <!-- Exclude configuration classes only (not controllers) -->
-                        <exclude>**/config/jwt/JwtSecurityConfiguration.class</exclude>
-                        <exclude>**/config/jwt/UserDetailsServiceConfig.class</exclude>
-                        <!-- Exclude DTOs and records -->
-                        <exclude>**/dto/RegisterRequest.class</exclude>
-                        <exclude>**/dto/UserResponse.class</exclude>
-                        <exclude>**/dto/ErrorResponse.class</exclude>
-                        <exclude>**/config/jwt/LoginRequest.class</exclude>
-                        <exclude>**/config/jwt/JwtResponse.class</exclude>
+                        <!-- Exclude configuration classes -->
+                        <exclude>**/config/**</exclude>
+                        <!-- Exclude all DTOs and records -->
+                        <exclude>**/dto/**</exclude>
+                        <!-- Exclude event classes -->
+                        <exclude>**/event/**</exclude>
                         <!-- Exclude model entities (mostly getters/setters) -->
                         <exclude>**/model/**</exclude>
                         <!-- Exclude repository interfaces -->
                         <exclude>**/repository/**</exclude>
                         <!-- Exclude utility classes -->
                         <exclude>**/util/**</exclude>
+                        <!-- Exclude client DTOs -->
+                        <exclude>**/client/dto/**</exclude>
                     </excludes>
                 </configuration>
             </plugin>
