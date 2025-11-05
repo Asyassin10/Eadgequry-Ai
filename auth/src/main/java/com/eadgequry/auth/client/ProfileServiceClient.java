@@ -1,11 +1,12 @@
 package com.eadgequry.auth.client;
 
-import com.eadgequry.auth.client.dto.CreateProfileRequest;
-import com.eadgequry.auth.client.dto.ProfileResponse;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+
+import com.eadgequry.auth.client.dto.CreateProfileRequest;
+import com.eadgequry.auth.client.dto.ProfileResponse;
 
 /**
  * Feign Client for Profile Service
@@ -24,3 +25,4 @@ public interface ProfileServiceClient {
     @PostMapping
     ResponseEntity<ProfileResponse> createProfile(@RequestBody CreateProfileRequest request);
 }
+ 

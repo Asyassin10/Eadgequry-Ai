@@ -1,7 +1,6 @@
 package com.eadgequry.notification.service;
 
-import jakarta.mail.MessagingException;
-import jakarta.mail.internet.MimeMessage;
+import java.io.UnsupportedEncodingException;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -11,6 +10,9 @@ import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
+
+import jakarta.mail.MessagingException;
+import jakarta.mail.internet.MimeMessage;
 
  
 /**
@@ -121,8 +123,11 @@ public class EmailService {
         MimeMessage message = mailSender.createMimeMessage();
         MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
 
+    try {
         helper.setFrom(emailFrom, emailFromName);
-        helper.setTo(to);
+    } catch (UnsupportedEncodingException e) {
+        throw new MessagingException("Error setting 'from' field in email", e);
+    }        helper.setTo(to);
         helper.setSubject(subject);
         helper.setText(htmlContent, true);
 
