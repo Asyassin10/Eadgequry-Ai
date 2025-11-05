@@ -2,6 +2,8 @@ package com.eadgequry.auth.client;
 
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 
@@ -24,5 +26,14 @@ public interface ProfileServiceClient {
      */
     @PostMapping
     ResponseEntity<ProfileResponse> createProfile(@RequestBody CreateProfileRequest request);
+
+    /**
+     * Get user profile by user ID
+     *
+     * @param userId User ID
+     * @return ProfileResponse with profile data
+     */
+    @GetMapping("/{userId}")
+    ResponseEntity<ProfileResponse> getProfile(@PathVariable("userId") Long userId);
 }
  

@@ -5,6 +5,7 @@ import java.util.UUID;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -60,7 +61,6 @@ public class AuthService {
 
         // Create new user in auth database
         User user = new User();
-        user.setName(request.name());
         user.setEmail(request.email());
         user.setPassword(passwordEncoder.encode(request.password()));
         user.setProvider("local");
@@ -73,7 +73,7 @@ public class AuthService {
         try {
             CreateProfileRequest profileRequest = new CreateProfileRequest(
                 savedUser.getId(),
-                savedUser.getName()
+                request.name()
             );
             profileServiceClient.createProfile(profileRequest);
             logger.info("Profile created successfully for user ID: {}", savedUser.getId());
@@ -100,7 +100,7 @@ public class AuthService {
             // Publish Kafka event for email verification
             UserRegisteredEvent event = new UserRegisteredEvent(
                 savedUser.getId(),
-                savedUser.getName(),
+                request.name(),
                 savedUser.getEmail(),
                 verificationToken
             );
@@ -134,11 +134,23 @@ public class AuthService {
 
         // TODO: Store reset token in database with expiration time
 
+        // Get user's name from Profile Service
+        String userName = "User"; // Default fallback
+        try {
+            ResponseEntity<com.eadgequry.auth.client.dto.ProfileResponse> profileResponse =
+                profileServiceClient.getProfile(user.getId());
+            if (profileResponse.getBody() != null) {
+                userName = profileResponse.getBody().name();
+            }
+        } catch (Exception e) {
+            logger.warn("Failed to fetch profile for user ID: {}, using default name", user.getId());
+        }
+
         // Publish Kafka event to Notification Service
         try {
             ForgotPasswordEvent event = new ForgotPasswordEvent(
                 user.getId(),
-                user.getName(),
+                userName,
                 user.getEmail(),
                 resetToken
             );
@@ -291,6 +303,18 @@ public class AuthService {
         user.setEmailVerifiedAt(null); // Reset verification status
         userRepository.save(user);
 
+        // Get user's name from Profile Service
+        String userName = "User"; // Default fallback
+        try {
+            ResponseEntity<com.eadgequry.auth.client.dto.ProfileResponse> profileResponse =
+                profileServiceClient.getProfile(user.getId());
+            if (profileResponse.getBody() != null) {
+                userName = profileResponse.getBody().name();
+            }
+        } catch (Exception e) {
+            logger.warn("Failed to fetch profile for user ID: {}, using default name", user.getId());
+        }
+
         // Generate and store new verification token
         try {
             String verificationToken = UUID.randomUUID().toString();
@@ -307,7 +331,7 @@ public class AuthService {
             // Publish Kafka event to notify both old and new email addresses
             EmailUpdatedEvent event = new EmailUpdatedEvent(
                 user.getId(),
-                user.getName(),
+                userName,
                 oldEmail,
                 request.newEmail(),
                 verificationToken
