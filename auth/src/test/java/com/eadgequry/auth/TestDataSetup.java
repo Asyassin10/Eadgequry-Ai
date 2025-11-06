@@ -22,7 +22,6 @@ public class TestDataSetup {
     public void setupTestData() {
         // Create test user
         User testUser = new User();
-        testUser.setName("Test User");
         testUser.setEmail("test@example.com");
         testUser.setPassword(passwordEncoder.encode("password123"));
         testUser.setProvider("local");

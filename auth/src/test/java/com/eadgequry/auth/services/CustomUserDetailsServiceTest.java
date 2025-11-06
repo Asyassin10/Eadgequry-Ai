@@ -40,7 +40,6 @@ class CustomUserDetailsServiceTest {
     void setUp() {
         testUser = new User();
         testUser.setId(1L);
-        testUser.setName("John Doe");
         testUser.setEmail("john@example.com");
         testUser.setPassword("$2a$10$encodedPassword");
         testUser.setProvider("local");

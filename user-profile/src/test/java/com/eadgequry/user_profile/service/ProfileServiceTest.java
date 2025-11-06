@@ -5,7 +5,7 @@ import com.eadgequry.user_profile.dto.ProfileResponse;
 import com.eadgequry.user_profile.dto.UpdateProfileRequest;
 import com.eadgequry.user_profile.exception.ProfileNotFoundException;
 import com.eadgequry.user_profile.model.UserProfile;
-import com.eadgequry.user_profile.repository.ProfileRepository;
+import com.eadgequry.user_profile.repository.UserProfileRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -24,7 +24,7 @@ import static org.mockito.Mockito.*;
 class ProfileServiceTest {
 
     @Mock
-    private ProfileRepository profileRepository;
+    private UserProfileRepository profileRepository;
 
     @InjectMocks
     private ProfileService profileService;
