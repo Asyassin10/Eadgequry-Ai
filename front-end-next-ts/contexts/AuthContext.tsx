@@ -21,6 +21,18 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// Helper function to set cookie
+function setCookie(name: string, value: string, days: number = 7) {
+  const expires = new Date();
+  expires.setTime(expires.getTime() + days * 24 * 60 * 60 * 1000);
+  document.cookie = `${name}=${value};expires=${expires.toUTCString()};path=/;SameSite=Lax`;
+}
+
+// Helper function to delete cookie
+function deleteCookie(name: string) {
+  document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 UTC;path=/;`;
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -38,6 +50,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         console.error('Failed to parse user data:', error);
         localStorage.removeItem('authToken');
         localStorage.removeItem('user');
+        deleteCookie('authToken');
       }
     }
     setIsLoading(false);
@@ -56,8 +69,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (response.data) {
         const { token, userId, email } = response.data;
 
-        // Store token and user data
+        // Store token and user data in localStorage
         localStorage.setItem('authToken', token);
+        // Store token in cookie for middleware
+        setCookie('authToken', token, 7);
         localStorage.setItem('user', JSON.stringify({ userId, email }));
 
         setUser({ userId, email });
@@ -106,6 +121,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = () => {
     localStorage.removeItem('authToken');
     localStorage.removeItem('user');
+    deleteCookie('authToken');
     setUser(null);
     toast.success('Logged out successfully');
     router.push('/login');
