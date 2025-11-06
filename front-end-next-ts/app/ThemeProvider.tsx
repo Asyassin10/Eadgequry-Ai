@@ -11,10 +11,14 @@ export default function ThemeProvider({ children }: { children: React.ReactNode 
   useEffect(() => {
     setMounted(true);
     const savedTheme = localStorage.getItem("theme");
-    const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-    const shouldBeDark = savedTheme ? savedTheme === "dark" : prefersDark;
+    // Default to light mode (false) - only dark if explicitly saved as "dark"
+    const shouldBeDark = savedTheme === "dark";
     setIsDark(shouldBeDark);
-    if (shouldBeDark) document.documentElement.classList.add("dark");
+    if (shouldBeDark) {
+      document.documentElement.classList.add("dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+    }
   }, []);
 
   const toggleTheme = () => {
