@@ -10,19 +10,20 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { AlertCircle, Database, Trash2 } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { toast } from "sonner"
 
 // Define database types
 const DATABASE_TYPES = [
-  { value: "mysql", label: "MySQL", defaultPort: "3306" },
-  { value: "postgresql", label: "PostgreSQL", defaultPort: "5432" },
-  { value: "sqlserver", label: "SQL Server", defaultPort: "1433" },
-  { value: "sqlanywhere", label: "SQL Anywhere", defaultPort: "2638" },
-  { value: "sqlite", label: "SQLite", defaultPort: "" },
-  { value: "snowflake", label: "Snowflake", defaultPort: "" },
-  { value: "oracle", label: "Oracle", defaultPort: "1521" },
-  { value: "bigquery", label: "BigQuery", defaultPort: "" },
-  { value: "mariadb", label: "MariaDB", defaultPort: "3306" },
-  { value: "redshift", label: "Redshift", defaultPort: "5439" },
+  { value: "mysql", label: "MySQL", defaultPort: "3306", available: true },
+  { value: "postgresql", label: "PostgreSQL", defaultPort: "5432", available: true },
+  { value: "sqlserver", label: "SQL Server", defaultPort: "1433", available: false },
+  { value: "sqlanywhere", label: "SQL Anywhere", defaultPort: "2638", available: false },
+  { value: "sqlite", label: "SQLite", defaultPort: "", available: false },
+  { value: "snowflake", label: "Snowflake", defaultPort: "", available: false },
+  { value: "oracle", label: "Oracle", defaultPort: "1521", available: false },
+  { value: "bigquery", label: "BigQuery", defaultPort: "", available: false },
+  { value: "mariadb", label: "MariaDB", defaultPort: "3306", available: false },
+  { value: "redshift", label: "Redshift", defaultPort: "5439", available: false },
 ]
 
 export function DatasourcePage() {
@@ -37,6 +38,7 @@ export function DatasourcePage() {
   })
   const [savedDatabase, setSavedDatabase] = useState<(typeof formData & { dbType: string }) | null>(null)
   const [showLimitMessage, setShowLimitMessage] = useState(false)
+  const [showUnavailableAlert, setShowUnavailableAlert] = useState(false)
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target
@@ -47,74 +49,56 @@ export function DatasourcePage() {
     setDbType(value)
     const selectedDb = DATABASE_TYPES.find((db) => db.value === value)
 
-    // Reset form with appropriate defaults for the selected database
-    const newFormData: Record<string, string> = {
-      knowledge: formData.knowledge, // Keep knowledge field
+    // Check if database is available
+    if (selectedDb && !selectedDb.available) {
+      setShowUnavailableAlert(true)
+      toast.info(`${selectedDb.label} is not available yet. Coming soon in v1!`, {
+        duration: 4000,
+      })
+      // Set basic form data but disable functionality
+      setFormData({
+        host: "",
+        port: "",
+        database: "",
+        username: "",
+        password: "",
+        knowledge: formData.knowledge,
+      })
+      return
     }
 
-    // Set default fields based on database type
-    if (value === "sqlite") {
-      newFormData.filePath = ""
-    } else if (value === "snowflake") {
-      newFormData.account = ""
-      newFormData.username = ""
-      newFormData.password = ""
-      newFormData.database = ""
-      newFormData.schema = ""
-      newFormData.warehouse = ""
-      newFormData.role = ""
-    } else if (value === "bigquery") {
-      newFormData.projectId = ""
-      newFormData.dataset = ""
-      newFormData.serviceAccountJson = ""
-    } else if (value === "oracle") {
-      newFormData.host = "localhost"
-      newFormData.port = selectedDb?.defaultPort || "1521"
-      newFormData.serviceName = ""
-      newFormData.username = ""
-      newFormData.password = ""
-    } else {
-      // Standard fields for MySQL, PostgreSQL, SQL Server, MariaDB, Redshift, SQL Anywhere
-      newFormData.host = "localhost"
-      newFormData.port = selectedDb?.defaultPort || ""
-      newFormData.database = ""
-      newFormData.username = ""
-      newFormData.password = ""
+    setShowUnavailableAlert(false)
 
-      // SQL Server specific
-      if (value === "sqlserver") {
-        newFormData.instance = ""
-      }
+    // Reset form with appropriate defaults for available databases (MySQL, PostgreSQL)
+    const newFormData: Record<string, string> = {
+      knowledge: formData.knowledge, // Keep knowledge field
+      host: "localhost",
+      port: selectedDb?.defaultPort || "",
+      database: "",
+      username: "",
+      password: "",
     }
 
     setFormData(newFormData)
   }
 
   const handleSave = () => {
-    // Basic validation
-    if (dbType === "sqlite") {
-      if (!formData.filePath) {
-        alert("Please provide the SQLite file path")
-        return
-      }
-    } else if (dbType === "bigquery") {
-      if (!formData.projectId || !formData.dataset || !formData.serviceAccountJson) {
-        alert("Please fill in all required BigQuery fields")
-        return
-      }
-    } else if (dbType === "snowflake") {
-      if (!formData.account || !formData.username || !formData.password || !formData.database) {
-        alert("Please fill in all required Snowflake fields")
-        return
-      }
-    } else {
-      if (!formData.username || !formData.password || !formData.database) {
-        alert("Please fill in all required fields")
-        return
-      }
+    const selectedDb = DATABASE_TYPES.find((db) => db.value === dbType)
+
+    // Prevent saving unavailable databases
+    if (selectedDb && !selectedDb.available) {
+      toast.error(`Cannot save ${selectedDb.label}. This database is not available yet.`)
+      return
+    }
+
+    // Basic validation for MySQL and PostgreSQL
+    if (!formData.username || !formData.password || !formData.database) {
+      alert("Please fill in all required fields")
+      return
     }
 
     setSavedDatabase({ ...formData, dbType })
+    toast.success("Database configuration saved successfully!")
 
     // Reset form
     handleDbTypeChange(dbType)
@@ -130,315 +114,87 @@ export function DatasourcePage() {
   }
 
   const renderConnectionFields = () => {
-    switch (dbType) {
-      case "sqlite":
-        return (
-          <div className="space-y-2">
-            <Label htmlFor="filePath">Database File Path *</Label>
-            <Input
-              id="filePath"
-              name="filePath"
-              placeholder="/path/to/database.db"
-              value={formData.filePath || ""}
-              onChange={handleChange}
-              className="bg-input border-border"
-            />
-            <p className="text-sm text-muted-foreground">
-              Full path to your SQLite database file
-            </p>
-          </div>
-        )
+    const selectedDb = DATABASE_TYPES.find((db) => db.value === dbType)
 
-      case "bigquery":
-        return (
-          <>
-            <div className="space-y-2">
-              <Label htmlFor="projectId">Project ID *</Label>
-              <Input
-                id="projectId"
-                name="projectId"
-                placeholder="my-gcp-project"
-                value={formData.projectId || ""}
-                onChange={handleChange}
-                className="bg-input border-border"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="dataset">Dataset *</Label>
-              <Input
-                id="dataset"
-                name="dataset"
-                placeholder="my_dataset"
-                value={formData.dataset || ""}
-                onChange={handleChange}
-                className="bg-input border-border"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="serviceAccountJson">Service Account JSON *</Label>
-              <textarea
-                id="serviceAccountJson"
-                name="serviceAccountJson"
-                placeholder='{"type": "service_account", "project_id": "...", ...}'
-                value={formData.serviceAccountJson || ""}
-                onChange={handleChange}
-                className="w-full px-3 py-2 rounded-md bg-input border border-border text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary min-h-32 resize-none font-mono text-sm"
-              />
-              <p className="text-sm text-muted-foreground">
-                Paste your GCP service account JSON key
-              </p>
-            </div>
-          </>
-        )
-
-      case "snowflake":
-        return (
-          <>
-            <div className="space-y-2">
-              <Label htmlFor="account">Account Identifier *</Label>
-              <Input
-                id="account"
-                name="account"
-                placeholder="xy12345.us-east-1"
-                value={formData.account || ""}
-                onChange={handleChange}
-                className="bg-input border-border"
-              />
-              <p className="text-sm text-muted-foreground">
-                Format: account_locator.region or account_name
-              </p>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="username">Username *</Label>
-              <Input
-                id="username"
-                name="username"
-                placeholder="Enter your Snowflake username"
-                value={formData.username || ""}
-                onChange={handleChange}
-                className="bg-input border-border"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="password">Password *</Label>
-              <Input
-                id="password"
-                name="password"
-                type="password"
-                placeholder="Enter your password"
-                value={formData.password || ""}
-                onChange={handleChange}
-                className="bg-input border-border"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="database">Database *</Label>
-              <Input
-                id="database"
-                name="database"
-                placeholder="MY_DATABASE"
-                value={formData.database || ""}
-                onChange={handleChange}
-                className="bg-input border-border"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="schema">Schema *</Label>
-              <Input
-                id="schema"
-                name="schema"
-                placeholder="PUBLIC"
-                value={formData.schema || ""}
-                onChange={handleChange}
-                className="bg-input border-border"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="warehouse">Warehouse *</Label>
-              <Input
-                id="warehouse"
-                name="warehouse"
-                placeholder="COMPUTE_WH"
-                value={formData.warehouse || ""}
-                onChange={handleChange}
-                className="bg-input border-border"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="role">Role (Optional)</Label>
-              <Input
-                id="role"
-                name="role"
-                placeholder="ACCOUNTADMIN"
-                value={formData.role || ""}
-                onChange={handleChange}
-                className="bg-input border-border"
-              />
-            </div>
-          </>
-        )
-
-      case "oracle":
-        return (
-          <>
-            <div className="space-y-2">
-              <Label htmlFor="host">Host *</Label>
-              <Input
-                id="host"
-                name="host"
-                placeholder="localhost"
-                value={formData.host || ""}
-                onChange={handleChange}
-                className="bg-input border-border"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="port">Port *</Label>
-              <Input
-                id="port"
-                name="port"
-                placeholder="1521"
-                value={formData.port || ""}
-                onChange={handleChange}
-                className="bg-input border-border"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="serviceName">Service Name / SID *</Label>
-              <Input
-                id="serviceName"
-                name="serviceName"
-                placeholder="ORCL"
-                value={formData.serviceName || ""}
-                onChange={handleChange}
-                className="bg-input border-border"
-              />
-              <p className="text-sm text-muted-foreground">
-                Oracle service name or SID
-              </p>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="username">Username *</Label>
-              <Input
-                id="username"
-                name="username"
-                placeholder="Enter your username"
-                value={formData.username || ""}
-                onChange={handleChange}
-                className="bg-input border-border"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="password">Password *</Label>
-              <Input
-                id="password"
-                name="password"
-                type="password"
-                placeholder="Enter your password"
-                value={formData.password || ""}
-                onChange={handleChange}
-                className="bg-input border-border"
-              />
-            </div>
-          </>
-        )
-
-      default:
-        // Standard fields for MySQL, PostgreSQL, SQL Server, MariaDB, Redshift, SQL Anywhere
-        return (
-          <>
-            <div className="space-y-2">
-              <Label htmlFor="host">Host *</Label>
-              <Input
-                id="host"
-                name="host"
-                placeholder="localhost"
-                value={formData.host || ""}
-                onChange={handleChange}
-                className="bg-input border-border"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="port">Port *</Label>
-              <Input
-                id="port"
-                name="port"
-                placeholder={DATABASE_TYPES.find((db) => db.value === dbType)?.defaultPort || ""}
-                value={formData.port || ""}
-                onChange={handleChange}
-                className="bg-input border-border"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="database">Database Name *</Label>
-              <Input
-                id="database"
-                name="database"
-                placeholder="my_database"
-                value={formData.database || ""}
-                onChange={handleChange}
-                className="bg-input border-border"
-              />
-            </div>
-
-            {dbType === "sqlserver" && (
-              <div className="space-y-2">
-                <Label htmlFor="instance">Instance (Optional)</Label>
-                <Input
-                  id="instance"
-                  name="instance"
-                  placeholder="SQLEXPRESS"
-                  value={formData.instance || ""}
-                  onChange={handleChange}
-                  className="bg-input border-border"
-                />
-                <p className="text-sm text-muted-foreground">
-                  SQL Server instance name (if using named instances)
-                </p>
-              </div>
-            )}
-
-            <div className="space-y-2">
-              <Label htmlFor="username">Username *</Label>
-              <Input
-                id="username"
-                name="username"
-                placeholder="Enter your username"
-                value={formData.username || ""}
-                onChange={handleChange}
-                className="bg-input border-border"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="password">Password *</Label>
-              <Input
-                id="password"
-                name="password"
-                type="password"
-                placeholder="Enter your password"
-                value={formData.password || ""}
-                onChange={handleChange}
-                className="bg-input border-border"
-              />
-            </div>
-          </>
-        )
+    // Show message for unavailable databases
+    if (selectedDb && !selectedDb.available) {
+      return (
+        <Alert className="bg-yellow-50 dark:bg-yellow-950 border-yellow-200 dark:border-yellow-800">
+          <AlertCircle className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />
+          <AlertDescription className="text-yellow-800 dark:text-yellow-200">
+            <strong>{selectedDb.label}</strong> is not available yet. This database type will be supported in version 1.
+            <br />
+            Please select MySQL or PostgreSQL for now.
+          </AlertDescription>
+        </Alert>
+      )
     }
+
+    // Standard fields for MySQL and PostgreSQL
+    return (
+      <>
+        <div className="space-y-2">
+          <Label htmlFor="host">Host *</Label>
+          <Input
+            id="host"
+            name="host"
+            placeholder="localhost"
+            value={formData.host || ""}
+            onChange={handleChange}
+            className="bg-input border-border"
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="port">Port *</Label>
+          <Input
+            id="port"
+            name="port"
+            placeholder={DATABASE_TYPES.find((db) => db.value === dbType)?.defaultPort || ""}
+            value={formData.port || ""}
+            onChange={handleChange}
+            className="bg-input border-border"
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="database">Database Name *</Label>
+          <Input
+            id="database"
+            name="database"
+            placeholder="my_database"
+            value={formData.database || ""}
+            onChange={handleChange}
+            className="bg-input border-border"
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="username">Username *</Label>
+          <Input
+            id="username"
+            name="username"
+            placeholder="Enter your username"
+            value={formData.username || ""}
+            onChange={handleChange}
+            className="bg-input border-border"
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="password">Password *</Label>
+          <Input
+            id="password"
+            name="password"
+            type="password"
+            placeholder="Enter your password"
+            value={formData.password || ""}
+            onChange={handleChange}
+            className="bg-input border-border"
+          />
+        </div>
+      </>
+    )
   }
 
   const getDbTypeLabel = (type: string) => {
@@ -551,31 +307,38 @@ export function DatasourcePage() {
             {/* Dynamic Connection Fields */}
             {renderConnectionFields()}
 
-            {/* Knowledge Database - Common for all types */}
-            <div className="space-y-2">
-              <Label htmlFor="knowledge">Knowledge Database Context</Label>
-              <textarea
-                id="knowledge"
-                name="knowledge"
-                placeholder="Describe your database schema and tables to help AI understand your data structure..."
-                value={formData.knowledge || ""}
-                onChange={handleChange}
-                className="w-full px-3 py-2 rounded-md bg-input border border-border text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary min-h-32 resize-none"
-              />
-              <p className="text-sm text-muted-foreground">
-                Optional: Provide context about your database structure to improve AI responses
-              </p>
-            </div>
+            {/* Knowledge Database - Only show for available databases */}
+            {!showUnavailableAlert && (
+              <div className="space-y-2">
+                <Label htmlFor="knowledge">Knowledge Database Context</Label>
+                <textarea
+                  id="knowledge"
+                  name="knowledge"
+                  placeholder="Describe your database schema and tables to help AI understand your data structure..."
+                  value={formData.knowledge || ""}
+                  onChange={handleChange}
+                  className="w-full px-3 py-2 rounded-md bg-input border border-border text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary min-h-32 resize-none"
+                />
+                <p className="text-sm text-muted-foreground">
+                  Optional: Provide context about your database structure to improve AI responses
+                </p>
+              </div>
+            )}
 
-            {/* Buttons */}
-            <div className="flex gap-4 pt-4">
-              <Button onClick={handleSave} className="bg-primary hover:bg-secondary text-primary-foreground">
-                Save Configuration
-              </Button>
-              <Button variant="outline" className="border-border bg-transparent">
-                Test Connection
-              </Button>
-            </div>
+            {/* Buttons - Only show for available databases */}
+            {!showUnavailableAlert && (
+              <div className="flex gap-4 pt-4">
+                <Button
+                  onClick={handleSave}
+                  className="bg-primary hover:bg-secondary text-primary-foreground"
+                >
+                  Save Configuration
+                </Button>
+                <Button variant="outline" className="border-border bg-transparent">
+                  Test Connection
+                </Button>
+              </div>
+            )}
           </CardContent>
         </Card>
       )}
