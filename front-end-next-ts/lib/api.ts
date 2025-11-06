@@ -5,6 +5,7 @@
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8765';
 const AUTH_API = process.env.NEXT_PUBLIC_AUTH_API || '/auth';
+const PROFILE_API = '/profiles';
 
 export interface ApiError {
   message: string;
@@ -46,7 +47,7 @@ async function apiRequest<T>(
     if (!response.ok) {
       return {
         error: {
-          message: data.message || 'An error occurred',
+          message: data.message || data.error || 'An error occurred',
           status: response.status,
           error: data.error,
         },
@@ -91,8 +92,29 @@ export const authApi = {
   login: (data: LoginRequest) =>
     api.post<AuthResponse>(`${AUTH_API}/login`, data),
 
+  forgotPassword: (data: ForgotPasswordRequest) =>
+    api.post<MessageResponse>(`${AUTH_API}/forgot-password`, data),
+
+  updatePassword: (data: UpdatePasswordRequest) =>
+    api.put<MessageResponse>(`${AUTH_API}/users/password`, data),
+
+  updateEmail: (data: UpdateEmailRequest) =>
+    api.put<MessageResponse>(`${AUTH_API}/users/email`, data),
+
   health: () =>
     api.get<HealthResponse>(`${AUTH_API}/health`),
+};
+
+// Profile API endpoints
+export const profileApi = {
+  getProfile: (userId: number) =>
+    api.get<ProfileResponse>(`${PROFILE_API}/${userId}`),
+
+  updateProfile: (userId: number, data: UpdateProfileRequest) =>
+    api.put<ProfileResponse>(`${PROFILE_API}/${userId}`, data),
+
+  deleteProfile: (userId: number) =>
+    api.delete<MessageResponse>(`${PROFILE_API}/${userId}`),
 };
 
 // Type definitions
@@ -107,6 +129,27 @@ export interface LoginRequest {
   password: string;
 }
 
+export interface ForgotPasswordRequest {
+  email: string;
+}
+
+export interface UpdatePasswordRequest {
+  currentPassword: string;
+  newPassword: string;
+}
+
+export interface UpdateEmailRequest {
+  newEmail: string;
+  password: string;
+}
+
+export interface UpdateProfileRequest {
+  name?: string;
+  avatarUrl?: string;
+  bio?: string;
+  preferences?: string;
+}
+
 export interface AuthResponse {
   token: string;
   userId: number;
@@ -114,7 +157,22 @@ export interface AuthResponse {
   message?: string;
 }
 
+export interface MessageResponse {
+  message: string;
+}
+
 export interface HealthResponse {
   status: string;
   service: string;
+}
+
+export interface ProfileResponse {
+  id: number;
+  userId: number;
+  name: string;
+  avatarUrl: string | null;
+  bio: string | null;
+  preferences: string | null;
+  createdAt: string;
+  updatedAt: string;
 }
