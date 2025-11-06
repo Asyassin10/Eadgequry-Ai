@@ -42,6 +42,8 @@ public class CustomUserDetailsService implements UserDetailsService {
 
         public CustomUserDetails(User user) { this.user = user; }
 
+        public User getUser() { return user; }
+
         @Override
         public Collection<? extends GrantedAuthority> getAuthorities() {
             // Return empty list - no role-based authentication
