@@ -123,6 +123,9 @@ export const authApi = {
   login: (data: LoginRequest) =>
     api.post<AuthResponse>(`${AUTH_API}/login`, data),
 
+  logout: () =>
+    api.post<MessageResponse>(`${AUTH_API}/logout`, {}),
+
   forgotPassword: (data: ForgotPasswordRequest) =>
     api.post<MessageResponse>(`${AUTH_API}/forgot-password`, data),
 
