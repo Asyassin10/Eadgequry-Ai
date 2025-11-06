@@ -118,13 +118,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const logout = () => {
-    localStorage.removeItem('authToken');
-    localStorage.removeItem('user');
-    deleteCookie('authToken');
-    setUser(null);
-    toast.success('Logged out successfully');
-    router.push('/login');
+  const logout = async () => {
+    try {
+      // Call backend logout endpoint (for logging/auditing)
+      await authApi.logout();
+    } catch (error) {
+      // Continue with logout even if backend call fails
+      console.error('Logout API call failed:', error);
+    } finally {
+      // Always clear local authentication data
+      localStorage.removeItem('authToken');
+      localStorage.removeItem('user');
+      deleteCookie('authToken');
+      setUser(null);
+      toast.success('Logged out successfully');
+      router.push('/login');
+    }
   };
 
   return (

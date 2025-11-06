@@ -45,6 +45,33 @@ public class AuthController {
                     .body(Map.of("error", "Registration failed: " + e.getMessage()));
         }
     }
+
+    /**
+     * Logout endpoint (protected - requires JWT)
+     * POST /logout
+     * Since JWT is stateless, logout is primarily handled client-side.
+     * This endpoint can be extended later for token blacklisting if needed.
+     */
+    @PostMapping("/logout")
+    public ResponseEntity<?> logout(@AuthenticationPrincipal Jwt jwt) {
+        try {
+            // In a stateless JWT system, logout is handled client-side
+            // This endpoint is here for:
+            // 1. Logging/auditing purposes
+            // 2. Future token blacklisting/revocation if needed
+            Long userId = Long.parseLong(jwt.getSubject());
+
+            // Could add logic here to:
+            // - Log logout event
+            // - Add token to blacklist (if implementing token revocation)
+            // - Notify other services
+
+            return ResponseEntity.ok(Map.of("message", "Logged out successfully"));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Logout failed: " + e.getMessage()));
+        }
+    }
  
         @GetMapping("/test")
     public ResponseEntity<?> test() {

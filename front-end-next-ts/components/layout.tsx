@@ -9,6 +9,7 @@ import { Bell, LogOut, LayoutDashboard, MessageCircle, Database, Settings } from
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { useAuth } from "@/contexts/AuthContext"
 
 interface LayoutProps {
   children: React.ReactNode
@@ -21,6 +22,7 @@ export function Layout({ children, isDark, onToggleTheme }: LayoutProps) {
   const [showNotifications, setShowNotifications] = useState(false)
   const pathname = usePathname()
   const router = useRouter()
+  const { logout, user } = useAuth()
 
   const isActive = (path: string) => pathname === path
 
@@ -37,9 +39,8 @@ export function Layout({ children, isDark, onToggleTheme }: LayoutProps) {
     { href: "/settings", label: "Settings", icon: Settings },
   ]
 
-  const handleLogout = () => {
-    console.log("Logging out...")
-    router.push("/")
+  const handleLogout = async () => {
+    await logout()
   }
 
   return (
@@ -130,8 +131,13 @@ export function Layout({ children, isDark, onToggleTheme }: LayoutProps) {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
+                {user && (
+                  <div className="px-2 py-1.5 text-sm text-muted-foreground border-b border-border">
+                    {user.email}
+                  </div>
+                )}
                 <DropdownMenuItem onClick={() => router.push("/settings")}>Profile Settings</DropdownMenuItem>
-                <DropdownMenuItem>
+                <DropdownMenuItem onClick={handleLogout}>
                   <LogOut className="w-4 h-4 mr-2" />
                   Sign Out
                 </DropdownMenuItem>
