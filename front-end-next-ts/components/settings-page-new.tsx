@@ -10,10 +10,18 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Switch } from '@/components/ui/switch';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, User, Mail, Lock, Save } from 'lucide-react';
+import { Loader2, User, Mail, Lock, Save, Settings2 } from 'lucide-react';
 import { toast } from 'sonner';
+
+// User preferences interface
+interface UserPreferences {
+  darkMode: boolean;
+  language: 'en' | 'fr';
+}
 
 // Validation schemas
 const profileSchema = z.object({
@@ -44,6 +52,11 @@ export function SettingsPageNew() {
   const { user } = useAuth();
   const [profile, setProfile] = useState<ProfileResponse | null>(null);
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
+  const [preferences, setPreferences] = useState<UserPreferences>({
+    darkMode: false,
+    language: 'en',
+  });
+  const [isSavingPreferences, setIsSavingPreferences] = useState(false);
 
   // Profile form
   const {
@@ -75,7 +88,7 @@ export function SettingsPageNew() {
     resolver: zodResolver(passwordSchema),
   });
 
-  // Load profile data
+  // Load profile data and preferences
   useEffect(() => {
     const loadProfile = async () => {
       if (!user?.userId) return;
@@ -90,6 +103,25 @@ export function SettingsPageNew() {
           bio: response.data.bio || '',
           avatarUrl: response.data.avatarUrl || '',
         });
+
+        // Parse and load preferences from JSON
+        if (response.data.preferences) {
+          try {
+            const prefs: UserPreferences = JSON.parse(response.data.preferences);
+            setPreferences({
+              darkMode: prefs.darkMode || false,
+              language: prefs.language || 'en',
+            });
+            // Apply dark mode
+            if (prefs.darkMode) {
+              document.documentElement.classList.add('dark');
+            } else {
+              document.documentElement.classList.remove('dark');
+            }
+          } catch (error) {
+            console.error('Failed to parse preferences:', error);
+          }
+        }
       } else if (response.error) {
         toast.error('Failed to load profile');
       }
@@ -149,6 +181,49 @@ export function SettingsPageNew() {
     }
   };
 
+  // Handle preferences update
+  const handleSavePreferences = async () => {
+    if (!user?.userId) return;
+
+    setIsSavingPreferences(true);
+
+    try {
+      // Convert preferences to JSON string
+      const preferencesJson = JSON.stringify(preferences);
+
+      const response = await profileApi.updateProfile(user.userId, {
+        preferences: preferencesJson,
+      });
+
+      if (response.data) {
+        toast.success('Preferences saved successfully!');
+        // Apply dark mode immediately
+        if (preferences.darkMode) {
+          document.documentElement.classList.add('dark');
+        } else {
+          document.documentElement.classList.remove('dark');
+        }
+      } else if (response.error) {
+        toast.error(response.error.message);
+      }
+    } catch (error) {
+      console.error('Failed to save preferences:', error);
+      toast.error('Failed to save preferences');
+    } finally {
+      setIsSavingPreferences(false);
+    }
+  };
+
+  // Handle dark mode toggle
+  const handleDarkModeChange = (checked: boolean) => {
+    setPreferences((prev) => ({ ...prev, darkMode: checked }));
+  };
+
+  // Handle language change
+  const handleLanguageChange = (value: 'en' | 'fr') => {
+    setPreferences((prev) => ({ ...prev, language: value }));
+  };
+
   return (
     <div className="container mx-auto py-8 px-4 max-w-4xl">
       <div className="mb-8">
@@ -157,7 +232,7 @@ export function SettingsPageNew() {
       </div>
 
       <Tabs defaultValue="profile" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="profile">
             <User className="w-4 h-4 mr-2" />
             Profile
@@ -169,6 +244,10 @@ export function SettingsPageNew() {
           <TabsTrigger value="password">
             <Lock className="w-4 h-4 mr-2" />
             Password
+          </TabsTrigger>
+          <TabsTrigger value="preferences">
+            <Settings2 className="w-4 h-4 mr-2" />
+            Preferences
           </TabsTrigger>
         </TabsList>
 
@@ -378,6 +457,83 @@ export function SettingsPageNew() {
                   )}
                 </Button>
               </form>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Preferences Tab */}
+        <TabsContent value="preferences">
+          <Card>
+            <CardHeader>
+              <CardTitle>Preferences</CardTitle>
+              <CardDescription>
+                Customize your experience with dark mode and language settings
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {isLoadingProfile ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                </div>
+              ) : (
+                <>
+                  {/* Dark Mode Toggle */}
+                  <div className="flex items-center justify-between space-x-4">
+                    <div className="space-y-0.5 flex-1">
+                      <Label htmlFor="dark-mode">Dark Mode</Label>
+                      <p className="text-sm text-muted-foreground">
+                        {preferences.darkMode ? 'Dark mode is enabled' : 'Enable dark mode for a darker theme'}
+                      </p>
+                    </div>
+                    <Switch
+                      id="dark-mode"
+                      checked={preferences.darkMode}
+                      onCheckedChange={handleDarkModeChange}
+                      disabled={isSavingPreferences}
+                    />
+                  </div>
+
+                  {/* Language Selector */}
+                  <div className="space-y-2">
+                    <Label htmlFor="language">Language</Label>
+                    <Select
+                      value={preferences.language}
+                      onValueChange={handleLanguageChange}
+                      disabled={isSavingPreferences}
+                    >
+                      <SelectTrigger id="language">
+                        <SelectValue placeholder="Select language" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="en">English</SelectItem>
+                        <SelectItem value="fr">Français (French)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <p className="text-sm text-muted-foreground">
+                      Selected: {preferences.language === 'en' ? 'English' : 'Français'}
+                    </p>
+                  </div>
+
+                  {/* Save Button */}
+                  <Button
+                    onClick={handleSavePreferences}
+                    disabled={isSavingPreferences}
+                    className="w-full sm:w-auto"
+                  >
+                    {isSavingPreferences ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Saving...
+                      </>
+                    ) : (
+                      <>
+                        <Save className="mr-2 h-4 w-4" />
+                        Save Preferences
+                      </>
+                    )}
+                  </Button>
+                </>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
