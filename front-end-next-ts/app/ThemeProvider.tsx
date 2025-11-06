@@ -1,6 +1,8 @@
 'use client';
 
 import { useState, useEffect } from "react";
+import { AuthProvider } from "@/contexts/AuthContext";
+import { Toaster } from "sonner";
 
 export default function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [isDark, setIsDark] = useState(false);
@@ -25,5 +27,10 @@ export default function ThemeProvider({ children }: { children: React.ReactNode 
 
   if (!mounted) return null;
 
-  return <>{children}</>;
+  return (
+    <AuthProvider>
+      {children}
+      <Toaster position="top-right" richColors />
+    </AuthProvider>
+  );
 }
