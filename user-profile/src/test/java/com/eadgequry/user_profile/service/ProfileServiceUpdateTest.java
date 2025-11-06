@@ -16,6 +16,7 @@ import java.time.LocalDateTime;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
@@ -104,33 +105,27 @@ class ProfileServiceUpdateTest {
     }
 
     @Test
-    void updateProfile_EmptyName_ShouldNotUpdate() {
+    void updateProfile_EmptyName_ShouldThrowException() {
         UpdateProfileRequest request = new UpdateProfileRequest("", null, null, null);
-        when(profileRepository.findByUserId(100L)).thenReturn(Optional.of(testProfile));
-        when(profileRepository.save(any(UserProfile.class))).thenReturn(testProfile);
 
-        ProfileResponse response = profileService.updateProfile(100L, request);
+        // The validate() method should throw IllegalArgumentException for empty name
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+            profileService.updateProfile(100L, request);
+        });
 
-        assertThat(response).isNotNull();
-        ArgumentCaptor<UserProfile> captor = ArgumentCaptor.forClass(UserProfile.class);
-        verify(profileRepository).save(captor.capture());
-        // Name should remain unchanged because empty string
-        assertThat(captor.getValue().getName()).isEqualTo("Original Name");
+        assertThat(exception.getMessage()).isEqualTo("Name cannot be empty");
     }
 
     @Test
-    void updateProfile_WhitespaceName_ShouldNotUpdate() {
+    void updateProfile_WhitespaceName_ShouldThrowException() {
         UpdateProfileRequest request = new UpdateProfileRequest("   ", null, null, null);
-        when(profileRepository.findByUserId(100L)).thenReturn(Optional.of(testProfile));
-        when(profileRepository.save(any(UserProfile.class))).thenReturn(testProfile);
 
-        ProfileResponse response = profileService.updateProfile(100L, request);
+        // The validate() method should throw IllegalArgumentException for whitespace name
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+            profileService.updateProfile(100L, request);
+        });
 
-        assertThat(response).isNotNull();
-        ArgumentCaptor<UserProfile> captor = ArgumentCaptor.forClass(UserProfile.class);
-        verify(profileRepository).save(captor.capture());
-        // Name should remain unchanged because whitespace-only
-        assertThat(captor.getValue().getName()).isEqualTo("Original Name");
+        assertThat(exception.getMessage()).isEqualTo("Name cannot be empty");
     }
 
     @Test
