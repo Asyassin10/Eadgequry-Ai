@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
-import { authApi, type AuthResponse, type LoginRequest, type RegisterRequest } from '@/lib/api';
+import { authApi, clearAuthData, type AuthResponse, type LoginRequest, type RegisterRequest } from '@/lib/api';
 import { toast } from 'sonner';
 
 interface User {
@@ -28,11 +28,6 @@ function setCookie(name: string, value: string, days: number = 7) {
   document.cookie = `${name}=${value};expires=${expires.toUTCString()};path=/;SameSite=Lax`;
 }
 
-// Helper function to delete cookie
-function deleteCookie(name: string) {
-  document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 UTC;path=/;`;
-}
-
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -48,9 +43,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(JSON.parse(userData));
       } catch (error) {
         console.error('Failed to parse user data:', error);
-        localStorage.removeItem('authToken');
-        localStorage.removeItem('user');
-        deleteCookie('authToken');
+        // Use centralized auth clearing on error
+        clearAuthData();
       }
     }
     setIsLoading(false);
@@ -126,10 +120,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Continue with logout even if backend call fails
       console.error('Logout API call failed:', error);
     } finally {
-      // Always clear local authentication data
-      localStorage.removeItem('authToken');
-      localStorage.removeItem('user');
-      deleteCookie('authToken');
+      // Use centralized auth data clearing (clears localStorage, sessionStorage, and cookies)
+      clearAuthData();
       setUser(null);
       toast.success('Logged out successfully');
       router.push('/login');
