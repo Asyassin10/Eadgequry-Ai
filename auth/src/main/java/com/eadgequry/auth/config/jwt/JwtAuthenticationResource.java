@@ -15,6 +15,9 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.eadgequry.auth.services.CustomUserDetailsService.CustomUserDetails;
+import com.eadgequry.auth.model.User;
+
 @RestController
 public class JwtAuthenticationResource {
 
@@ -35,16 +38,26 @@ public class JwtAuthenticationResource {
                         loginRequest.password()
                 )
         );
-        return ResponseEntity.ok(new JwtResponse(createToken(authentication)));
+
+        // Extract user details from authentication
+        CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
+        User user = userDetails.getUser();
+
+        return ResponseEntity.ok(new JwtResponse(
+            createToken(authentication, user.getId()),
+            user.getId(),
+            user.getEmail()
+        ));
     }
 
-    private String createToken(Authentication authentication) {
+    private String createToken(Authentication authentication, Long userId) {
         var claims = JwtClaimsSet.builder()
                 .issuer("self")
                 .issuedAt(Instant.now())
                 .expiresAt(Instant.now().plusSeconds(60 * 30))
-                .subject(authentication.getName())
+                .subject(String.valueOf(userId))  // Use userId as subject
                 .claim("scope", createScope(authentication))
+                .claim("email", authentication.getName())  // Store email as a claim
                 .build();
 
         return jwtEncoder.encode(JwtEncoderParameters.from(claims)).getTokenValue();
@@ -57,5 +70,5 @@ public class JwtAuthenticationResource {
     }
 }
 
-record JwtResponse(String token) {}
+record JwtResponse(String token, Long userId, String email) {}
 record LoginRequest(String email, String password) {}
