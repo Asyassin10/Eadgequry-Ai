@@ -2,17 +2,29 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 // Public routes that don't require authentication
-const publicRoutes = ['/login', '/register', '/forgot-password'];
+const publicRoutes = ['/', '/login', '/register', '/forgot-password'];
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Check if the route is public
-  const isPublicRoute = publicRoutes.some(route => pathname.startsWith(route));
+  const isPublicRoute = publicRoutes.some(route => pathname === route || pathname.startsWith(route + '/'));
 
-  // Get the auth token from cookie or use a method to check if authenticated
-  // For now, we'll let the client handle redirects via AuthContext
-  // But you can add server-side checks here if needed
+  // If it's a public route, allow access
+  if (isPublicRoute) {
+    return NextResponse.next();
+  }
+
+  // For protected routes, check if user has auth token
+  const authToken = request.cookies.get('authToken')?.value;
+
+  // If no token, redirect to login
+  if (!authToken) {
+    const url = request.nextUrl.clone();
+    url.pathname = '/login';
+    url.searchParams.set('redirect', pathname);
+    return NextResponse.redirect(url);
+  }
 
   return NextResponse.next();
 }
