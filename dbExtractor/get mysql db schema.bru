@@ -1,0 +1,24 @@
+meta {
+  name: get mysql db schema
+  type: http
+  seq: 1
+}
+
+get {
+  url: http://localhost:8080/extract?host=127.0.0.1&port=6034&database=dentflow&username=root&password=my-secret-pw
+  body: none
+  auth: inherit
+}
+
+params:query {
+  host: 127.0.0.1
+  port: 6034
+  database: dentflow
+  username: root
+  password: my-secret-pw
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
