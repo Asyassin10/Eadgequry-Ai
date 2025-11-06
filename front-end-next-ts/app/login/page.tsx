@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -11,6 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2, LogIn } from 'lucide-react';
+import { toast } from 'sonner';
 
 const loginSchema = z.object({
   email: z.string().email('Invalid email address'),
@@ -22,6 +24,17 @@ type LoginFormData = z.infer<typeof loginSchema>;
 export default function LoginPage() {
   const { login, isLoading } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const searchParams = useSearchParams();
+
+  // Show message if redirected due to session expiration
+  useEffect(() => {
+    const reason = searchParams.get('reason');
+    if (reason === 'session_expired') {
+      toast.error('Your session has expired. Please login again.', {
+        duration: 5000,
+      });
+    }
+  }, [searchParams]);
 
   const {
     register,

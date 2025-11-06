@@ -19,6 +19,32 @@ export interface ApiResponse<T> {
 }
 
 /**
+ * Helper function to delete cookie
+ */
+function deleteCookie(name: string) {
+  document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 UTC;path=/;`;
+}
+
+/**
+ * Handle 401 Unauthorized - token is invalid or expired
+ */
+function handle401Unauthorized(endpoint: string) {
+  // Don't logout for public auth endpoints
+  const publicEndpoints = ['/auth/login', '/auth/register', '/auth/forgot-password'];
+  const isPublicEndpoint = publicEndpoints.some(path => endpoint.includes(path));
+
+  if (!isPublicEndpoint && typeof window !== 'undefined') {
+    // Clear authentication data
+    localStorage.removeItem('authToken');
+    localStorage.removeItem('user');
+    deleteCookie('authToken');
+
+    // Redirect to login with message
+    window.location.href = '/login?reason=session_expired';
+  }
+}
+
+/**
  * Generic API request handler with error handling
  */
 async function apiRequest<T>(
@@ -45,6 +71,11 @@ async function apiRequest<T>(
     const data = await response.json().catch(() => ({}));
 
     if (!response.ok) {
+      // Handle 401 Unauthorized - invalid/expired token
+      if (response.status === 401) {
+        handle401Unauthorized(endpoint);
+      }
+
       return {
         error: {
           message: data.message || data.error || 'An error occurred',
