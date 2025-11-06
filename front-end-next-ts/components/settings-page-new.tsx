@@ -277,6 +277,7 @@ export function SettingsPageNew() {
                       id="name"
                       {...registerProfile('name')}
                       disabled={isSubmittingProfile}
+                      className="bg-input border-border"
                     />
                     {profileErrors.name && (
                       <p className="text-sm text-red-600 dark:text-red-400">{profileErrors.name.message}</p>
@@ -291,6 +292,7 @@ export function SettingsPageNew() {
                       rows={4}
                       {...registerProfile('bio')}
                       disabled={isSubmittingProfile}
+                      className="bg-input border-border"
                     />
                     {profileErrors.bio && (
                       <p className="text-sm text-red-600 dark:text-red-400">{profileErrors.bio.message}</p>
@@ -305,13 +307,14 @@ export function SettingsPageNew() {
                       placeholder="https://example.com/avatar.jpg"
                       {...registerProfile('avatarUrl')}
                       disabled={isSubmittingProfile}
+                      className="bg-input border-border"
                     />
                     {profileErrors.avatarUrl && (
                       <p className="text-sm text-red-600 dark:text-red-400">{profileErrors.avatarUrl.message}</p>
                     )}
                   </div>
 
-                  <Button type="submit" disabled={isSubmittingProfile}>
+                  <Button type="submit" disabled={isSubmittingProfile} className="bg-primary hover:bg-secondary text-primary-foreground">
                     {isSubmittingProfile ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -359,6 +362,7 @@ export function SettingsPageNew() {
                     placeholder="newemail@example.com"
                     {...registerEmail('newEmail')}
                     disabled={isSubmittingEmail}
+                    className="bg-input border-border"
                   />
                   {emailErrors.newEmail && (
                     <p className="text-sm text-red-600 dark:text-red-400">{emailErrors.newEmail.message}</p>
@@ -373,13 +377,14 @@ export function SettingsPageNew() {
                     placeholder="Enter your current password"
                     {...registerEmail('password')}
                     disabled={isSubmittingEmail}
+                    className="bg-input border-border"
                   />
                   {emailErrors.password && (
                     <p className="text-sm text-red-600 dark:text-red-400">{emailErrors.password.message}</p>
                   )}
                 </div>
 
-                <Button type="submit" disabled={isSubmittingEmail}>
+                <Button type="submit" disabled={isSubmittingEmail} className="bg-primary hover:bg-secondary text-primary-foreground">
                   {isSubmittingEmail ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -415,6 +420,7 @@ export function SettingsPageNew() {
                     type="password"
                     {...registerPassword('currentPassword')}
                     disabled={isSubmittingPassword}
+                    className="bg-input border-border"
                   />
                   {passwordErrors.currentPassword && (
                     <p className="text-sm text-red-600 dark:text-red-400">{passwordErrors.currentPassword.message}</p>
@@ -428,6 +434,7 @@ export function SettingsPageNew() {
                     type="password"
                     {...registerPassword('newPassword')}
                     disabled={isSubmittingPassword}
+                    className="bg-input border-border"
                   />
                   {passwordErrors.newPassword && (
                     <p className="text-sm text-red-600 dark:text-red-400">{passwordErrors.newPassword.message}</p>
@@ -441,13 +448,14 @@ export function SettingsPageNew() {
                     type="password"
                     {...registerPassword('confirmPassword')}
                     disabled={isSubmittingPassword}
+                    className="bg-input border-border"
                   />
                   {passwordErrors.confirmPassword && (
                     <p className="text-sm text-red-600 dark:text-red-400">{passwordErrors.confirmPassword.message}</p>
                   )}
                 </div>
 
-                <Button type="submit" disabled={isSubmittingPassword}>
+                <Button type="submit" disabled={isSubmittingPassword} className="bg-primary hover:bg-secondary text-primary-foreground">
                   {isSubmittingPassword ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -505,7 +513,7 @@ export function SettingsPageNew() {
                       onValueChange={handleLanguageChange}
                       disabled={isSavingPreferences}
                     >
-                      <SelectTrigger id="language">
+                      <SelectTrigger id="language" className="bg-input border-border">
                         <SelectValue placeholder="Select language" />
                       </SelectTrigger>
                       <SelectContent>
@@ -522,7 +530,7 @@ export function SettingsPageNew() {
                   <Button
                     onClick={handleSavePreferences}
                     disabled={isSavingPreferences}
-                    className="w-full sm:w-auto"
+                    className="w-full sm:w-auto bg-primary hover:bg-secondary text-primary-foreground"
                   >
                     {isSavingPreferences ? (
                       <>
