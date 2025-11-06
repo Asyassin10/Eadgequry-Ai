@@ -11,8 +11,8 @@ export default function Home() {
   useEffect(() => {
     setMounted(true)
     const savedTheme = localStorage.getItem("theme")
-    const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches
-    const shouldBeDark = savedTheme ? savedTheme === "dark" : prefersDark
+    // Default to light mode - only dark if explicitly saved
+    const shouldBeDark = savedTheme === "dark"
     setIsDark(shouldBeDark)
   }, [])
 

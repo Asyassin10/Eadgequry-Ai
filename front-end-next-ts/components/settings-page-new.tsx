@@ -112,6 +112,8 @@ export function SettingsPageNew() {
               darkMode: prefs.darkMode || false,
               language: prefs.language || 'en',
             });
+            // Save to localStorage for consistency across the app
+            localStorage.setItem('theme', prefs.darkMode ? 'dark' : 'light');
             // Apply dark mode
             if (prefs.darkMode) {
               document.documentElement.classList.add('dark');
@@ -197,6 +199,8 @@ export function SettingsPageNew() {
 
       if (response.data) {
         toast.success('Preferences saved successfully!');
+        // Save to localStorage for consistency across pages
+        localStorage.setItem('theme', preferences.darkMode ? 'dark' : 'light');
         // Apply dark mode immediately
         if (preferences.darkMode) {
           document.documentElement.classList.add('dark');
