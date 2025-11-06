@@ -125,7 +125,10 @@ export function SettingsPageNew() {
           }
         }
       } else if (response.error) {
-        toast.error('Failed to load profile');
+        // Don't show error toast for 401 - auto-logout will handle it
+        if (response.error.status !== 401) {
+          toast.error('Failed to load profile');
+        }
       }
 
       setIsLoadingProfile(false);
