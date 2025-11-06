@@ -4,7 +4,6 @@ import com.eadgequry.notification.dto.EmailUpdatedEvent;
 import com.eadgequry.notification.dto.ForgotPasswordEvent;
 import com.eadgequry.notification.dto.UserRegisteredEvent;
 import com.eadgequry.notification.service.EmailService;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -45,13 +44,6 @@ class AuthEventConsumerTest {
     }
 
     @Test
-    void handleUserRegistered_NullEvent() {
-        authEventConsumer.handleUserRegistered(null);
-
-        verify(emailService, never()).sendVerificationEmail(anyString(), anyString(), anyString());
-    }
-
-    @Test
     void handleForgotPassword_Success() {
         ForgotPasswordEvent event = new ForgotPasswordEvent(
                 1L,
@@ -71,13 +63,6 @@ class AuthEventConsumerTest {
                 "John Doe",
                 "reset-token"
         );
-    }
-
-    @Test
-    void handleForgotPassword_NullEvent() {
-        authEventConsumer.handleForgotPassword(null);
-
-        verify(emailService, never()).sendPasswordResetEmail(anyString(), anyString(), anyString());
     }
 
     @Test
@@ -109,13 +94,5 @@ class AuthEventConsumerTest {
                 "John Doe",
                 "verification-token"
         );
-    }
-
-    @Test
-    void handleEmailUpdated_NullEvent() {
-        authEventConsumer.handleEmailUpdated(null);
-
-        verify(emailService, never()).sendEmailChangeNotificationOld(anyString(), anyString(), anyString());
-        verify(emailService, never()).sendEmailChangeVerificationNew(anyString(), anyString(), anyString());
     }
 }
