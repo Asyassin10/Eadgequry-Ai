@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { Layout } from "@/components/layout"
-import { SettingsPage } from "@/components/settings-page"
+import { SettingsPageNew } from "@/components/settings-page-new"
 
 export default function Settings() {
   const [isDark, setIsDark] = useState(false)
@@ -31,7 +31,7 @@ export default function Settings() {
 
   return (
     <Layout isDark={isDark} onToggleTheme={toggleTheme}>
-      <SettingsPage />
+      <SettingsPageNew />
     </Layout>
   )
 }
