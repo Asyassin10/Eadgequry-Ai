@@ -7,6 +7,9 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8765';
 const AUTH_API = process.env.NEXT_PUBLIC_AUTH_API || '/auth';
 const PROFILE_API = '/profiles';
 
+// Flag to prevent multiple simultaneous logout redirects
+let isLoggingOut = false;
+
 export interface ApiError {
   message: string;
   status: number;
@@ -22,30 +25,77 @@ export interface ApiResponse<T> {
  * Helper function to delete cookie
  */
 function deleteCookie(name: string) {
-  document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 UTC;path=/;`;
+  if (typeof document !== 'undefined') {
+    document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 UTC;path=/;`;
+  }
 }
 
 /**
+ * Clear all authentication data from storage and cookies
+ */
+function clearAuthData() {
+  if (typeof window === 'undefined') return;
+
+  try {
+    // Clear localStorage
+    localStorage.removeItem('authToken');
+    localStorage.removeItem('user');
+
+    // Clear sessionStorage (in case anything is stored there)
+    sessionStorage.removeItem('authToken');
+    sessionStorage.removeItem('user');
+
+    // Clear cookies
+    deleteCookie('authToken');
+
+    console.log('[Auth] Cleared all authentication data');
+  } catch (error) {
+    console.error('[Auth] Error clearing auth data:', error);
+  }
+}
+
+/**
+ * Export clearAuthData for use by AuthContext or other components
+ */
+export { clearAuthData };
+
+/**
  * Handle 401 Unauthorized - token is invalid or expired
+ * This is called automatically for ANY API response with 401 status
  */
 function handle401Unauthorized(endpoint: string) {
   // Don't logout for public auth endpoints
   const publicEndpoints = ['/auth/login', '/auth/register', '/auth/forgot-password'];
   const isPublicEndpoint = publicEndpoints.some(path => endpoint.includes(path));
 
-  if (!isPublicEndpoint && typeof window !== 'undefined') {
-    // Clear authentication data
-    localStorage.removeItem('authToken');
-    localStorage.removeItem('user');
-    deleteCookie('authToken');
+  if (isPublicEndpoint) {
+    console.log('[Auth] 401 on public endpoint, skipping auto-logout');
+    return;
+  }
 
-    // Redirect to login with message
+  // Prevent multiple simultaneous logouts
+  if (isLoggingOut) {
+    console.log('[Auth] Logout already in progress, skipping');
+    return;
+  }
+
+  if (typeof window !== 'undefined') {
+    isLoggingOut = true;
+
+    console.warn('[Auth] 401 Unauthorized - Token invalid/expired. Auto-logout triggered.');
+    console.warn('[Auth] Endpoint:', endpoint);
+
+    // Clear all authentication data
+    clearAuthData();
+
+    // Redirect to login with session expired message
     window.location.href = '/login?reason=session_expired';
   }
 }
 
 /**
- * Generic API request handler with error handling
+ * Generic API request handler with automatic 401 logout
+ * ALL API requests go through this function, ensuring consistent 401 handling
  */
 async function apiRequest<T>(
   endpoint: string,
@@ -68,12 +118,22 @@ async function apiRequest<T>(
       headers,
     });
 
+    // Try to parse JSON response
     const data = await response.json().catch(() => ({}));
 
     if (!response.ok) {
-      // Handle 401 Unauthorized - invalid/expired token
+      // CRITICAL: Handle 401 Unauthorized - AUTOMATIC LOGOUT
       if (response.status === 401) {
         handle401Unauthorized(endpoint);
+
+        // Still return error so caller can handle if needed
+        return {
+          error: {
+            message: 'Session expired. Please login again.',
+            status: 401,
+            error: 'Unauthorized',
+          },
+        };
       }
 
       return {
@@ -87,6 +147,7 @@ async function apiRequest<T>(
 
     return { data };
   } catch (error) {
+    console.error('[API] Request failed:', endpoint, error);
     return {
       error: {
         message: error instanceof Error ? error.message : 'Network error',
