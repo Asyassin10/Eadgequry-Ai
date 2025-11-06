@@ -49,6 +49,9 @@ public class JwtSecurityConfiguration {
     @Bean
     SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
     http.authorizeHttpRequests(auth -> {
+        // Allow OPTIONS requests (CORS preflight) without authentication
+        auth.requestMatchers(org.springframework.http.HttpMethod.OPTIONS, "/**").permitAll();
+        // Public endpoints
         auth.requestMatchers(
             "/login",
             "/register",
