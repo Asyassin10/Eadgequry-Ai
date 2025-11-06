@@ -152,7 +152,8 @@ public class AuthController {
             @AuthenticationPrincipal Jwt jwt,
             @RequestBody UpdatePasswordRequest request) {
         try {
-            Long userId = jwt.getClaim("sub");
+            // JWT subject is stored as String, parse to Long
+            Long userId = Long.parseLong(jwt.getSubject());
             String message = authService.updatePassword(userId, request);
             return ResponseEntity.ok(Map.of("message", message));
         } catch (IllegalArgumentException e) {
@@ -173,7 +174,8 @@ public class AuthController {
             @AuthenticationPrincipal Jwt jwt,
             @RequestBody UpdateEmailRequest request) {
         try {
-            Long userId = jwt.getClaim("sub");
+            // JWT subject is stored as String, parse to Long
+            Long userId = Long.parseLong(jwt.getSubject());
             String message = authService.updateEmail(userId, request);
             return ResponseEntity.ok(Map.of("message", message));
         } catch (IllegalArgumentException e) {
