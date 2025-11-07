@@ -17,7 +17,6 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api/datasource/query")
 @Tag(name = "Query Execution", description = "Execute SQL queries on configured databases")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*")
 public class QueryExecutionController {
 
     private static final Logger log = LoggerFactory.getLogger(QueryExecutionController.class);

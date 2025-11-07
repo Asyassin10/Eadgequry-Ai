@@ -23,7 +23,6 @@ import java.util.List;
 @RequestMapping("/api/chatbot")
 @Tag(name = "Chatbot", description = "Natural language database query chatbot API")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*")
 public class ChatbotController {
 
     private static final Logger log = LoggerFactory.getLogger(ChatbotController.class);
