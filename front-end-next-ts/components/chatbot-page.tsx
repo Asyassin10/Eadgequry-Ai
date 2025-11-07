@@ -4,200 +4,439 @@ import { useState, useRef, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Send, BarChart3, TrendingUp, Users, MessageSquare, Plus, Trash2 } from "lucide-react"
+import { Send, MessageSquare, Database, Code, Table, AlertCircle, Loader2, RefreshCw } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
+import { useAuth } from "@/contexts/AuthContext"
+import { chatbotApi, datasourceApi, streamChatbot, type ChatResponse, type DatabaseConfigDTO } from "@/lib/api"
+import { toast } from "sonner"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 
 interface Message {
   id: number
-  text?: string
+  question: string
+  answer: string
+  sqlQuery?: string
+  sqlResult?: Array<Record<string, any>>
   sender: "user" | "ai"
-  cards?: Array<{
-    title: string
-    value: string
-    icon: "chart" | "trend" | "users"
-    color: string
-  }>
-}
-
-interface Conversation {
-  id: number
-  title: string
-  lastMessage: string
-  timestamp: string
+  type: "question" | "answer" | "error"
+  isStreaming?: boolean
 }
 
 export function ChatbotPage() {
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: 1,
-      text: "Hello! I'm EadgeQuery Chatbot. How can I help you analyze your data today?",
-      sender: "ai",
-    },
-  ])
+  const { user } = useAuth()
+  const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState("")
   const [isLoading, setIsLoading] = useState(false)
-  const [conversations, setConversations] = useState<Conversation[]>([
-    {
-      id: 1,
-      title: "New Conversation",
-      lastMessage: "Hello! I'm EadgeQuery Chatbot...",
-      timestamp: "Just now",
-    },
-  ])
-  const [activeConversationId, setActiveConversationId] = useState(1)
+  const [databases, setDatabases] = useState<DatabaseConfigDTO[]>([])
+  const [selectedDatabaseId, setSelectedDatabaseId] = useState<number | null>(null)
+  const [loadingDatabases, setLoadingDatabases] = useState(true)
   const scrollRef = useRef<HTMLDivElement>(null)
 
+  // Auto-scroll to bottom when messages change
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight
     }
   }, [messages])
 
-  const getCardIcon = (icon: string) => {
-    switch (icon) {
-      case "chart":
-        return <BarChart3 className="w-4 h-4" />
-      case "trend":
-        return <TrendingUp className="w-4 h-4" />
-      case "users":
-        return <Users className="w-4 h-4" />
-      default:
-        return null
+  // Load database configurations on mount
+  useEffect(() => {
+    if (user?.userId) {
+      loadDatabases()
+    }
+  }, [user])
+
+  const loadDatabases = async () => {
+    if (!user?.userId) return
+
+    try {
+      setLoadingDatabases(true)
+      const response = await datasourceApi.getAllConfigs(user.userId)
+
+      if (response.error) {
+        toast.error(response.error.message || "Failed to load databases")
+        return
+      }
+
+      if (response.data) {
+        setDatabases(response.data)
+        // Auto-select first database if available
+        if (response.data.length > 0 && !selectedDatabaseId) {
+          setSelectedDatabaseId(response.data[0].id)
+        }
+      }
+    } catch (error) {
+      console.error("Error loading databases:", error)
+      toast.error("Failed to load databases")
+    } finally {
+      setLoadingDatabases(false)
     }
   }
 
-  const handleSend = () => {
-    if (input.trim()) {
-      const newMessage: Message = {
-        id: messages.length + 1,
-        text: input,
-        sender: "user",
-      }
-      setMessages([...messages, newMessage])
+  const handleSend = async () => {
+    if (!input.trim()) {
+      toast.error("Please enter a question")
+      return
+    }
 
-      // Update conversation last message
-      setConversations((prev) =>
-        prev.map((conv) =>
-          conv.id === activeConversationId
-            ? { ...conv, lastMessage: input, timestamp: "Just now" }
-            : conv
+    if (!selectedDatabaseId) {
+      toast.error("Please select a database first")
+      return
+    }
+
+    if (!user?.userId) {
+      toast.error("You must be logged in")
+      return
+    }
+
+    const questionText = input.trim()
+    setInput("")
+    setIsLoading(true)
+
+    // Add user question to messages
+    const questionMessage: Message = {
+      id: Date.now(),
+      question: questionText,
+      answer: "",
+      sender: "user",
+      type: "question",
+    }
+    setMessages((prev) => [...prev, questionMessage])
+
+    try {
+      const response = await chatbotApi.ask({
+        question: questionText,
+        databaseConfigId: selectedDatabaseId,
+        userId: user.userId,
+      })
+
+      if (response.error) {
+        // Add error message
+        const errorMessage: Message = {
+          id: Date.now() + 1,
+          question: questionText,
+          answer: response.error.message || "Failed to process question",
+          sender: "ai",
+          type: "error",
+        }
+        setMessages((prev) => [...prev, errorMessage])
+        toast.error(response.error.message || "Failed to process question")
+        return
+      }
+
+      if (response.data) {
+        // Add AI answer with SQL query and results
+        const answerMessage: Message = {
+          id: Date.now() + 1,
+          question: response.data.question,
+          answer: response.data.answer,
+          sqlQuery: response.data.sqlQuery,
+          sqlResult: response.data.sqlResult,
+          sender: "ai",
+          type: "answer",
+        }
+        setMessages((prev) => [...prev, answerMessage])
+      }
+    } catch (error) {
+      console.error("Error sending message:", error)
+      const errorMessage: Message = {
+        id: Date.now() + 1,
+        question: questionText,
+        answer: "An unexpected error occurred. Please try again.",
+        sender: "ai",
+        type: "error",
+      }
+      setMessages((prev) => [...prev, errorMessage])
+      toast.error("An unexpected error occurred")
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleSendStreaming = async () => {
+    if (!input.trim()) {
+      toast.error("Please enter a question")
+      return
+    }
+
+    if (!selectedDatabaseId) {
+      toast.error("Please select a database first")
+      return
+    }
+
+    if (!user?.userId) {
+      toast.error("You must be logged in")
+      return
+    }
+
+    const questionText = input.trim()
+    setInput("")
+    setIsLoading(true)
+
+    // Add user question
+    const questionMessage: Message = {
+      id: Date.now(),
+      question: questionText,
+      answer: "",
+      sender: "user",
+      type: "question",
+    }
+    setMessages((prev) => [...prev, questionMessage])
+
+    // Add streaming AI answer placeholder
+    const streamingMessageId = Date.now() + 1
+    const streamingMessage: Message = {
+      id: streamingMessageId,
+      question: questionText,
+      answer: "",
+      sender: "ai",
+      type: "answer",
+      isStreaming: true,
+    }
+    setMessages((prev) => [...prev, streamingMessage])
+
+    try {
+      let accumulatedAnswer = ""
+
+      for await (const chunk of streamChatbot({
+        question: questionText,
+        databaseConfigId: selectedDatabaseId,
+        userId: user.userId,
+      })) {
+        accumulatedAnswer += chunk
+        // Update streaming message
+        setMessages((prev) =>
+          prev.map((msg) =>
+            msg.id === streamingMessageId
+              ? { ...msg, answer: accumulatedAnswer }
+              : msg
+          )
+        )
+      }
+
+      // Mark streaming as complete
+      setMessages((prev) =>
+        prev.map((msg) =>
+          msg.id === streamingMessageId
+            ? { ...msg, isStreaming: false }
+            : msg
         )
       )
-
-      setInput("")
-      setIsLoading(true)
-
-      setTimeout(() => {
-        const responses = [
-          {
-            text: "Here's the data analysis you requested:",
-            cards: [
-              { title: "Active Users", value: "12,543", icon: "users" as const, color: "bg-blue-500" },
-              { title: "Revenue", value: "$54,231", icon: "trend" as const, color: "bg-green-500" },
-              { title: "Growth Rate", value: "+23%", icon: "chart" as const, color: "bg-purple-500" },
-            ],
-          },
-          {
-            text: "Based on your query, here are the key metrics:",
-          },
-          {
-            text: "I found the data you requested. Processing results...",
-          },
-        ]
-
-        const randomResponse = responses[Math.floor(Math.random() * responses.length)]
-        const aiResponse: Message = {
-          id: messages.length + 2,
-          ...randomResponse,
-          sender: "ai",
-        }
-        setMessages((prev) => [...prev, aiResponse])
-        setIsLoading(false)
-      }, 1000)
-    }
-  }
-
-  const handleNewConversation = () => {
-    const newId = conversations.length + 1
-    const newConv: Conversation = {
-      id: newId,
-      title: `Conversation ${newId}`,
-      lastMessage: "Start a new conversation...",
-      timestamp: "Just now",
-    }
-    setConversations([newConv, ...conversations])
-    setActiveConversationId(newId)
-    setMessages([
-      {
-        id: 1,
-        text: "Hello! I'm EadgeQuery Chatbot. How can I help you analyze your data today?",
+    } catch (error) {
+      console.error("Streaming error:", error)
+      toast.error("Streaming failed. Try non-streaming mode.")
+      // Remove streaming message and add error
+      setMessages((prev) =>
+        prev.filter((msg) => msg.id !== streamingMessageId)
+      )
+      const errorMessage: Message = {
+        id: Date.now() + 2,
+        question: questionText,
+        answer: "Streaming failed. Please try again.",
         sender: "ai",
-      },
-    ])
+        type: "error",
+      }
+      setMessages((prev) => [...prev, errorMessage])
+    } finally {
+      setIsLoading(false)
+    }
   }
 
-  const handleDeleteConversation = (id: number) => {
-    if (conversations.length === 1) {
-      return // Don't delete the last conversation
+  const renderSqlResult = (result: Array<Record<string, any>>) => {
+    if (!result || result.length === 0) {
+      return (
+        <div className="text-xs text-muted-foreground italic">
+          No results returned
+        </div>
+      )
     }
-    setConversations((prev) => prev.filter((conv) => conv.id !== id))
-    if (activeConversationId === id) {
-      setActiveConversationId(conversations[0].id === id ? conversations[1].id : conversations[0].id)
-    }
+
+    const columns = Object.keys(result[0])
+
+    return (
+      <div className="overflow-x-auto">
+        <table className="w-full text-xs border-collapse">
+          <thead>
+            <tr className="border-b border-border">
+              {columns.map((col) => (
+                <th key={col} className="text-left p-2 font-semibold">
+                  {col}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {result.slice(0, 5).map((row, idx) => (
+              <tr key={idx} className="border-b border-border/50">
+                {columns.map((col) => (
+                  <td key={col} className="p-2">
+                    {row[col] !== null && row[col] !== undefined
+                      ? String(row[col])
+                      : "null"}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        {result.length > 5 && (
+          <div className="text-xs text-muted-foreground mt-2 text-center">
+            Showing 5 of {result.length} rows
+          </div>
+        )}
+      </div>
+    )
   }
 
   return (
-    <div className="p-6 h-full flex gap-4">
-      {/* Main Chat Area */}
-      <Card className="flex-1 bg-card border-border flex flex-col">
-        <CardHeader className="border-b border-border">
-          <CardTitle className="flex items-center gap-2">
-            <MessageSquare className="w-5 h-5" />
-            <span>EadgeQuery Chatbot</span>
-            <Badge className="bg-primary text-primary-foreground">AI Assistant</Badge>
-          </CardTitle>
+    <div className="p-6 h-full flex flex-col gap-4">
+      {/* Header with Database Selector */}
+      <Card className="bg-card border-border">
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <MessageSquare className="w-5 h-5 text-primary" />
+              <CardTitle>EadgeQuery AI Chatbot</CardTitle>
+              <Badge className="bg-primary text-primary-foreground">
+                AI Assistant
+              </Badge>
+            </div>
+            <div className="flex items-center gap-2">
+              <Database className="w-4 h-4 text-muted-foreground" />
+              <Select
+                value={selectedDatabaseId?.toString()}
+                onValueChange={(value) => setSelectedDatabaseId(Number(value))}
+                disabled={loadingDatabases || databases.length === 0}
+              >
+                <SelectTrigger className="w-[250px]">
+                  <SelectValue placeholder="Select a database..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {databases.map((db) => (
+                    <SelectItem key={db.id} value={db.id.toString()}>
+                      {db.name} ({db.type})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={loadDatabases}
+                disabled={loadingDatabases}
+              >
+                <RefreshCw className={`w-4 h-4 ${loadingDatabases ? "animate-spin" : ""}`} />
+              </Button>
+            </div>
+          </div>
         </CardHeader>
-        <CardContent className="flex-1 flex flex-col gap-4 p-4">
-          {/* Chat Messages */}
-          <div ref={scrollRef} className="flex-1 space-y-4 overflow-y-auto bg-muted/20 rounded-lg p-4">
-            {messages.map((message) => (
-              <div key={message.id}>
-                <div className={`flex ${message.sender === "user" ? "justify-end" : "justify-start"}`}>
-                  {message.text && (
-                    <div
-                      className={`max-w-xs lg:max-w-md px-4 py-3 rounded-lg ${
-                        message.sender === "user"
-                          ? "bg-primary text-primary-foreground rounded-br-none"
-                          : "bg-card border border-border rounded-bl-none"
-                      }`}
-                    >
-                      <p className="text-sm">{message.text}</p>
-                    </div>
-                  )}
-                </div>
+      </Card>
 
-                {message.cards && (
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-3">
-                    {message.cards.map((card, idx) => (
-                      <div key={idx} className={`${card.color} rounded-lg p-4 text-white shadow-lg`}>
-                        <div className="flex items-center gap-2 mb-2">
-                          {getCardIcon(card.icon)}
-                          <p className="text-sm font-medium">{card.title}</p>
+      {/* Chat Area */}
+      <Card className="flex-1 bg-card border-border flex flex-col">
+        <CardContent className="flex-1 flex flex-col gap-4 p-4">
+          {/* Messages */}
+          <div
+            ref={scrollRef}
+            className="flex-1 space-y-4 overflow-y-auto bg-muted/20 rounded-lg p-4"
+          >
+            {messages.length === 0 && (
+              <div className="flex flex-col items-center justify-center h-full text-center">
+                <MessageSquare className="w-12 h-12 text-muted-foreground mb-3" />
+                <h3 className="text-lg font-semibold mb-2">
+                  Welcome to EadgeQuery AI Chatbot
+                </h3>
+                <p className="text-sm text-muted-foreground max-w-md">
+                  Ask questions about your database in natural language. I'll
+                  generate SQL queries and provide answers.
+                </p>
+              </div>
+            )}
+
+            {messages.map((message) => (
+              <div key={message.id} className="space-y-2">
+                {/* User Question */}
+                {message.type === "question" && (
+                  <div className="flex justify-end">
+                    <div className="max-w-xs lg:max-w-md px-4 py-3 rounded-lg bg-primary text-primary-foreground rounded-br-none">
+                      <p className="text-sm">{message.question}</p>
+                    </div>
+                  </div>
+                )}
+
+                {/* AI Answer */}
+                {(message.type === "answer" || message.type === "error") && (
+                  <div className="flex justify-start">
+                    <div className="max-w-2xl space-y-3">
+                      {/* SQL Query */}
+                      {message.sqlQuery && (
+                        <div className="bg-card border border-border rounded-lg p-3">
+                          <div className="flex items-center gap-2 mb-2">
+                            <Code className="w-4 h-4 text-blue-500" />
+                            <span className="text-xs font-semibold">
+                              Generated SQL Query
+                            </span>
+                          </div>
+                          <pre className="text-xs bg-muted p-2 rounded overflow-x-auto">
+                            <code>{message.sqlQuery}</code>
+                          </pre>
                         </div>
-                        <p className="text-2xl font-bold">{card.value}</p>
+                      )}
+
+                      {/* SQL Results */}
+                      {message.sqlResult && message.sqlResult.length > 0 && (
+                        <div className="bg-card border border-border rounded-lg p-3">
+                          <div className="flex items-center gap-2 mb-2">
+                            <Table className="w-4 h-4 text-green-500" />
+                            <span className="text-xs font-semibold">
+                              Query Results ({message.sqlResult.length} rows)
+                            </span>
+                          </div>
+                          {renderSqlResult(message.sqlResult)}
+                        </div>
+                      )}
+
+                      {/* AI Answer */}
+                      <div
+                        className={`px-4 py-3 rounded-lg rounded-bl-none ${
+                          message.type === "error"
+                            ? "bg-destructive/10 border border-destructive text-destructive"
+                            : "bg-card border border-border"
+                        }`}
+                      >
+                        {message.type === "error" && (
+                          <div className="flex items-center gap-2 mb-2">
+                            <AlertCircle className="w-4 h-4" />
+                            <span className="text-xs font-semibold">Error</span>
+                          </div>
+                        )}
+                        <p className="text-sm whitespace-pre-wrap">
+                          {message.answer}
+                          {message.isStreaming && (
+                            <span className="inline-block w-2 h-4 ml-1 bg-primary animate-pulse" />
+                          )}
+                        </p>
                       </div>
-                    ))}
+                    </div>
                   </div>
                 )}
               </div>
             ))}
+
             {isLoading && (
               <div className="flex justify-start">
                 <div className="bg-card border border-border px-4 py-3 rounded-lg rounded-bl-none">
-                  <div className="flex gap-2">
-                    <div className="w-2 h-2 bg-primary rounded-full animate-bounce"></div>
-                    <div className="w-2 h-2 bg-primary rounded-full animate-bounce delay-100"></div>
-                    <div className="w-2 h-2 bg-primary rounded-full animate-bounce delay-200"></div>
+                  <div className="flex gap-2 items-center">
+                    <Loader2 className="w-4 h-4 animate-spin text-primary" />
+                    <span className="text-sm text-muted-foreground">
+                      Processing your question...
+                    </span>
                   </div>
                 </div>
               </div>
@@ -213,67 +452,32 @@ export function ChatbotPage() {
               onChange={(e) => setInput(e.target.value)}
               onKeyPress={(e) => e.key === "Enter" && handleSend()}
               className="flex-1 bg-input border-border"
+              disabled={isLoading || !selectedDatabaseId}
             />
             <Button
               onClick={handleSend}
-              disabled={isLoading || !input.trim()}
+              disabled={isLoading || !input.trim() || !selectedDatabaseId}
               className="bg-primary hover:bg-secondary text-primary-foreground"
             >
               <Send className="w-4 h-4" />
             </Button>
           </div>
-        </CardContent>
-      </Card>
 
-      {/* Conversation History Panel */}
-      <Card className="w-80 bg-card border-border flex flex-col">
-        <CardHeader className="border-b border-border">
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-lg">Conversations</CardTitle>
-            <Button
-              size="sm"
-              onClick={handleNewConversation}
-              className="bg-primary hover:bg-secondary text-primary-foreground"
-            >
-              <Plus className="w-4 h-4" />
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent className="flex-1 overflow-y-auto p-3 space-y-2">
-          {conversations.map((conv) => (
-            <div
-              key={conv.id}
-              onClick={() => setActiveConversationId(conv.id)}
-              className={`p-3 rounded-lg cursor-pointer transition-colors group ${
-                activeConversationId === conv.id
-                  ? "bg-primary/10 border-2 border-primary"
-                  : "bg-muted/30 border-2 border-transparent hover:bg-muted/50"
-              }`}
-            >
-              <div className="flex items-start justify-between gap-2">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <MessageSquare className="w-4 h-4 text-primary flex-shrink-0" />
-                    <h4 className="text-sm font-semibold truncate">{conv.title}</h4>
-                  </div>
-                  <p className="text-xs text-muted-foreground truncate">{conv.lastMessage}</p>
-                  <p className="text-xs text-muted-foreground mt-1">{conv.timestamp}</p>
-                </div>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    handleDeleteConversation(conv.id)
-                  }}
-                  className="opacity-0 group-hover:opacity-100 transition-opacity text-destructive hover:text-destructive hover:bg-destructive/10 p-1 h-auto"
-                  disabled={conversations.length === 1}
-                >
-                  <Trash2 className="w-3 h-3" />
-                </Button>
-              </div>
+          {!selectedDatabaseId && databases.length > 0 && (
+            <div className="text-xs text-center text-muted-foreground">
+              Please select a database to start chatting
             </div>
-          ))}
+          )}
+
+          {databases.length === 0 && !loadingDatabases && (
+            <div className="text-xs text-center text-muted-foreground">
+              No databases configured.{" "}
+              <a href="/datasource" className="text-primary underline">
+                Add a database connection
+              </a>{" "}
+              to get started.
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
