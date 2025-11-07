@@ -17,9 +17,12 @@ import java.util.stream.Collectors;
 public class DatabaseConfigService {
 
     private final DatabaseConfigRepository databaseConfigRepository;
+    private final DatabaseConnectionTestService connectionTestService;
 
-    public DatabaseConfigService(DatabaseConfigRepository databaseConfigRepository) {
+    public DatabaseConfigService(DatabaseConfigRepository databaseConfigRepository,
+                                  DatabaseConnectionTestService connectionTestService) {
         this.databaseConfigRepository = databaseConfigRepository;
+        this.connectionTestService = connectionTestService;
     }
 
     public List<DatabaseConfigDTO> getAllConfigsByUser(Long userId) {
@@ -35,9 +38,25 @@ public class DatabaseConfigService {
     }
 
     public DatabaseConfigDTO createConfig(Long userId, CreateDatabaseConfigRequest request) {
+        // Test connection before saving
+        DatabaseConnectionTestService.ConnectionTestResult testResult = connectionTestService.testConnection(request);
+
+        if (!testResult.isSuccess()) {
+            throw new DatabaseConnectionFailedException(testResult.getMessage(),
+                    testResult.getExceptionType(),
+                    testResult.getSqlState(),
+                    testResult.getErrorCode());
+        }
+
+        // Connection successful, create config
         DatabaseConfig config = new DatabaseConfig();
         config.setUserId(userId);
         mapRequestToEntity(request, config);
+
+        // Set initial connection status
+        config.setIsConnected(true);
+        config.setStatus("active");
+        config.setLastConnectedAt(LocalDateTime.now());
 
         DatabaseConfig saved = databaseConfigRepository.save(config);
         return toDTO(saved);
@@ -71,6 +90,21 @@ public class DatabaseConfigService {
             config.setStatus("inactive");
         }
         databaseConfigRepository.save(config);
+    }
+
+    /**
+     * Test connection for an existing config (without saving)
+     */
+    public DatabaseConnectionTestService.ConnectionTestResult testExistingConnection(Long id, Long userId) {
+        DatabaseConfig config = databaseConfigRepository.findByIdAndUserId(id, userId)
+                .orElseThrow(() -> new DatabaseConfigNotFoundException(id, userId));
+
+        DatabaseConnectionTestService.ConnectionTestResult result = connectionTestService.testConnection(config);
+
+        // Update connection status based on test result
+        updateConnectionStatus(id, result.isSuccess());
+
+        return result;
     }
 
     private void mapRequestToEntity(CreateDatabaseConfigRequest request, DatabaseConfig entity) {

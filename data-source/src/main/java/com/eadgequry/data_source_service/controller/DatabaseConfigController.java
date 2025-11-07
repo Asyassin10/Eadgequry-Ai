@@ -3,11 +3,14 @@ package com.eadgequry.data_source_service.controller;
 import com.eadgequry.data_source_service.dto.CreateDatabaseConfigRequest;
 import com.eadgequry.data_source_service.dto.DatabaseConfigDTO;
 import com.eadgequry.data_source_service.service.DatabaseConfigService;
+import com.eadgequry.data_source_service.service.DatabaseConnectionTestService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/datasource/configs")
@@ -74,11 +77,30 @@ public class DatabaseConfigController {
     }
 
     /**
-     * Test database connection
+     * Test database connection for an existing configuration
      */
-    @PostMapping("/{id}/test")
-    public ResponseEntity<String> testConnection(@PathVariable Long id) {
-        // TODO: Implement actual connection testing
-        return ResponseEntity.ok("Connection test endpoint - to be implemented");
+    @PostMapping("/{id}/user/{userId}/test")
+    public ResponseEntity<Map<String, Object>> testConnection(
+            @PathVariable Long id,
+            @PathVariable Long userId) {
+        DatabaseConnectionTestService.ConnectionTestResult result = databaseConfigService.testExistingConnection(id, userId);
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("success", result.isSuccess());
+        response.put("message", result.getMessage());
+
+        if (!result.isSuccess()) {
+            if (result.getExceptionType() != null) {
+                response.put("exceptionType", result.getExceptionType());
+            }
+            if (result.getSqlState() != null) {
+                response.put("sqlState", result.getSqlState());
+            }
+            if (result.getErrorCode() != null) {
+                response.put("errorCode", result.getErrorCode());
+            }
+        }
+
+        return ResponseEntity.ok(response);
     }
 }

@@ -230,8 +230,8 @@ export const datasourceApi = {
   deleteConfig: (id: number, userId: number) =>
     api.delete<void>(`${DATASOURCE_API}/configs/${id}/user/${userId}`),
 
-  testConnection: (id: number) =>
-    api.post<MessageResponse>(`${DATASOURCE_API}/configs/${id}/test`, {}),
+  testConnection: (id: number, userId: number) =>
+    api.post<ConnectionTestResponse>(`${DATASOURCE_API}/configs/${id}/user/${userId}/test`, {}),
 };
 
 // Type definitions
@@ -353,4 +353,12 @@ export interface DatabaseConfigDTO {
   lastConnectedAt?: string;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface ConnectionTestResponse {
+  success: boolean;
+  message: string;
+  exceptionType?: string;
+  sqlState?: string;
+  errorCode?: number;
 }
