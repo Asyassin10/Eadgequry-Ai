@@ -27,7 +27,9 @@ public class SecurityConfig {
                     "/auth/v3/api-docs/**",
                     "/auth/swagger-ui/**",
                     "/profiles/v3/api-docs/**",
-                    "/profiles/swagger-ui/**"
+                    "/profiles/swagger-ui/**",
+                    "/datasource/v3/api-docs/**",
+                    "/datasource/swagger-ui/**"
                 ).permitAll()
                 // Public Auth endpoints
                 .pathMatchers(
