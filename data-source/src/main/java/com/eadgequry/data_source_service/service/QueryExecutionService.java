@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 
 import java.sql.*;
 import java.util.*;
+import java.util.regex.Pattern;
 
 @Service
 @Slf4j
@@ -18,14 +19,27 @@ public class QueryExecutionService {
 
     private final DatabaseConfigRepository databaseConfigRepository;
 
+    // Forbidden SQL keywords for security
+    private static final String[] FORBIDDEN_KEYWORDS = {
+            "INSERT", "UPDATE", "DELETE", "DROP", "ALTER", "TRUNCATE",
+            "CREATE", "REPLACE", "GRANT", "REVOKE", "EXEC", "EXECUTE",
+            "CALL", "LOAD", "OUTFILE", "INFILE", "DUMPFILE", "MERGE"
+    };
+
+    private static final Pattern SELECT_PATTERN = Pattern.compile("^\\s*SELECT\\s+", Pattern.CASE_INSENSITIVE);
+    private static final Pattern FROM_PATTERN = Pattern.compile("\\s+FROM\\s+", Pattern.CASE_INSENSITIVE);
+
     /**
      * Execute SQL query on the specified database
-     * IMPORTANT: Only SELECT queries should be allowed (validated by chatbot service)
+     * SECURITY: Only SELECT queries are allowed - all dangerous operations are blocked
      */
     public QueryExecutionResponse executeQuery(Long databaseConfigId, Long userId, String sqlQuery) {
         long startTime = System.currentTimeMillis();
 
         try {
+            // SECURITY: Validate query before execution
+            validateQuerySecurity(sqlQuery);
+
             // Get database configuration
             DatabaseConfig config = databaseConfigRepository.findByIdAndUserId(databaseConfigId, userId)
                     .orElseThrow(() -> new DatabaseConfigNotFoundException(databaseConfigId, userId));
@@ -43,9 +57,74 @@ public class QueryExecutionService {
 
             return QueryExecutionResponse.success(sqlQuery, results, executionTime);
 
+        } catch (IllegalArgumentException e) {
+            // Security violation
+            log.error("Security validation failed: {}", e.getMessage());
+            return QueryExecutionResponse.error(sqlQuery, "Security error: " + e.getMessage());
         } catch (Exception e) {
             log.error("Query execution failed", e);
             return QueryExecutionResponse.error(sqlQuery, e.getMessage());
+        }
+    }
+
+    /**
+     * SECURITY: Validate query to ensure only SELECT is allowed
+     * Blocks: DELETE, DROP, UPDATE, INSERT, TRUNCATE, etc.
+     */
+    private void validateQuerySecurity(String sqlQuery) {
+        if (sqlQuery == null || sqlQuery.trim().isEmpty()) {
+            throw new IllegalArgumentException("SQL query cannot be empty");
+        }
+
+        String trimmedQuery = sqlQuery.trim();
+
+        // Must start with SELECT
+        if (!SELECT_PATTERN.matcher(trimmedQuery).find()) {
+            throw new IllegalArgumentException("Only SELECT queries are allowed. Query must start with SELECT.");
+        }
+
+        // Must contain FROM clause
+        if (!FROM_PATTERN.matcher(trimmedQuery).find()) {
+            throw new IllegalArgumentException("Invalid SELECT query: FROM clause is required");
+        }
+
+        // Check for forbidden keywords (as whole words)
+        String upperQuery = sqlQuery.toUpperCase();
+        for (String forbiddenKeyword : FORBIDDEN_KEYWORDS) {
+            String regex = "\\b" + Pattern.quote(forbiddenKeyword) + "\\b";
+            if (Pattern.compile(regex, Pattern.CASE_INSENSITIVE).matcher(sqlQuery).find()) {
+                throw new IllegalArgumentException(
+                        String.format("Forbidden SQL keyword detected: %s. Only SELECT queries are allowed.", forbiddenKeyword));
+            }
+        }
+
+        // Validate query structure (matching quotes and parentheses)
+        validateQueryStructure(sqlQuery);
+
+        log.debug("Query passed security validation");
+    }
+
+    /**
+     * Validate query structure (matching quotes, parentheses)
+     */
+    private void validateQueryStructure(String query) {
+        // Check single quotes
+        long singleQuotes = query.chars().filter(ch -> ch == '\'').count();
+        if (singleQuotes % 2 != 0) {
+            throw new IllegalArgumentException("Invalid SQL syntax: Unmatched single quote detected");
+        }
+
+        // Check double quotes
+        long doubleQuotes = query.chars().filter(ch -> ch == '"').count();
+        if (doubleQuotes % 2 != 0) {
+            throw new IllegalArgumentException("Invalid SQL syntax: Unmatched double quote detected");
+        }
+
+        // Check parentheses
+        long openParens = query.chars().filter(ch -> ch == '(').count();
+        long closeParens = query.chars().filter(ch -> ch == ')').count();
+        if (openParens != closeParens) {
+            throw new IllegalArgumentException("Invalid SQL syntax: Unmatched parentheses detected");
         }
     }
 
@@ -84,27 +163,12 @@ public class QueryExecutionService {
      * Validate SQL query syntax (basic validation)
      */
     public boolean validateQuerySyntax(String sqlQuery) {
-        if (sqlQuery == null || sqlQuery.trim().isEmpty()) {
+        try {
+            validateQuerySecurity(sqlQuery);
+            return true;
+        } catch (Exception e) {
             return false;
         }
-
-        String trimmed = sqlQuery.trim().toLowerCase();
-
-        // Must start with SELECT
-        if (!trimmed.startsWith("select")) {
-            return false;
-        }
-
-        // Must contain FROM
-        if (!trimmed.contains(" from ")) {
-            return false;
-        }
-
-        // Check for balanced quotes
-        long singleQuotes = sqlQuery.chars().filter(ch -> ch == '\'').count();
-        long doubleQuotes = sqlQuery.chars().filter(ch -> ch == '"').count();
-
-        return singleQuotes % 2 == 0 && doubleQuotes % 2 == 0;
     }
 
     /**
