@@ -202,6 +202,42 @@ services:
       timeout: 10s
       retries: 5
 
+  # MySQL for Datasource Service
+  mysql-datasource:
+    image: mysql:8.0
+    container_name: mysql-datasource
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: datasource_db
+      MYSQL_USER: datasourceuser
+      MYSQL_PASSWORD: datasourcepassword
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql-datasource-data:/var/lib/mysql
+    networks:
+      - edagequry-net
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 20s
+      retries: 10
+
+  # phpMyAdmin for Datasource Service
+  phpmyadmin-datasource:
+    image: phpmyadmin/phpmyadmin
+    container_name: phpmyadmin-datasource
+    environment:
+      PMA_HOST: mysql-datasource
+      PMA_PORT: 3306
+      PMA_USER: datasourceuser
+      PMA_PASSWORD: datasourcepassword
+      MYSQL_ROOT_PASSWORD: rootpassword
+    ports:
+      - "8084:80"
+    depends_on:
+      - mysql-datasource
+    networks:
+      - edagequry-net
 
 
 networks:
@@ -211,6 +247,7 @@ networks:
 volumes:
   mysql-data:
   mysql-user-profile-data:
+  mysql-datasource-data:
   sonarqube-db-data:
   sonarqube-data:
   sonarqube-extensions:
