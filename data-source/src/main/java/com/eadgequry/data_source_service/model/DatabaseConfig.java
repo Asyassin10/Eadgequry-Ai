@@ -5,6 +5,8 @@ import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 @Entity
@@ -88,6 +90,10 @@ public class DatabaseConfig {
 
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
+
+    // One-to-Many relationship with DatabaseSchema (cascade delete/update)
+    @OneToMany(mappedBy = "databaseConfig", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<DatabaseSchema> schemas = new ArrayList<>();
 
     @PrePersist
     protected void onCreate() {
@@ -307,5 +313,13 @@ public class DatabaseConfig {
 
     public void setUpdatedAt(LocalDateTime updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    public List<DatabaseSchema> getSchemas() {
+        return schemas;
+    }
+
+    public void setSchemas(List<DatabaseSchema> schemas) {
+        this.schemas = schemas;
     }
 }

@@ -3,8 +3,11 @@ package com.eadgequry.data_source_service.service;
 import com.eadgequry.data_source_service.dto.CreateDatabaseConfigRequest;
 import com.eadgequry.data_source_service.dto.DatabaseConfigDTO;
 import com.eadgequry.data_source_service.exception.DatabaseConfigNotFoundException;
+import com.eadgequry.data_source_service.exception.DatabaseConnectionFailedException;
 import com.eadgequry.data_source_service.model.DatabaseConfig;
 import com.eadgequry.data_source_service.repository.DatabaseConfigRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -16,13 +19,21 @@ import java.util.stream.Collectors;
 @Transactional
 public class DatabaseConfigService {
 
+    private static final Logger logger = LoggerFactory.getLogger(DatabaseConfigService.class);
+
     private final DatabaseConfigRepository databaseConfigRepository;
     private final DatabaseConnectionTestService connectionTestService;
+    private final DatabaseSchemaExtractionService schemaExtractionService;
+    private final DatabaseSchemaService schemaService;
 
     public DatabaseConfigService(DatabaseConfigRepository databaseConfigRepository,
-                                  DatabaseConnectionTestService connectionTestService) {
+                                  DatabaseConnectionTestService connectionTestService,
+                                  DatabaseSchemaExtractionService schemaExtractionService,
+                                  DatabaseSchemaService schemaService) {
         this.databaseConfigRepository = databaseConfigRepository;
         this.connectionTestService = connectionTestService;
+        this.schemaExtractionService = schemaExtractionService;
+        this.schemaService = schemaService;
     }
 
     public List<DatabaseConfigDTO> getAllConfigsByUser(Long userId) {
@@ -59,6 +70,20 @@ public class DatabaseConfigService {
         config.setLastConnectedAt(LocalDateTime.now());
 
         DatabaseConfig saved = databaseConfigRepository.save(config);
+
+        // Automatically extract and save database schema
+        try {
+            logger.info("Extracting schema for database config ID: {}", saved.getId());
+            String schemaJson = schemaExtractionService.extractSchema(saved);
+            schemaService.saveOrUpdateSchema(saved.getId(), schemaJson);
+            logger.info("Schema extraction successful for database config ID: {}", saved.getId());
+        } catch (Exception e) {
+            logger.error("Schema extraction failed for database config ID: {}. Error: {}",
+                    saved.getId(), e.getMessage(), e);
+            // Don't fail the entire operation if schema extraction fails
+            // The config is still saved and usable
+        }
+
         return toDTO(saved);
     }
 
@@ -68,6 +93,19 @@ public class DatabaseConfigService {
 
         mapRequestToEntity(request, config);
         DatabaseConfig updated = databaseConfigRepository.save(config);
+
+        // Re-extract schema if connection details changed
+        try {
+            logger.info("Re-extracting schema for updated database config ID: {}", updated.getId());
+            String schemaJson = schemaExtractionService.extractSchema(updated);
+            schemaService.saveOrUpdateSchema(updated.getId(), schemaJson);
+            logger.info("Schema re-extraction successful for database config ID: {}", updated.getId());
+        } catch (Exception e) {
+            logger.warn("Schema re-extraction failed for database config ID: {}. Error: {}",
+                    updated.getId(), e.getMessage());
+            // Don't fail the update if schema extraction fails
+        }
+
         return toDTO(updated);
     }
 

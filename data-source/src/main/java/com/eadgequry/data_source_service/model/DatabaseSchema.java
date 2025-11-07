@@ -17,8 +17,10 @@ public class DatabaseSchema {
     @Column(name = "database_config_id", nullable = false)
     private Long databaseConfigId;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "database_config_id", insertable = false, updatable = false)
+    @ManyToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+    @JoinColumn(name = "database_config_id", insertable = false, updatable = false,
+            foreignKey = @ForeignKey(name = "fk_schema_config",
+                    foreignKeyDefinition = "FOREIGN KEY (database_config_id) REFERENCES database_config(id) ON DELETE CASCADE ON UPDATE CASCADE"))
     private DatabaseConfig databaseConfig;
 
     @Column(name = "schema_json", nullable = false, columnDefinition = "LONGTEXT")
