@@ -1,6 +1,7 @@
 package com.eadgequry.chat_bot_service.service;
 
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 /**
@@ -8,8 +9,9 @@ import org.springframework.stereotype.Service;
  * Security validation is done in datasource service
  */
 @Service
-@Slf4j
 public class SqlValidatorService {
+
+    private static final Logger log = LoggerFactory.getLogger(SqlValidatorService.class);
 
     /**
      * Clean SQL query from AI response (remove markdown, extra quotes, etc.)
