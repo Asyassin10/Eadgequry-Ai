@@ -52,6 +52,30 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(body, HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
+    @ExceptionHandler(DatabaseConnectionFailedException.class)
+    public ResponseEntity<Map<String, Object>> handleDatabaseConnectionFailedException(
+            DatabaseConnectionFailedException ex, WebRequest request) {
+        Map<String, Object> body = new HashMap<>();
+        body.put("timestamp", LocalDateTime.now());
+        body.put("status", HttpStatus.BAD_REQUEST.value());
+        body.put("error", "Connection Test Failed");
+        body.put("message", ex.getMessage());
+        body.put("path", request.getDescription(false).replace("uri=", ""));
+
+        // Add additional details if available
+        if (ex.getExceptionType() != null) {
+            body.put("exceptionType", ex.getExceptionType());
+        }
+        if (ex.getSqlState() != null) {
+            body.put("sqlState", ex.getSqlState());
+        }
+        if (ex.getErrorCode() != null) {
+            body.put("errorCode", ex.getErrorCode());
+        }
+
+        return new ResponseEntity<>(body, HttpStatus.BAD_REQUEST);
+    }
+
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<Map<String, Object>> handleIllegalArgumentException(
             IllegalArgumentException ex, WebRequest request) {

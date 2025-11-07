@@ -153,7 +153,12 @@ export function DatasourcePage() {
       const response = await datasourceApi.createConfig(userId, requestData)
 
       if (response.error) {
-        toast.error(response.error.message || 'Failed to save configuration')
+        // Show detailed error message from connection test
+        let errorMsg = response.error.message || 'Failed to save configuration'
+
+        // Show longer duration for connection errors
+        const duration = errorMsg.includes('Connection') ? 7000 : 5000
+        toast.error(errorMsg, { duration })
         return
       }
 
@@ -202,21 +207,36 @@ export function DatasourcePage() {
   }
 
   const handleTestConnection = async () => {
-    if (!savedDatabase) {
+    if (!savedDatabase || !userId) {
       toast.error('No database configuration to test')
       return
     }
 
     setLoading(true)
     try {
-      const response = await datasourceApi.testConnection(savedDatabase.id)
+      const response = await datasourceApi.testConnection(savedDatabase.id, userId)
 
       if (response.error) {
-        toast.error(response.error.message || 'Connection test failed')
+        const errorMsg = response.error.message || 'Connection test failed'
+        toast.error(errorMsg, { duration: 5000 })
         return
       }
 
-      toast.success(response.data?.message || 'Connection test successful!')
+      if (response.data) {
+        if (response.data.success) {
+          toast.success(response.data.message || 'Connection test successful!')
+        } else {
+          // Show detailed error message from backend
+          let errorMsg = response.data.message
+          if (response.data.exceptionType) {
+            errorMsg += `\n\nError Type: ${response.data.exceptionType}`
+          }
+          if (response.data.sqlState) {
+            errorMsg += `\nSQL State: ${response.data.sqlState}`
+          }
+          toast.error(errorMsg, { duration: 7000 })
+        }
+      }
     } catch (error) {
       console.error('Failed to test connection:', error)
       toast.error('Connection test failed')
