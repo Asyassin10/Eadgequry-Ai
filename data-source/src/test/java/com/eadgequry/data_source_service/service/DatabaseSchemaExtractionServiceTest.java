@@ -148,7 +148,9 @@ class DatabaseSchemaExtractionServiceTest {
         testConfig.setPort(3306);
 
         // Act & Assert
-        assertThrows(IllegalArgumentException.class, () -> invokeBuildJdbcUrl(testConfig));
+        Exception exception = assertThrows(Exception.class, () -> invokeBuildJdbcUrl(testConfig));
+        assertTrue(exception.getCause() instanceof IllegalArgumentException);
+        assertTrue(exception.getCause().getMessage().contains("Unsupported database type"));
     }
 
     @Test
@@ -261,7 +263,7 @@ class DatabaseSchemaExtractionServiceTest {
     @Test
     void getUpdateDeleteRule_Unknown_ShouldReturnUnknown() throws Exception {
         // Act
-        String rule = invokeGetUpdateDeleteRule((short) 999);
+        String rule = invokeGetUpdateDeleteRule(999);
 
         // Assert
         assertEquals("UNKNOWN", rule);
@@ -325,9 +327,9 @@ class DatabaseSchemaExtractionServiceTest {
         return (String) method.invoke(schemaExtractionService, config);
     }
 
-    private String invokeGetUpdateDeleteRule(short rule) throws Exception {
+    private String invokeGetUpdateDeleteRule(int rule) throws Exception {
         Method method = DatabaseSchemaExtractionService.class.getDeclaredMethod("getUpdateDeleteRule", short.class);
         method.setAccessible(true);
-        return (String) method.invoke(schemaExtractionService, rule);
+        return (String) method.invoke(schemaExtractionService, (short) rule);
     }
 }
