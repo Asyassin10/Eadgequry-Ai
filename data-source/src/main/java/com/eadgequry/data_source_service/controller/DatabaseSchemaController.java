@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/datasource/schemas")
 @Tag(name = "Database Schema", description = "APIs for retrieving database schemas")
+@CrossOrigin(origins = "*")
 public class DatabaseSchemaController {
 
     private final DatabaseSchemaService databaseSchemaService;

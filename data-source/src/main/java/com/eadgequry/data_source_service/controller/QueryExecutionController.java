@@ -8,16 +8,19 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/datasource/query")
 @Tag(name = "Query Execution", description = "Execute SQL queries on configured databases")
-@Slf4j
 @RequiredArgsConstructor
+@CrossOrigin(origins = "*")
 public class QueryExecutionController {
+
+    private static final Logger log = LoggerFactory.getLogger(QueryExecutionController.class);
 
     private final QueryExecutionService queryExecutionService;
 

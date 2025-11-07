@@ -21,6 +21,7 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/datasource/configs")
+@CrossOrigin(origins = "*")
 @Tag(name = "Database Configuration", description = "APIs for managing database connections and configurations")
 public class DatabaseConfigController {
 
