@@ -29,7 +29,9 @@ public class SecurityConfig {
                     "/profiles/v3/api-docs/**",
                     "/profiles/swagger-ui/**",
                     "/datasource/v3/api-docs/**",
-                    "/datasource/swagger-ui/**"
+                    "/datasource/swagger-ui/**",
+                    "/chatbot/v3/api-docs/**",
+                    "/chatbot/swagger-ui/**"
                 ).permitAll()
                 // Public Auth endpoints
                 .pathMatchers(
@@ -48,9 +50,21 @@ public class SecurityConfig {
                 .pathMatchers(
                     "/profiles/health"
                 ).permitAll()
+                // Public Chatbot endpoints (health check)
+                .pathMatchers(
+                    "/chatbot/health"
+                ).permitAll()
                 // Protected Profile endpoints (require JWT)
                 .pathMatchers(
                     "/profiles/**"
+                ).authenticated()
+                // Protected Chatbot endpoints (require JWT)
+                .pathMatchers(
+                    "/chatbot/**"
+                ).authenticated()
+                // Protected Datasource endpoints (require JWT)
+                .pathMatchers(
+                    "/datasource/**"
                 ).authenticated()
                 // Protected Auth endpoints (require JWT)
                 .pathMatchers(
