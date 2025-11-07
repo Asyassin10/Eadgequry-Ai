@@ -6,6 +6,7 @@
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8765';
 const AUTH_API = process.env.NEXT_PUBLIC_AUTH_API || '/auth';
 const PROFILE_API = '/profiles';
+const DATASOURCE_API = '/datasource';
 
 // Flag to prevent multiple simultaneous logout redirects
 let isLoggingOut = false;
@@ -212,6 +213,27 @@ export const profileApi = {
     api.delete<MessageResponse>(`${PROFILE_API}/${userId}`),
 };
 
+// Datasource API endpoints
+export const datasourceApi = {
+  getAllConfigs: (userId: number) =>
+    api.get<DatabaseConfigDTO[]>(`${DATASOURCE_API}/api/datasource/configs/user/${userId}`),
+
+  getConfig: (id: number, userId: number) =>
+    api.get<DatabaseConfigDTO>(`${DATASOURCE_API}/api/datasource/configs/${id}/user/${userId}`),
+
+  createConfig: (userId: number, data: CreateDatabaseConfigRequest) =>
+    api.post<DatabaseConfigDTO>(`${DATASOURCE_API}/api/datasource/configs/user/${userId}`, data),
+
+  updateConfig: (id: number, userId: number, data: CreateDatabaseConfigRequest) =>
+    api.put<DatabaseConfigDTO>(`${DATASOURCE_API}/api/datasource/configs/${id}/user/${userId}`, data),
+
+  deleteConfig: (id: number, userId: number) =>
+    api.delete<void>(`${DATASOURCE_API}/api/datasource/configs/${id}/user/${userId}`),
+
+  testConnection: (id: number) =>
+    api.post<MessageResponse>(`${DATASOURCE_API}/api/datasource/configs/${id}/test`, {}),
+};
+
 // Type definitions
 export interface RegisterRequest {
   name: string;
@@ -268,6 +290,67 @@ export interface ProfileResponse {
   avatarUrl: string | null;
   bio: string | null;
   preferences: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Datasource types
+export interface CreateDatabaseConfigRequest {
+  name: string;
+  type: string; // mysql, postgresql, oracle, sqlite, etc.
+
+  // Common fields
+  host?: string;
+  port?: number;
+  databaseName?: string;
+  username?: string;
+  password?: string;
+
+  // Type-specific fields
+  filePath?: string; // SQLite
+  serviceName?: string; // Oracle
+  sid?: string; // Oracle
+  instanceName?: string; // SQL Server
+  account?: string; // Snowflake
+  warehouse?: string; // Snowflake
+  schemaName?: string; // Snowflake
+  role?: string; // Snowflake
+  projectId?: string; // BigQuery
+  dataset?: string; // BigQuery
+  serviceAccountJson?: string; // BigQuery
+
+  connectionProperties?: Record<string, any>;
+}
+
+export interface DatabaseConfigDTO {
+  id: number;
+  userId: number;
+  name: string;
+  type: string;
+
+  // Common fields
+  host?: string;
+  port?: number;
+  databaseName?: string;
+  username?: string;
+  // password not included for security
+
+  // Type-specific fields
+  filePath?: string;
+  serviceName?: string;
+  sid?: string;
+  instanceName?: string;
+  account?: string;
+  warehouse?: string;
+  schemaName?: string;
+  role?: string;
+  projectId?: string;
+  dataset?: string;
+
+  connectionProperties?: Record<string, any>;
+  status?: string;
+  isConnected?: boolean;
+  lastConnectedAt?: string;
   createdAt: string;
   updatedAt: string;
 }

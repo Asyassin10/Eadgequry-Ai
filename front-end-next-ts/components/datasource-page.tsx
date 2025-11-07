@@ -2,15 +2,16 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { AlertCircle, Database, Trash2 } from "lucide-react"
+import { AlertCircle, Database, Trash2, Loader2 } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { toast } from "sonner"
+import { datasourceApi, type DatabaseConfigDTO, type CreateDatabaseConfigRequest } from "@/lib/api"
 
 // Define database types
 const DATABASE_TYPES = [
@@ -29,6 +30,7 @@ const DATABASE_TYPES = [
 export function DatasourcePage() {
   const [dbType, setDbType] = useState("mysql")
   const [formData, setFormData] = useState<Record<string, string>>({
+    name: "",
     host: "localhost",
     port: "3306",
     database: "",
@@ -36,9 +38,43 @@ export function DatasourcePage() {
     password: "",
     knowledge: "",
   })
-  const [savedDatabase, setSavedDatabase] = useState<(typeof formData & { dbType: string }) | null>(null)
+  const [savedDatabase, setSavedDatabase] = useState<DatabaseConfigDTO | null>(null)
   const [showLimitMessage, setShowLimitMessage] = useState(false)
   const [showUnavailableAlert, setShowUnavailableAlert] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [userId, setUserId] = useState<number | null>(null)
+
+  // Load user data and saved configs on mount
+  useEffect(() => {
+    const userStr = localStorage.getItem('user')
+    if (userStr) {
+      try {
+        const user = JSON.parse(userStr)
+        setUserId(user.userId)
+        loadConfigs(user.userId)
+      } catch (error) {
+        console.error('Failed to parse user data:', error)
+        toast.error('Failed to load user data')
+      }
+    }
+  }, [])
+
+  // Load database configurations
+  const loadConfigs = async (uid: number) => {
+    setLoading(true)
+    try {
+      const response = await datasourceApi.getAllConfigs(uid)
+      if (response.data && response.data.length > 0) {
+        // Show the first config (since we only allow one for now)
+        setSavedDatabase(response.data[0])
+      }
+    } catch (error) {
+      console.error('Failed to load configs:', error)
+      toast.error('Failed to load database configurations')
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target
@@ -82,7 +118,12 @@ export function DatasourcePage() {
     setFormData(newFormData)
   }
 
-  const handleSave = () => {
+  const handleSave = async () => {
+    if (!userId) {
+      toast.error('User not logged in')
+      return
+    }
+
     const selectedDb = DATABASE_TYPES.find((db) => db.value === dbType)
 
     // Prevent saving unavailable databases
@@ -92,16 +133,43 @@ export function DatasourcePage() {
     }
 
     // Basic validation for MySQL and PostgreSQL
-    if (!formData.username || !formData.password || !formData.database) {
-      alert("Please fill in all required fields")
+    if (!formData.name || !formData.username || !formData.password || !formData.database) {
+      toast.error("Please fill in all required fields including connection name")
       return
     }
 
-    setSavedDatabase({ ...formData, dbType })
-    toast.success("Database configuration saved successfully!")
+    setLoading(true)
+    try {
+      const requestData: CreateDatabaseConfigRequest = {
+        name: formData.name,
+        type: dbType,
+        host: formData.host,
+        port: formData.port ? parseInt(formData.port) : undefined,
+        databaseName: formData.database,
+        username: formData.username,
+        password: formData.password,
+      }
 
-    // Reset form
-    handleDbTypeChange(dbType)
+      const response = await datasourceApi.createConfig(userId, requestData)
+
+      if (response.error) {
+        toast.error(response.error.message || 'Failed to save configuration')
+        return
+      }
+
+      if (response.data) {
+        setSavedDatabase(response.data)
+        toast.success("Database configuration saved successfully!")
+
+        // Reset form
+        handleDbTypeChange(dbType)
+      }
+    } catch (error) {
+      console.error('Failed to save config:', error)
+      toast.error('Failed to save database configuration')
+    } finally {
+      setLoading(false)
+    }
   }
 
   const handleAddMore = () => {
@@ -109,8 +177,52 @@ export function DatasourcePage() {
     setTimeout(() => setShowLimitMessage(false), 4000)
   }
 
-  const handleDelete = () => {
-    setSavedDatabase(null)
+  const handleDelete = async () => {
+    if (!userId || !savedDatabase) {
+      return
+    }
+
+    setLoading(true)
+    try {
+      const response = await datasourceApi.deleteConfig(savedDatabase.id, userId)
+
+      if (response.error) {
+        toast.error(response.error.message || 'Failed to delete configuration')
+        return
+      }
+
+      setSavedDatabase(null)
+      toast.success("Database configuration deleted successfully!")
+    } catch (error) {
+      console.error('Failed to delete config:', error)
+      toast.error('Failed to delete database configuration')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleTestConnection = async () => {
+    if (!savedDatabase) {
+      toast.error('No database configuration to test')
+      return
+    }
+
+    setLoading(true)
+    try {
+      const response = await datasourceApi.testConnection(savedDatabase.id)
+
+      if (response.error) {
+        toast.error(response.error.message || 'Connection test failed')
+        return
+      }
+
+      toast.success(response.data?.message || 'Connection test successful!')
+    } catch (error) {
+      console.error('Failed to test connection:', error)
+      toast.error('Connection test failed')
+    } finally {
+      setLoading(false)
+    }
   }
 
   const renderConnectionFields = () => {
@@ -133,6 +245,18 @@ export function DatasourcePage() {
     // Standard fields for MySQL and PostgreSQL
     return (
       <>
+        <div className="space-y-2">
+          <Label htmlFor="name">Connection Name *</Label>
+          <Input
+            id="name"
+            name="name"
+            placeholder="My Database"
+            value={formData.name || ""}
+            onChange={handleChange}
+            className="bg-input border-border"
+          />
+        </div>
+
         <div className="space-y-2">
           <Label htmlFor="host">Host *</Label>
           <Input
@@ -219,13 +343,13 @@ export function DatasourcePage() {
               <div className="flex items-center gap-3">
                 <Database className="h-5 w-5 text-primary" />
                 <div>
-                  <CardTitle className="text-lg">{getDbTypeLabel(savedDatabase.dbType)}</CardTitle>
+                  <CardTitle className="text-lg">{savedDatabase.name}</CardTitle>
                   <CardDescription>
-                    {savedDatabase.dbType === "sqlite"
+                    {savedDatabase.type === "sqlite"
                       ? savedDatabase.filePath
-                      : savedDatabase.dbType === "bigquery"
+                      : savedDatabase.type === "bigquery"
                         ? `${savedDatabase.projectId} / ${savedDatabase.dataset}`
-                        : savedDatabase.dbType === "snowflake"
+                        : savedDatabase.type === "snowflake"
                           ? savedDatabase.account
                           : `${savedDatabase.host}:${savedDatabase.port}`}
                   </CardDescription>
@@ -235,16 +359,17 @@ export function DatasourcePage() {
                 variant="ghost"
                 size="sm"
                 onClick={handleDelete}
+                disabled={loading}
                 className="text-destructive hover:text-destructive hover:bg-destructive/10"
               >
-                <Trash2 className="h-4 w-4" />
+                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
               </Button>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div>
                   <span className="text-muted-foreground">Type:</span>
-                  <p className="font-medium">{getDbTypeLabel(savedDatabase.dbType)}</p>
+                  <p className="font-medium">{getDbTypeLabel(savedDatabase.type)}</p>
                 </div>
                 {savedDatabase.username && (
                   <div>
@@ -252,10 +377,10 @@ export function DatasourcePage() {
                     <p className="font-medium">{savedDatabase.username}</p>
                   </div>
                 )}
-                {savedDatabase.database && (
+                {savedDatabase.databaseName && (
                   <div>
                     <span className="text-muted-foreground">Database:</span>
-                    <p className="font-medium">{savedDatabase.database}</p>
+                    <p className="font-medium">{savedDatabase.databaseName}</p>
                   </div>
                 )}
                 {savedDatabase.port && (
@@ -264,19 +389,37 @@ export function DatasourcePage() {
                     <p className="font-medium">{savedDatabase.port}</p>
                   </div>
                 )}
+                {savedDatabase.status && (
+                  <div>
+                    <span className="text-muted-foreground">Status:</span>
+                    <p className="font-medium">{savedDatabase.status}</p>
+                  </div>
+                )}
+                {savedDatabase.isConnected !== undefined && (
+                  <div>
+                    <span className="text-muted-foreground">Connected:</span>
+                    <p className="font-medium">{savedDatabase.isConnected ? "Yes" : "No"}</p>
+                  </div>
+                )}
               </div>
-              {savedDatabase.knowledge && (
-                <div>
-                  <span className="text-muted-foreground text-sm">Knowledge Context:</span>
-                  <p className="text-sm mt-2 p-3 bg-muted rounded-md line-clamp-3">{savedDatabase.knowledge}</p>
-                </div>
-              )}
-              <Button
-                onClick={handleAddMore}
-                className="w-full bg-primary hover:bg-secondary text-primary-foreground mt-4"
-              >
-                Add Another Database
-              </Button>
+              <div className="flex gap-4 mt-4">
+                <Button
+                  onClick={handleTestConnection}
+                  disabled={loading}
+                  variant="outline"
+                  className="flex-1 border-border"
+                >
+                  {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                  Test Connection
+                </Button>
+                <Button
+                  onClick={handleAddMore}
+                  disabled={loading}
+                  className="flex-1 bg-primary hover:bg-secondary text-primary-foreground"
+                >
+                  Add Another Database
+                </Button>
+              </div>
             </CardContent>
           </Card>
         </div>
@@ -330,12 +473,11 @@ export function DatasourcePage() {
               <div className="flex gap-4 pt-4">
                 <Button
                   onClick={handleSave}
+                  disabled={loading}
                   className="bg-primary hover:bg-secondary text-primary-foreground"
                 >
+                  {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
                   Save Configuration
-                </Button>
-                <Button variant="outline" className="border-border bg-transparent">
-                  Test Connection
                 </Button>
               </div>
             )}
