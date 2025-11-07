@@ -15,6 +15,7 @@ public class SecurityConfig {
     public SecurityWebFilterChain securityWebFilterChain(ServerHttpSecurity http) {
         http
             .csrf(csrf -> csrf.disable())
+            .cors(cors -> cors.disable())  // Disable Spring Security CORS, use CorsWebFilter instead
             .authorizeExchange(exchange -> exchange
                 // Allow OPTIONS requests (CORS preflight) without authentication
                 .pathMatchers(HttpMethod.OPTIONS, "/**").permitAll()
