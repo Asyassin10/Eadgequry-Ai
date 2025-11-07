@@ -29,7 +29,7 @@ public class DatabaseSchemaExtractionService {
 
             schema.put("databaseName", config.getDatabaseName());
             schema.put("databaseType", config.getType());
-            schema.put("extractedAt", new Date());
+            schema.put("extractedAt", new java.util.Date());
 
             // Extract tables
             List<Map<String, Object>> tables = extractTables(metaData, config);
