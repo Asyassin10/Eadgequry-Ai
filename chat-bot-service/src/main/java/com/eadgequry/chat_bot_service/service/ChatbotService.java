@@ -8,7 +8,8 @@ import com.eadgequry.chat_bot_service.model.ConversationSession;
 import com.eadgequry.chat_bot_service.repository.ConversationRepository;
 import com.eadgequry.chat_bot_service.repository.ConversationSessionRepository;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,9 +24,10 @@ import java.util.UUID;
  * Flow: Question → SQL → Execute → Answer
  */
 @Service
-@Slf4j
 @RequiredArgsConstructor
 public class ChatbotService {
+
+    private static final Logger log = LoggerFactory.getLogger(ChatbotService.class);
 
     private final AiService aiService;
     private final SqlValidatorService sqlValidatorService;
