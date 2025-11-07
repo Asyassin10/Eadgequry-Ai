@@ -16,8 +16,8 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * AI Service for generating SQL queries and natural language responses
- * Uses OpenRouter API (or compatible APIs like Groq)
+ * Simple AI Service for SQL generation and natural language responses
+ * Works with any database - language agnostic, no business logic
  */
 @Service
 @Slf4j
@@ -31,11 +31,8 @@ public class AiService {
     /**
      * Generate SQL query from natural language question
      */
-    public String generateSqlQuery(String question, DatabaseSchemaDTO schema,
-                                   boolean isComparison, boolean isDetailsRequest,
-                                   String previousError) {
-
-        String prompt = buildQueryPrompt(question, schema, isComparison, isDetailsRequest, previousError);
+    public String generateSqlQuery(String question, DatabaseSchemaDTO schema, String previousError) {
+        String prompt = buildQueryPrompt(question, schema, previousError);
 
         try {
             String response = callAiApi(prompt, aiApiProperties.getTemperatureQuery());
@@ -50,11 +47,8 @@ public class AiService {
     /**
      * Generate natural language answer from SQL results
      */
-    public String generateAnswer(String question, String sqlQuery,
-                                 List<Map<String, Object>> result,
-                                 boolean isComparison, boolean isDetailsRequest) {
-
-        String prompt = buildAnswerPrompt(question, sqlQuery, result, isComparison, isDetailsRequest);
+    public String generateAnswer(String question, String sqlQuery, List<Map<String, Object>> result) {
+        String prompt = buildAnswerPrompt(question, sqlQuery, result);
 
         try {
             String response = callAiApi(prompt, aiApiProperties.getTemperatureAnswer());
@@ -69,11 +63,8 @@ public class AiService {
     /**
      * Generate streaming answer from SQL results
      */
-    public Flux<String> generateStreamingAnswer(String question, String sqlQuery,
-                                                 List<Map<String, Object>> result,
-                                                 boolean isComparison, boolean isDetailsRequest) {
-
-        String prompt = buildAnswerPrompt(question, sqlQuery, result, isComparison, isDetailsRequest);
+    public Flux<String> generateStreamingAnswer(String question, String sqlQuery, List<Map<String, Object>> result) {
+        String prompt = buildAnswerPrompt(question, sqlQuery, result);
 
         return callAiApiStreaming(prompt, aiApiProperties.getTemperatureAnswer())
                 .map(this::cleanAnswer)
@@ -84,14 +75,12 @@ public class AiService {
     }
 
     /**
-     * Build prompt for SQL query generation
+     * Build simple global prompt for SQL query generation
      */
-    private String buildQueryPrompt(String question, DatabaseSchemaDTO schema,
-                                    boolean isComparison, boolean isDetailsRequest,
-                                    String previousError) {
-
+    private String buildQueryPrompt(String question, DatabaseSchemaDTO schema, String previousError) {
         StringBuilder prompt = new StringBuilder();
-        prompt.append("Generate a MySQL SELECT query to answer this question.\n\n");
+
+        prompt.append("Generate a SELECT SQL query to answer this question.\n\n");
 
         prompt.append("CRITICAL RULES:\n");
         prompt.append("1. Generate ONLY the SQL query, nothing else\n");
@@ -99,11 +88,12 @@ public class AiService {
         prompt.append("3. ALL quotes must be properly closed\n");
         prompt.append("4. Use LIKE with correct quotes: LIKE '%keyword%'\n");
         prompt.append("5. NO explanations, just the SQL query\n");
-        prompt.append("6. NEVER return 'id' columns in SELECT\n\n");
+        prompt.append("6. NEVER return 'id' columns in SELECT\n");
+        prompt.append("7. ONLY SELECT queries - NO INSERT, UPDATE, DELETE, DROP, etc.\n\n");
 
         if (previousError != null) {
             prompt.append("PREVIOUS ERROR: ").append(previousError).append("\n");
-            prompt.append("Correct this error in the new query.\n\n");
+            prompt.append("Fix this error in the new query.\n\n");
         }
 
         // Add schema information
@@ -111,22 +101,17 @@ public class AiService {
         prompt.append(formatSchemaInfo(schema));
         prompt.append("\n\n");
 
-        // Special handling for comparisons
-        if (isComparison) {
-            prompt.append("🔍 COMPARISON REQUEST:\n");
-            prompt.append("- Return: name, description, category_name for each item\n");
-            prompt.append("- Return all attributes with positive values\n");
-            prompt.append("- Maximum 2 items compared\n\n");
-        }
+        prompt.append("EXAMPLES:\n");
+        prompt.append("Question: \"Show all users\"\n");
+        prompt.append("SQL: SELECT * FROM users\n\n");
 
-        // Special handling for details requests
-        if (isDetailsRequest) {
-            prompt.append("📋 DETAILS REQUEST:\n");
-            prompt.append("- Return ALL information: name, description, category\n");
-            prompt.append("- Return ALL attributes with positive values\n");
-            prompt.append("- User wants complete details\n\n");
-        }
+        prompt.append("Question: \"Count total orders\"\n");
+        prompt.append("SQL: SELECT COUNT(*) as total FROM orders\n\n");
 
+        prompt.append("Question: \"Find products with price > 100\"\n");
+        prompt.append("SQL: SELECT name, price FROM products WHERE price > 100\n\n");
+
+        prompt.append("Now generate SQL for:\n");
         prompt.append("Question: \"").append(question).append("\"\n");
         prompt.append("SQL:");
 
@@ -134,55 +119,30 @@ public class AiService {
     }
 
     /**
-     * Build prompt for answer generation
+     * Build simple prompt for answer generation
      */
-    private String buildAnswerPrompt(String question, String sqlQuery,
-                                     List<Map<String, Object>> result,
-                                     boolean isComparison, boolean isDetailsRequest) {
-
+    private String buildAnswerPrompt(String question, String sqlQuery, List<Map<String, Object>> result) {
         StringBuilder prompt = new StringBuilder();
-        prompt.append("You are an AI assistant for a database query system.\n\n");
 
-        prompt.append("Question: \"").append(question).append("\"\n");
-        prompt.append("SQL Query: \"").append(sqlQuery).append("\"\n");
-        prompt.append("Result: ").append(objectMapper.valueToTree(result).toString()).append("\n\n");
+        prompt.append("You are a database query assistant.\n\n");
+        prompt.append("User Question: \"").append(question).append("\"\n");
+        prompt.append("SQL Query: ").append(sqlQuery).append("\n");
+        prompt.append("Query Result: ").append(objectMapper.valueToTree(result).toString()).append("\n\n");
 
         if (result == null || result.isEmpty()) {
-            prompt.append("⚠️ IMPORTANT: Result is empty, no data found.\n\n");
+            prompt.append("The query returned no results.\n");
             prompt.append("- Explain clearly that no data matches the criteria\n");
-            prompt.append("- DO NOT invent information\n");
-            prompt.append("- Suggest alternatives\n\n");
+            prompt.append("- DO NOT invent information\n\n");
         }
 
         prompt.append("INSTRUCTIONS:\n");
-        prompt.append("- Respond in clear, professional language\n");
-        prompt.append("- ⚠️ NEVER mention or display IDs\n");
-        prompt.append("- Be concise and well-structured\n\n");
+        prompt.append("- Respond in clear, professional English\n");
+        prompt.append("- Present data in TABLE format when appropriate\n");
+        prompt.append("- NEVER mention or display database IDs\n");
+        prompt.append("- Be concise and accurate\n");
+        prompt.append("- If no results, suggest checking the query criteria\n\n");
 
-        if (isComparison) {
-            prompt.append("🔍 DETAILED COMPARISON:\n");
-            prompt.append("- Structure the comparison clearly\n");
-            prompt.append("- Show: Name, Description, Category for each item\n");
-            prompt.append("- List ALL criteria with ✅ emoji\n");
-            prompt.append("- Format: ✅ Criterion name (don't show value if just 'yes')\n");
-            prompt.append("- If numeric/text value: ✅ Criterion: value\n");
-            prompt.append("- Compare important differences\n");
-            prompt.append("- **CRITICAL**: Present as a comparison TABLE with columns\n\n");
-        } else if (isDetailsRequest) {
-            prompt.append("📋 COMPLETE DETAILS:\n");
-            prompt.append("- Show: Name, Description, Category\n");
-            prompt.append("- List ALL available criteria with ✅\n");
-            prompt.append("- Format: ✅ Criterion (if value 'yes')\n");
-            prompt.append("- Format: ✅ Criterion: value (if specific value)\n");
-            prompt.append("- Organize by theme if possible\n");
-            prompt.append("- Present in a structured TABLE format\n\n");
-        } else {
-            prompt.append("- Present results in TABLE format when possible\n");
-            prompt.append("- If empty result, suggest alternatives\n");
-            prompt.append("- If counting, show number clearly\n\n");
-        }
-
-        prompt.append("Provide a natural response:\n");
+        prompt.append("Generate a natural language response:\n");
         prompt.append("Answer:");
 
         return prompt.toString();
@@ -203,7 +163,7 @@ public class AiService {
         for (DatabaseSchemaDTO.TableInfo table : schema.getTables()) {
             info.append("Table '").append(table.getName()).append("':\n");
 
-            if (table.getColumns() != null) {
+            if (table.getColumns() != null && !table.getColumns().isEmpty()) {
                 info.append("  Columns: ");
                 info.append(table.getColumns().stream()
                         .map(col -> col.getName() + " (" + col.getType() + ")")
@@ -239,7 +199,7 @@ public class AiService {
         Map<String, Object> requestBody = Map.of(
                 "model", aiApiProperties.getModel(),
                 "messages", List.of(
-                        Map.of("role", "system", "content", "You are a helpful SQL and data analysis assistant."),
+                        Map.of("role", "system", "content", "You are a helpful database query assistant."),
                         Map.of("role", "user", "content", prompt)
                 ),
                 "temperature", temperature,
@@ -271,7 +231,7 @@ public class AiService {
         Map<String, Object> requestBody = Map.of(
                 "model", aiApiProperties.getModel(),
                 "messages", List.of(
-                        Map.of("role", "system", "content", "You are a helpful SQL and data analysis assistant."),
+                        Map.of("role", "system", "content", "You are a helpful database query assistant."),
                         Map.of("role", "user", "content", prompt)
                 ),
                 "temperature", temperature,

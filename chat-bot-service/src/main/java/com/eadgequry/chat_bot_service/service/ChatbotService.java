@@ -15,9 +15,13 @@ import org.springframework.transaction.annotation.Transactional;
 import reactor.core.publisher.Flux;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
-import java.util.regex.Pattern;
 
+/**
+ * Simple Chatbot Service - just handles database queries
+ * Flow: Question → SQL → Execute → Answer
+ */
 @Service
 @Slf4j
 @RequiredArgsConstructor
@@ -32,11 +36,9 @@ public class ChatbotService {
     @Value("${chatbot.max-retries:2}")
     private int maxRetries;
 
-    @Value("${chatbot.stream-enabled:true}")
-    private boolean streamEnabled;
-
     /**
-     * Main method to process a chat question (non-streaming)
+     * Process a chat question (non-streaming)
+     * Simple flow: Question → Generate SQL → Validate → Execute → Generate Answer
      */
     @Transactional
     public ChatResponse ask(ChatRequest request) {
@@ -45,42 +47,16 @@ public class ChatbotService {
             Long userId = request.getUserId();
             Long databaseConfigId = request.getDatabaseConfigId();
 
-            // Check if it's a greeting or simple chat
-            if (isGreetingOrChat(question)) {
-                String answer = getGreetingResponse(question);
-                saveConversation(userId, databaseConfigId, null, question, null, null, answer, true);
-                return ChatResponse.greetingResponse(question, answer);
-            }
-
-            // Check if completely out of context
-            if (isCompletelyOutOfContext(question)) {
-                String answer = "I specialize in database queries. I can help you find data, check attributes, or compare up to 2 records. How can I assist?";
-                saveConversation(userId, databaseConfigId, null, question, null, null, answer, false);
-                return ChatResponse.greetingResponse(question, answer);
-            }
-
-            // Check if trying to compare more than 2
-            if (isComparingMoreThanTwo(question)) {
-                String answer = "I can compare maximum 2 items at a time. Please select 2 items you want to compare.";
-                saveConversation(userId, databaseConfigId, null, question, null, null, answer, false);
-                return ChatResponse.greetingResponse(question, answer);
-            }
-
-            // Determine request type
-            boolean isComparison = isComparisonRequest(question);
-            boolean isDetailsRequest = isDetailsRequest(question);
-
             // Get database schema
             DatabaseSchemaDTO schema = dataSourceClient.getSchemaByConfigId(databaseConfigId, userId);
 
             // Generate SQL query with retries
-            String sqlQuery = generateQueryWithRetries(question, schema, isComparison, isDetailsRequest);
+            String sqlQuery = generateQueryWithRetries(question, schema);
 
-            // Validate and clean SQL
+            // Clean SQL
             sqlQuery = sqlValidatorService.cleanQuery(sqlQuery);
-            sqlValidatorService.validateQuery(sqlQuery);
 
-            // Execute query
+            // Execute query (datasource will validate for security)
             QueryExecutionResponse queryResult = dataSourceClient.executeQuery(databaseConfigId, userId, sqlQuery);
 
             if (!queryResult.isSuccess()) {
@@ -88,11 +64,11 @@ public class ChatbotService {
             }
 
             // Generate answer
-            String answer = aiService.generateAnswer(question, sqlQuery, queryResult.getResult(), isComparison, isDetailsRequest);
+            String answer = aiService.generateAnswer(question, sqlQuery, queryResult.getResult());
 
             // Save conversation
             String sessionId = getOrCreateSession(userId, databaseConfigId);
-            saveConversation(userId, databaseConfigId, sessionId, question, sqlQuery, queryResult.getResult(), answer, false);
+            saveConversation(userId, databaseConfigId, sessionId, question, sqlQuery, queryResult.getResult(), answer, null);
 
             return ChatResponse.success(question, sqlQuery, queryResult.getResult(), answer);
 
@@ -103,7 +79,7 @@ public class ChatbotService {
     }
 
     /**
-     * Main method to process a chat question with streaming response
+     * Process a chat question with streaming response
      */
     @Transactional
     public Flux<String> askStreaming(ChatRequest request) {
@@ -113,42 +89,16 @@ public class ChatbotService {
                 Long userId = request.getUserId();
                 Long databaseConfigId = request.getDatabaseConfigId();
 
-                // Check if it's a greeting or simple chat
-                if (isGreetingOrChat(question)) {
-                    String answer = getGreetingResponse(question);
-                    saveConversation(userId, databaseConfigId, null, question, null, null, answer, true);
-                    return Flux.just(answer);
-                }
-
-                // Check if completely out of context
-                if (isCompletelyOutOfContext(question)) {
-                    String answer = "I specialize in database queries. I can help you find data, check attributes, or compare up to 2 records. How can I assist?";
-                    saveConversation(userId, databaseConfigId, null, question, null, null, answer, false);
-                    return Flux.just(answer);
-                }
-
-                // Check if trying to compare more than 2
-                if (isComparingMoreThanTwo(question)) {
-                    String answer = "I can compare maximum 2 items at a time. Please select 2 items you want to compare.";
-                    saveConversation(userId, databaseConfigId, null, question, null, null, answer, false);
-                    return Flux.just(answer);
-                }
-
-                // Determine request type
-                boolean isComparison = isComparisonRequest(question);
-                boolean isDetailsRequest = isDetailsRequest(question);
-
                 // Get database schema
                 DatabaseSchemaDTO schema = dataSourceClient.getSchemaByConfigId(databaseConfigId, userId);
 
                 // Generate SQL query
-                String sqlQuery = generateQueryWithRetries(question, schema, isComparison, isDetailsRequest);
+                String sqlQuery = generateQueryWithRetries(question, schema);
 
-                // Validate and clean SQL
+                // Clean SQL
                 String cleanedQuery = sqlValidatorService.cleanQuery(sqlQuery);
-                sqlValidatorService.validateQuery(cleanedQuery);
 
-                // Execute query
+                // Execute query (datasource will validate for security)
                 QueryExecutionResponse queryResult = dataSourceClient.executeQuery(databaseConfigId, userId, cleanedQuery);
 
                 if (!queryResult.isSuccess()) {
@@ -159,12 +109,11 @@ public class ChatbotService {
                 String sessionId = getOrCreateSession(userId, databaseConfigId);
                 final String finalQuery = cleanedQuery;
 
-                return aiService.generateStreamingAnswer(question, finalQuery, queryResult.getResult(), isComparison, isDetailsRequest)
+                return aiService.generateStreamingAnswer(question, finalQuery, queryResult.getResult())
                         .doOnComplete(() -> {
                             // Save conversation after streaming completes
-                            // Note: In production, you'd want to accumulate the streamed answer
                             saveConversation(userId, databaseConfigId, sessionId, question, finalQuery,
-                                    queryResult.getResult(), "[Streaming response]", false);
+                                    queryResult.getResult(), "[Streaming response]", null);
                         });
 
             } catch (Exception e) {
@@ -177,15 +126,13 @@ public class ChatbotService {
     /**
      * Generate SQL query with retries
      */
-    private String generateQueryWithRetries(String question, DatabaseSchemaDTO schema,
-                                           boolean isComparison, boolean isDetailsRequest) {
+    private String generateQueryWithRetries(String question, DatabaseSchemaDTO schema) {
         String lastError = null;
 
         for (int attempt = 0; attempt <= maxRetries; attempt++) {
             try {
-                String query = aiService.generateSqlQuery(question, schema, isComparison, isDetailsRequest, lastError);
+                String query = aiService.generateSqlQuery(question, schema, lastError);
                 String cleaned = sqlValidatorService.cleanQuery(query);
-                sqlValidatorService.validateQuery(cleaned);
                 return cleaned;
             } catch (Exception e) {
                 lastError = e.getMessage();
@@ -198,153 +145,6 @@ public class ChatbotService {
         }
 
         throw new ChatBotException("Failed to generate SQL query");
-    }
-
-    /**
-     * Check if this is a greeting or simple chat
-     */
-    private boolean isGreetingOrChat(String question) {
-        String lower = question.toLowerCase().trim();
-
-        String[] greetings = {
-                "bonjour", "bonsoir", "salut", "hello", "hi", "hey",
-                "comment ça va", "comment vas-tu", "ça va",
-                "qui es-tu", "qui es tu", "c'est quoi", "c est quoi",
-                "tu es qui", "what are you", "who are you",
-                "présente-toi", "presente toi", "introduce yourself",
-                "merci", "thank you", "thanks", "au revoir", "bye"
-        };
-
-        for (String greeting : greetings) {
-            if (lower.equals(greeting) || lower.startsWith(greeting + " ") || lower.endsWith(" " + greeting)) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    /**
-     * Get appropriate greeting response
-     */
-    private String getGreetingResponse(String question) {
-        String lower = question.toLowerCase().trim();
-
-        if (lower.contains("bonjour") || lower.contains("bonsoir") || lower.contains("salut") ||
-                lower.contains("hello") || lower.contains("hi")) {
-            return "Hello! I'm the AI assistant for the database query system. I can help you find data, check attributes, or compare up to 2 records. How can I assist you today?";
-        }
-
-        if (lower.contains("qui es-tu") || lower.contains("qui es tu") || lower.contains("tu es qui") ||
-                lower.contains("who are you") || lower.contains("présente") || lower.contains("introduce")) {
-            return "I'm the AI assistant for the database query system. I can help you:\n\n" +
-                    "- Find data by criteria\n" +
-                    "- Check attributes and functionalities\n" +
-                    "- Compare 2 records with complete details\n" +
-                    "- Analyze database information\n\n" +
-                    "What would you like to know?";
-        }
-
-        if (lower.contains("comment ça va") || lower.contains("comment vas") || lower.contains("ça va")) {
-            return "I'm doing great, thanks! I'm ready to help you find data. What are you looking for?";
-        }
-
-        if (lower.contains("merci") || lower.contains("thank")) {
-            return "You're welcome! Feel free to ask if you have more questions.";
-        }
-
-        if (lower.contains("au revoir") || lower.contains("bye")) {
-            return "Goodbye! Come back anytime you need database assistance!";
-        }
-
-        return "Hello! How can I assist you with your database queries today?";
-    }
-
-    /**
-     * Check if question is completely out of context
-     */
-    private boolean isCompletelyOutOfContext(String question) {
-        String lower = question.toLowerCase();
-
-        String[] outOfContextKeywords = {
-                "météo", "weather", "température", "recette", "recipe", "cuisine",
-                "sport", "football", "basket", "politique", "actualité", "news",
-                "film", "movie", "musique", "music", "chanson", "blague", "joke",
-                "restaurant", "voyage", "travel", "hotel", "voiture", "car"
-        };
-
-        for (String keyword : outOfContextKeywords) {
-            if (lower.contains(keyword)) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    /**
-     * Check if this is a comparison request
-     */
-    private boolean isComparisonRequest(String question) {
-        String lower = question.toLowerCase();
-        return lower.contains("compar") || lower.contains("versus") ||
-                lower.contains("vs") || lower.contains("différence") ||
-                lower.contains("diff");
-    }
-
-    /**
-     * Check if this is a details request
-     */
-    private boolean isDetailsRequest(String question) {
-        String lower = question.toLowerCase();
-
-        String[] detailsKeywords = {
-                "c'est quoi", "c est quoi", "qu'est-ce que", "qu est-ce que",
-                "parle moi de", "dis moi sur", "information sur", "détails sur",
-                "présente", "describe", "tell me about"
-        };
-
-        for (String keyword : detailsKeywords) {
-            if (lower.contains(keyword)) {
-                return true;
-            }
-        }
-
-        // Also check for specific pattern like "logiciel X" or "solution X"
-        if (Pattern.matches(".*\\b(logiciel|solution)\\s+[\\w\\-]+.*", lower)) {
-            // But NOT if asking for specific fields
-            String[] specificRequests = {"nom", "name", "catégorie", "category", "critère", "attribute"};
-            for (String specific : specificRequests) {
-                if (lower.contains(specific)) {
-                    return false;
-                }
-            }
-            return true;
-        }
-
-        return false;
-    }
-
-    /**
-     * Check if trying to compare more than 2 items
-     */
-    private boolean isComparingMoreThanTwo(String question) {
-        String lower = question.toLowerCase();
-
-        if (!lower.contains("compar") && !lower.contains("versus") &&
-                !lower.contains("vs") && !lower.contains("différence")) {
-            return false;
-        }
-
-        // Count "et" or "and" or commas
-        long separators = Pattern.compile("\\bet\\b|\\band\\b|,").matcher(lower).results().count();
-
-        if (separators > 1) {
-            return true;
-        }
-
-        // Check for explicit numbers like "3 logiciels", "4 solutions"
-        return Pattern.matches(".*\\b([3-9]|[1-9]\\d+)\\s*(logiciels?|solutions?).*", lower);
     }
 
     /**
@@ -380,7 +180,7 @@ public class ChatbotService {
     private void saveConversation(Long userId, Long databaseConfigId, String sessionId,
                                   String question, String sqlQuery,
                                   List<Map<String, Object>> sqlResult,
-                                  String answer, boolean isGreeting) {
+                                  String answer, String errorMessage) {
         try {
             Conversation conversation = Conversation.builder()
                     .userId(userId)
@@ -390,14 +190,15 @@ public class ChatbotService {
                     .sqlQuery(sqlQuery)
                     .sqlResult(sqlResult)
                     .answer(answer)
-                    .isGreeting(isGreeting)
+                    .errorMessage(errorMessage)
+                    .isGreeting(false)
                     .build();
 
             conversationRepository.save(conversation);
             log.debug("Conversation saved: {}", conversation.getId());
         } catch (Exception e) {
             log.error("Failed to save conversation", e);
-            // Don't throw exception - saving conversation failure shouldn't break the flow
+            // Don't throw - saving conversation failure shouldn't break the flow
         }
     }
 
