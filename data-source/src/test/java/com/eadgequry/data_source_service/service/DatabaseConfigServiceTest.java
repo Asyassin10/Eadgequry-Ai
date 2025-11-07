@@ -304,4 +304,51 @@ class DatabaseConfigServiceTest {
         verify(connectionTestService).testConnection(any(DatabaseConfig.class));
         verify(databaseConfigRepository).save(any(DatabaseConfig.class));
     }
+
+    @Test
+    void updateConfig_WhenSchemaExtractionFails_ShouldStillSaveConfig() {
+        // Arrange
+        when(databaseConfigRepository.findByIdAndUserId(1L, 100L))
+                .thenReturn(Optional.of(testConfig));
+        when(databaseConfigRepository.save(any(DatabaseConfig.class)))
+                .thenReturn(testConfig);
+        when(schemaExtractionService.extractSchema(any(DatabaseConfig.class)))
+                .thenThrow(new RuntimeException("Schema extraction failed"));
+
+        // Act
+        DatabaseConfigDTO result = databaseConfigService.updateConfig(1L, 100L, testRequest);
+
+        // Assert
+        assertNotNull(result);
+        assertEquals("Test DB", result.getName());
+        verify(databaseConfigRepository).save(any(DatabaseConfig.class));
+        verify(schemaExtractionService).extractSchema(any(DatabaseConfig.class));
+        verify(schemaService, never()).saveOrUpdateSchema(anyLong(), anyString());
+    }
+
+    @Test
+    void updateConnectionStatus_WhenConfigNotFound_ShouldThrowException() {
+        // Arrange
+        when(databaseConfigRepository.findById(1L))
+                .thenReturn(Optional.empty());
+
+        // Act & Assert
+        assertThrows(DatabaseConfigNotFoundException.class, () ->
+                databaseConfigService.updateConnectionStatus(1L, true));
+        verify(databaseConfigRepository).findById(1L);
+        verify(databaseConfigRepository, never()).save(any(DatabaseConfig.class));
+    }
+
+    @Test
+    void testExistingConnection_WhenConfigNotFound_ShouldThrowException() {
+        // Arrange
+        when(databaseConfigRepository.findByIdAndUserId(1L, 100L))
+                .thenReturn(Optional.empty());
+
+        // Act & Assert
+        assertThrows(DatabaseConfigNotFoundException.class, () ->
+                databaseConfigService.testExistingConnection(1L, 100L));
+        verify(databaseConfigRepository).findByIdAndUserId(1L, 100L);
+        verify(connectionTestService, never()).testConnection(any(DatabaseConfig.class));
+    }
 }
