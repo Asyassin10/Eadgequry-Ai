@@ -7,6 +7,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8765';
 const AUTH_API = process.env.NEXT_PUBLIC_AUTH_API || '/auth';
 const PROFILE_API = '/profiles';
 const DATASOURCE_API = '/datasource';
+const CHATBOT_API = '/chatbot';
 
 // Flag to prevent multiple simultaneous logout redirects
 let isLoggingOut = false;
@@ -361,4 +362,90 @@ export interface ConnectionTestResponse {
   exceptionType?: string;
   sqlState?: string;
   errorCode?: number;
+}
+
+// Chatbot API endpoints
+export const chatbotApi = {
+  ask: (data: ChatRequest) =>
+    api.post<ChatResponse>(`${CHATBOT_API}/ask`, data),
+
+  getUserHistory: (userId: number) =>
+    api.get<ConversationHistory[]>(`${CHATBOT_API}/history/user/${userId}`),
+
+  getSessionHistory: (sessionId: string) =>
+    api.get<ConversationHistory[]>(`${CHATBOT_API}/history/session/${sessionId}`),
+
+  health: () =>
+    api.get<{ message: string }>(`${CHATBOT_API}/health`),
+};
+
+// Chatbot types
+export interface ChatRequest {
+  question: string;
+  databaseConfigId: number;
+  userId: number;
+}
+
+export interface ChatResponse {
+  success: boolean;
+  question: string;
+  sqlQuery?: string;
+  sqlResult?: Array<Record<string, any>>;
+  answer: string;
+  error?: string;
+}
+
+export interface ConversationHistory {
+  id: number;
+  userId: number;
+  databaseConfigId: number;
+  sessionId: string;
+  question: string;
+  sqlQuery: string;
+  sqlResult: Array<Record<string, any>>;
+  answer: string;
+  errorMessage?: string;
+  createdAt: string;
+}
+
+// Helper function for streaming chatbot responses
+export async function* streamChatbot(data: ChatRequest): AsyncGenerator<string> {
+  const token = typeof window !== 'undefined' ? localStorage.getItem('authToken') : null;
+
+  const response = await fetch(`${API_URL}${CHATBOT_API}/ask/stream`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token && { Authorization: `Bearer ${token}` }),
+    },
+    body: JSON.stringify(data),
+  });
+
+  if (!response.ok) {
+    throw new Error(`HTTP error! status: ${response.status}`);
+  }
+
+  const reader = response.body?.getReader();
+  const decoder = new TextDecoder();
+
+  if (!reader) {
+    throw new Error('Response body is not readable');
+  }
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+
+    const chunk = decoder.decode(value, { stream: true });
+    const lines = chunk.split('\n');
+
+    for (const line of lines) {
+      if (line.startsWith('data: ')) {
+        const data = line.slice(6);
+        if (data && data !== '[DONE]') {
+          yield data;
+        }
+      }
+    }
+  }
 }
