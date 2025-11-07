@@ -216,22 +216,22 @@ export const profileApi = {
 // Datasource API endpoints
 export const datasourceApi = {
   getAllConfigs: (userId: number) =>
-    api.get<DatabaseConfigDTO[]>(`${DATASOURCE_API}/api/datasource/configs/user/${userId}`),
+    api.get<DatabaseConfigDTO[]>(`${DATASOURCE_API}/configs/user/${userId}`),
 
   getConfig: (id: number, userId: number) =>
-    api.get<DatabaseConfigDTO>(`${DATASOURCE_API}/api/datasource/configs/${id}/user/${userId}`),
+    api.get<DatabaseConfigDTO>(`${DATASOURCE_API}/configs/${id}/user/${userId}`),
 
   createConfig: (userId: number, data: CreateDatabaseConfigRequest) =>
-    api.post<DatabaseConfigDTO>(`${DATASOURCE_API}/api/datasource/configs/user/${userId}`, data),
+    api.post<DatabaseConfigDTO>(`${DATASOURCE_API}/configs/user/${userId}`, data),
 
   updateConfig: (id: number, userId: number, data: CreateDatabaseConfigRequest) =>
-    api.put<DatabaseConfigDTO>(`${DATASOURCE_API}/api/datasource/configs/${id}/user/${userId}`, data),
+    api.put<DatabaseConfigDTO>(`${DATASOURCE_API}/configs/${id}/user/${userId}`, data),
 
   deleteConfig: (id: number, userId: number) =>
-    api.delete<void>(`${DATASOURCE_API}/api/datasource/configs/${id}/user/${userId}`),
+    api.delete<void>(`${DATASOURCE_API}/configs/${id}/user/${userId}`),
 
   testConnection: (id: number) =>
-    api.post<MessageResponse>(`${DATASOURCE_API}/api/datasource/configs/${id}/test`, {}),
+    api.post<MessageResponse>(`${DATASOURCE_API}/configs/${id}/test`, {}),
 };
 
 // Type definitions
