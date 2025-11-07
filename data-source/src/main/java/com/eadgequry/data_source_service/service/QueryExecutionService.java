@@ -5,7 +5,8 @@ import com.eadgequry.data_source_service.exception.DatabaseConfigNotFoundExcepti
 import com.eadgequry.data_source_service.model.DatabaseConfig;
 import com.eadgequry.data_source_service.repository.DatabaseConfigRepository;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.sql.*;
@@ -13,9 +14,10 @@ import java.util.*;
 import java.util.regex.Pattern;
 
 @Service
-@Slf4j
 @RequiredArgsConstructor
 public class QueryExecutionService {
+
+    private static final Logger log = LoggerFactory.getLogger(QueryExecutionService.class);
 
     private final DatabaseConfigRepository databaseConfigRepository;
 
