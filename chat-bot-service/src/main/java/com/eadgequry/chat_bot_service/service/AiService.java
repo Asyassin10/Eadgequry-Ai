@@ -209,20 +209,57 @@ public class AiService {
         );
 
         try {
+            log.debug("Calling AI API: {} with model: {}", aiApiProperties.getUrl(), aiApiProperties.getModel());
+
             String response = webClient.post()
                     .uri(aiApiProperties.getUrl())
                     .header("Authorization", "Bearer " + aiApiProperties.getKey())
                     .header("Content-Type", "application/json")
                     .bodyValue(requestBody)
                     .retrieve()
+                    .onStatus(
+                            status -> status.is4xxClientError(),
+                            clientResponse -> {
+                                return clientResponse.bodyToMono(String.class)
+                                        .flatMap(body -> {
+                                            log.error("OpenRouter 4xx error - Status: {}, Body: {}", clientResponse.statusCode(), body);
+                                            return clientResponse.createException()
+                                                    .flatMap(ex -> {
+                                                        if (clientResponse.statusCode().value() == 401) {
+                                                            return reactor.core.publisher.Mono.error(new ChatBotException("OpenRouter authentication failed - check API key"));
+                                                        } else if (clientResponse.statusCode().value() == 429) {
+                                                            return reactor.core.publisher.Mono.error(new ChatBotException("OpenRouter rate limit exceeded"));
+                                                        } else {
+                                                            return reactor.core.publisher.Mono.error(new ChatBotException("OpenRouter client error: " + body));
+                                                        }
+                                                    });
+                                        });
+                            }
+                    )
+                    .onStatus(
+                            status -> status.is5xxServerError(),
+                            clientResponse -> {
+                                return clientResponse.bodyToMono(String.class)
+                                        .flatMap(body -> {
+                                            log.error("OpenRouter 5xx error - Status: {}, Body: {}", clientResponse.statusCode(), body);
+                                            return reactor.core.publisher.Mono.error(new ChatBotException("OpenRouter server error: " + body));
+                                        });
+                            }
+                    )
                     .bodyToMono(String.class)
                     .timeout(Duration.ofMillis(aiApiProperties.getTimeout()))
                     .block();
 
+            log.debug("AI API raw response: {}", response);
             return extractContent(response);
+        } catch (ChatBotException e) {
+            throw e;
         } catch (Exception e) {
-            log.error("AI API call failed", e);
-            throw new ChatBotException("AI API call failed: " + e.getMessage(), e);
+            log.error("AI API call failed. URL: {}, Model: {}, Error: {}",
+                    aiApiProperties.getUrl(),
+                    aiApiProperties.getModel(),
+                    e.getMessage(), e);
+            throw new ChatBotException("AI API call failed: " + (e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName()), e);
         }
     }
 
@@ -259,10 +296,34 @@ public class AiService {
     private String extractContent(String response) {
         try {
             JsonNode root = objectMapper.readTree(response);
-            return root.path("choices").get(0).path("message").path("content").asText();
+
+            // Check for error in response
+            if (root.has("error")) {
+                String errorMsg = root.path("error").path("message").asText();
+                String errorCode = root.path("error").path("code").asText();
+                log.error("OpenRouter API returned error - Code: {}, Message: {}", errorCode, errorMsg);
+                throw new ChatBotException("OpenRouter API error: " + errorMsg);
+            }
+
+            // Extract content
+            JsonNode choices = root.path("choices");
+            if (choices.isMissingNode() || choices.isEmpty()) {
+                log.error("No choices in response. Full response: {}", response);
+                throw new ChatBotException("OpenRouter response missing 'choices' field");
+            }
+
+            String content = choices.get(0).path("message").path("content").asText();
+            if (content == null || content.isEmpty()) {
+                log.error("Empty content in response. Full response: {}", response);
+                throw new ChatBotException("OpenRouter returned empty content");
+            }
+
+            return content;
+        } catch (ChatBotException e) {
+            throw e;
         } catch (Exception e) {
-            log.error("Failed to parse AI response", e);
-            throw new ChatBotException("Failed to parse AI response", e);
+            log.error("Failed to parse AI response. Response: {}", response, e);
+            throw new ChatBotException("Failed to parse AI response: " + e.getMessage(), e);
         }
     }
 
