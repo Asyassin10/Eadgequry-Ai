@@ -106,13 +106,17 @@ async function apiRequest<T>(
   try {
     const token = typeof window !== 'undefined' ? localStorage.getItem('authToken') : null;
 
-    const headers: HeadersInit = {
+    const headers: Record<string, string> = {
       'Content-Type': 'application/json',
-      ...options.headers,
     };
 
     if (token) {
       headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    // Merge with any additional headers from options
+    if (options.headers) {
+      Object.assign(headers, options.headers);
     }
 
     const response = await fetch(`${API_URL}${endpoint}`, {
@@ -233,6 +237,9 @@ export const datasourceApi = {
 
   testConnection: (id: number, userId: number) =>
     api.post<ConnectionTestResponse>(`${DATASOURCE_API}/configs/${id}/user/${userId}/test`, {}),
+
+  getSchema: (configId: number, userId: number) =>
+    api.get<DatabaseSchemaDTO>(`${DATASOURCE_API}/schemas/config/${configId}/user/${userId}`),
 };
 
 // Type definitions
@@ -362,6 +369,43 @@ export interface ConnectionTestResponse {
   exceptionType?: string;
   sqlState?: string;
   errorCode?: number;
+}
+
+export interface DatabaseSchemaDTO {
+  id: number;
+  databaseConfigId: number;
+  databaseName: string;
+  databaseType: string;
+  tables: TableInfo[];
+  extractedAt: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface TableInfo {
+  name: string;
+  columns: ColumnInfo[];
+  primaryKeys: string[];
+  foreignKeys: ForeignKeyInfo[];
+  indexes: string[];
+  rowCount?: number;
+}
+
+export interface ColumnInfo {
+  name: string;
+  type: string;
+  nullable: boolean;
+  defaultValue?: string;
+  maxLength?: number;
+  precision?: number;
+  scale?: number;
+}
+
+export interface ForeignKeyInfo {
+  name: string;
+  column: string;
+  referencedTable: string;
+  referencedColumn: string;
 }
 
 // Chatbot API endpoints

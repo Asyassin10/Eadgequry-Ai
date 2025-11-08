@@ -4,10 +4,10 @@ import { useState, useRef, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Send, MessageSquare, Database, Code, Table, AlertCircle, Loader2, RefreshCw, Copy, Check } from "lucide-react"
+import { Send, MessageSquare, Database, Code, Table, AlertCircle, Loader2, RefreshCw, Copy, Check, ChevronRight, ChevronDown } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { useAuth } from "@/contexts/AuthContext"
-import { chatbotApi, datasourceApi, streamChatbot, type ChatResponse, type DatabaseConfigDTO } from "@/lib/api"
+import { chatbotApi, datasourceApi, streamChatbot, type ChatResponse, type DatabaseConfigDTO, type DatabaseSchemaDTO } from "@/lib/api"
 import { toast } from "sonner"
 import {
   Select,
@@ -38,6 +38,9 @@ export function ChatbotPage() {
   const [selectedDatabaseId, setSelectedDatabaseId] = useState<number | null>(null)
   const [loadingDatabases, setLoadingDatabases] = useState(true)
   const [copiedSql, setCopiedSql] = useState<number | null>(null)
+  const [schema, setSchema] = useState<DatabaseSchemaDTO | null>(null)
+  const [loadingSchema, setLoadingSchema] = useState(false)
+  const [expandedTables, setExpandedTables] = useState<Set<string>>(new Set())
   const scrollRef = useRef<HTMLDivElement>(null)
 
   // Auto-scroll to bottom when messages change
@@ -53,6 +56,51 @@ export function ChatbotPage() {
       loadDatabases()
     }
   }, [user])
+
+  // Load schema when database is selected
+  useEffect(() => {
+    if (selectedDatabaseId && user?.userId) {
+      loadSchema(selectedDatabaseId, user.userId)
+    } else {
+      setSchema(null)
+    }
+  }, [selectedDatabaseId, user])
+
+  const loadSchema = async (configId: number, userId: number) => {
+    try {
+      setLoadingSchema(true)
+      const response = await datasourceApi.getSchema(configId, userId)
+
+      if (response.error) {
+        toast.error("Failed to load database schema")
+        return
+      }
+
+      if (response.data) {
+        setSchema(response.data)
+        // Auto-expand all tables by default
+        const allTables = new Set(response.data.tables.map(t => t.name))
+        setExpandedTables(allTables)
+      }
+    } catch (error) {
+      console.error("Error loading schema:", error)
+      toast.error("Failed to load schema")
+    } finally {
+      setLoadingSchema(false)
+    }
+  }
+
+  const toggleTable = (tableName: string) => {
+    setExpandedTables(prev => {
+      const newSet = new Set(prev)
+      if (newSet.has(tableName)) {
+        newSet.delete(tableName)
+      } else {
+        newSet.add(tableName)
+      }
+      return newSet
+    })
+  }
 
   const copySqlToClipboard = async (sql: string, messageId: number) => {
     try {
@@ -264,6 +312,11 @@ export function ChatbotPage() {
   }
 
   const renderMarkdown = (text: string) => {
+    // Handle null/undefined text
+    if (!text) {
+      return <div className="text-muted-foreground italic">No response</div>
+    }
+
     // Simple markdown renderer for tables and basic formatting
     const lines = text.split('\n')
     const elements: React.ReactNode[] = []
@@ -460,173 +513,291 @@ export function ChatbotPage() {
         </CardHeader>
       </Card>
 
-      {/* Chat Area */}
-      <Card className="flex-1 bg-card border-border flex flex-col">
-        <CardContent className="flex-1 flex flex-col gap-4 p-4">
-          {/* Messages */}
-          <div
-            ref={scrollRef}
-            className="flex-1 space-y-4 overflow-y-auto bg-muted/20 rounded-lg p-4"
-          >
-            {messages.length === 0 && (
-              <div className="flex flex-col items-center justify-center h-full text-center">
-                <MessageSquare className="w-12 h-12 text-muted-foreground mb-3" />
-                <h3 className="text-lg font-semibold mb-2">
-                  Welcome to EadgeQuery AI Chatbot
-                </h3>
-                <p className="text-sm text-muted-foreground max-w-md">
-                  Ask questions about your database in natural language. I'll
-                  generate SQL queries and provide answers.
-                </p>
-              </div>
-            )}
+      {/* Main Content: Chat Area + Schema Panel */}
+      <div className="flex-1 grid grid-cols-1 lg:grid-cols-3 gap-4">
+        {/* Chat Area - Takes 2/3 of width on large screens */}
+        <Card className="lg:col-span-2 bg-card border-border flex flex-col">
+          <CardContent className="flex-1 flex flex-col gap-4 p-4">
+            {/* Messages */}
+            <div
+              ref={scrollRef}
+              className="flex-1 space-y-4 overflow-y-auto bg-muted/20 rounded-lg p-4"
+            >
+              {messages.length === 0 && (
+                <div className="flex flex-col items-center justify-center h-full text-center">
+                  <MessageSquare className="w-12 h-12 text-muted-foreground mb-3" />
+                  <h3 className="text-lg font-semibold mb-2">
+                    Welcome to EadgeQuery AI Chatbot
+                  </h3>
+                  <p className="text-sm text-muted-foreground max-w-md">
+                    Ask questions about your database in natural language. I'll
+                    generate SQL queries and provide answers.
+                  </p>
+                </div>
+              )}
 
-            {messages.map((message) => (
-              <div key={message.id} className="space-y-2">
-                {/* User Question */}
-                {message.type === "question" && (
-                  <div className="flex justify-end">
-                    <div className="max-w-xs lg:max-w-md px-4 py-3 rounded-lg bg-primary text-primary-foreground rounded-br-none">
-                      <p className="text-sm">{message.question}</p>
+              {messages.map((message) => (
+                <div key={message.id} className="space-y-2">
+                  {/* User Question */}
+                  {message.type === "question" && (
+                    <div className="flex justify-end">
+                      <div className="max-w-xs lg:max-w-md px-4 py-3 rounded-lg bg-primary text-primary-foreground rounded-br-none">
+                        <p className="text-sm">{message.question}</p>
+                      </div>
                     </div>
-                  </div>
-                )}
+                  )}
 
-                {/* AI Answer */}
-                {(message.type === "answer" || message.type === "error") && (
-                  <div className="flex justify-start">
-                    <div className="max-w-2xl space-y-3">
-                      {/* SQL Query - Terminal Style */}
-                      {message.sqlQuery && (
-                        <div className="bg-slate-900 border border-slate-700 rounded-lg overflow-hidden">
-                          <div className="flex items-center justify-between bg-slate-800 px-3 py-2 border-b border-slate-700">
-                            <div className="flex items-center gap-2">
-                              <div className="flex gap-1.5">
-                                <div className="w-3 h-3 rounded-full bg-red-500"></div>
-                                <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
-                                <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                  {/* AI Answer */}
+                  {(message.type === "answer" || message.type === "error") && (
+                    <div className="flex justify-start">
+                      <div className="max-w-2xl space-y-3">
+                        {/* SQL Query - Terminal Style */}
+                        {message.sqlQuery && (
+                          <div className="bg-slate-900 border border-slate-700 rounded-lg overflow-hidden">
+                            <div className="flex items-center justify-between bg-slate-800 px-3 py-2 border-b border-slate-700">
+                              <div className="flex items-center gap-2">
+                                <div className="flex gap-1.5">
+                                  <div className="w-3 h-3 rounded-full bg-red-500"></div>
+                                  <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
+                                  <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                                </div>
+                                <Code className="w-4 h-4 text-slate-400" />
+                                <span className="text-xs font-mono text-slate-300">
+                                  Generated SQL Query
+                                </span>
                               </div>
-                              <Code className="w-4 h-4 text-slate-400" />
-                              <span className="text-xs font-mono text-slate-300">
-                                Generated SQL Query
-                              </span>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-6 px-2 text-slate-400 hover:text-white hover:bg-slate-700"
+                                onClick={() => copySqlToClipboard(message.sqlQuery!, message.id)}
+                              >
+                                {copiedSql === message.id ? (
+                                  <>
+                                    <Check className="w-3 h-3 mr-1" />
+                                    <span className="text-xs">Copied!</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <Copy className="w-3 h-3 mr-1" />
+                                    <span className="text-xs">Copy</span>
+                                  </>
+                                )}
+                              </Button>
                             </div>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              className="h-6 px-2 text-slate-400 hover:text-white hover:bg-slate-700"
-                              onClick={() => copySqlToClipboard(message.sqlQuery!, message.id)}
-                            >
-                              {copiedSql === message.id ? (
-                                <>
-                                  <Check className="w-3 h-3 mr-1" />
-                                  <span className="text-xs">Copied!</span>
-                                </>
-                              ) : (
-                                <>
-                                  <Copy className="w-3 h-3 mr-1" />
-                                  <span className="text-xs">Copy</span>
-                                </>
-                              )}
-                            </Button>
-                          </div>
-                          <pre className="text-xs font-mono bg-slate-900 text-green-400 p-4 overflow-x-auto">
-                            <code>{message.sqlQuery}</code>
-                          </pre>
-                        </div>
-                      )}
-
-                      {/* SQL Results */}
-                      {message.sqlResult && message.sqlResult.length > 0 && (
-                        <div className="bg-card border border-border rounded-lg p-3">
-                          <div className="flex items-center gap-2 mb-2">
-                            <Table className="w-4 h-4 text-green-500" />
-                            <span className="text-xs font-semibold">
-                              Query Results ({message.sqlResult.length} rows)
-                            </span>
-                          </div>
-                          {renderSqlResult(message.sqlResult)}
-                        </div>
-                      )}
-
-                      {/* AI Answer */}
-                      <div
-                        className={`px-4 py-3 rounded-lg rounded-bl-none ${
-                          message.type === "error"
-                            ? "bg-destructive/10 border border-destructive text-destructive"
-                            : "bg-card border border-border"
-                        }`}
-                      >
-                        {message.type === "error" && (
-                          <div className="flex items-center gap-2 mb-2">
-                            <AlertCircle className="w-4 h-4" />
-                            <span className="text-xs font-semibold">Error</span>
+                            <pre className="text-xs font-mono bg-slate-900 text-green-400 p-4 overflow-x-auto">
+                              <code>{message.sqlQuery}</code>
+                            </pre>
                           </div>
                         )}
-                        <div className="text-sm">
-                          {renderMarkdown(message.answer)}
-                          {message.isStreaming && (
-                            <span className="inline-block w-2 h-4 ml-1 bg-primary animate-pulse" />
+
+                        {/* SQL Results */}
+                        {message.sqlResult && message.sqlResult.length > 0 && (
+                          <div className="bg-card border border-border rounded-lg p-3">
+                            <div className="flex items-center gap-2 mb-2">
+                              <Table className="w-4 h-4 text-green-500" />
+                              <span className="text-xs font-semibold">
+                                Query Results ({message.sqlResult.length} rows)
+                              </span>
+                            </div>
+                            {renderSqlResult(message.sqlResult)}
+                          </div>
+                        )}
+
+                        {/* AI Answer */}
+                        <div
+                          className={`px-4 py-3 rounded-lg rounded-bl-none ${
+                            message.type === "error"
+                              ? "bg-destructive/10 border border-destructive text-destructive"
+                              : "bg-card border border-border"
+                          }`}
+                        >
+                          {message.type === "error" && (
+                            <div className="flex items-center gap-2 mb-2">
+                              <AlertCircle className="w-4 h-4" />
+                              <span className="text-xs font-semibold">Error</span>
+                            </div>
                           )}
+                          <div className="text-sm">
+                            {renderMarkdown(message.answer)}
+                            {message.isStreaming && (
+                              <span className="inline-block w-2 h-4 ml-1 bg-primary animate-pulse" />
+                            )}
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                )}
-              </div>
-            ))}
+                  )}
+                </div>
+              ))}
 
-            {isLoading && (
-              <div className="flex justify-start">
-                <div className="bg-card border border-border px-4 py-3 rounded-lg rounded-bl-none">
-                  <div className="flex gap-2 items-center">
-                    <Loader2 className="w-4 h-4 animate-spin text-primary" />
-                    <span className="text-sm text-muted-foreground">
-                      {loadingMessage || "Processing your question..."}
-                    </span>
+              {isLoading && (
+                <div className="flex justify-start">
+                  <div className="bg-card border border-border px-4 py-3 rounded-lg rounded-bl-none">
+                    <div className="flex gap-2 items-center">
+                      <Loader2 className="w-4 h-4 animate-spin text-primary" />
+                      <span className="text-sm text-muted-foreground">
+                        {loadingMessage || "Processing your question..."}
+                      </span>
+                    </div>
                   </div>
+                </div>
+              )}
+            </div>
+
+            {/* Input Area */}
+            <div className="flex gap-2 pt-2 border-t border-border">
+              <Input
+                type="text"
+                placeholder="Ask a question about your data..."
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyPress={(e) => e.key === "Enter" && handleSend()}
+                className="flex-1 bg-input border-border"
+                disabled={isLoading || !selectedDatabaseId}
+              />
+              <Button
+                onClick={handleSend}
+                disabled={isLoading || !input.trim() || !selectedDatabaseId}
+                className="bg-primary hover:bg-secondary text-primary-foreground"
+              >
+                <Send className="w-4 h-4" />
+              </Button>
+            </div>
+
+            {!selectedDatabaseId && databases.length > 0 && (
+              <div className="text-xs text-center text-muted-foreground">
+                Please select a database to start chatting
+              </div>
+            )}
+
+            {databases.length === 0 && !loadingDatabases && (
+              <div className="text-xs text-center text-muted-foreground">
+                No databases configured.{" "}
+                <a href="/datasource" className="text-primary underline">
+                  Add a database connection
+                </a>{" "}
+                to get started.
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Schema Panel - Takes 1/3 of width on large screens */}
+        <Card className="bg-card border-border flex flex-col">
+          <CardHeader className="pb-3">
+            <div className="flex items-center gap-2">
+              <Database className="w-4 h-4 text-primary" />
+              <CardTitle className="text-sm">Database Schema</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent className="flex-1 overflow-y-auto p-4">
+            {loadingSchema && (
+              <div className="flex items-center justify-center h-32">
+                <div className="flex flex-col items-center gap-2">
+                  <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                  <span className="text-xs text-muted-foreground">Loading schema...</span>
                 </div>
               </div>
             )}
-          </div>
 
-          {/* Input Area */}
-          <div className="flex gap-2 pt-2 border-t border-border">
-            <Input
-              type="text"
-              placeholder="Ask a question about your data..."
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyPress={(e) => e.key === "Enter" && handleSend()}
-              className="flex-1 bg-input border-border"
-              disabled={isLoading || !selectedDatabaseId}
-            />
-            <Button
-              onClick={handleSend}
-              disabled={isLoading || !input.trim() || !selectedDatabaseId}
-              className="bg-primary hover:bg-secondary text-primary-foreground"
-            >
-              <Send className="w-4 h-4" />
-            </Button>
-          </div>
+            {!loadingSchema && !schema && selectedDatabaseId && (
+              <div className="flex items-center justify-center h-32 text-center">
+                <div className="text-xs text-muted-foreground">
+                  <AlertCircle className="w-6 h-6 mx-auto mb-2 text-muted-foreground" />
+                  <p>No schema available</p>
+                </div>
+              </div>
+            )}
 
-          {!selectedDatabaseId && databases.length > 0 && (
-            <div className="text-xs text-center text-muted-foreground">
-              Please select a database to start chatting
-            </div>
-          )}
+            {!loadingSchema && !selectedDatabaseId && (
+              <div className="flex items-center justify-center h-32 text-center">
+                <div className="text-xs text-muted-foreground">
+                  <Database className="w-6 h-6 mx-auto mb-2 text-muted-foreground" />
+                  <p>Select a database to view schema</p>
+                </div>
+              </div>
+            )}
 
-          {databases.length === 0 && !loadingDatabases && (
-            <div className="text-xs text-center text-muted-foreground">
-              No databases configured.{" "}
-              <a href="/datasource" className="text-primary underline">
-                Add a database connection
-              </a>{" "}
-              to get started.
-            </div>
-          )}
-        </CardContent>
-      </Card>
+            {!loadingSchema && schema && (
+              <div className="space-y-2">
+                <div className="mb-3 p-2 bg-muted/50 rounded-lg">
+                  <div className="text-xs font-semibold text-muted-foreground">
+                    {schema.databaseName}
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    Type: {schema.databaseType}
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    Tables: {schema.tables.length}
+                  </div>
+                </div>
+
+                {schema.tables.map((table) => (
+                  <div
+                    key={table.name}
+                    className="border border-border rounded-lg overflow-hidden"
+                  >
+                    <button
+                      onClick={() => toggleTable(table.name)}
+                      className="w-full flex items-center justify-between p-2 bg-muted/30 hover:bg-muted/50 transition-colors"
+                    >
+                      <div className="flex items-center gap-2">
+                        <Table className="w-3 h-3 text-primary" />
+                        <span className="text-xs font-semibold">{table.name}</span>
+                      </div>
+                      {expandedTables.has(table.name) ? (
+                        <ChevronDown className="w-3 h-3 text-muted-foreground" />
+                      ) : (
+                        <ChevronRight className="w-3 h-3 text-muted-foreground" />
+                      )}
+                    </button>
+
+                    {expandedTables.has(table.name) && (
+                      <div className="p-2 space-y-1 bg-card">
+                        {table.columns.map((column) => (
+                          <div
+                            key={column.name}
+                            className="flex items-start justify-between text-xs p-1 hover:bg-muted/20 rounded"
+                          >
+                            <div className="flex-1">
+                              <div className="font-mono text-foreground">
+                                {column.name}
+                              </div>
+                              <div className="text-muted-foreground text-[10px]">
+                                {column.type}
+                                {!column.nullable && (
+                                  <span className="ml-1 text-primary">NOT NULL</span>
+                                )}
+                                {table.primaryKeys.includes(column.name) && (
+                                  <span className="ml-1 text-yellow-500">PK</span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+
+                        {table.foreignKeys && table.foreignKeys.length > 0 && (
+                          <div className="mt-2 pt-2 border-t border-border">
+                            <div className="text-[10px] font-semibold text-muted-foreground mb-1">
+                              Foreign Keys
+                            </div>
+                            {table.foreignKeys.map((fk, idx) => (
+                              <div key={idx} className="text-[10px] text-muted-foreground">
+                                {fk.column} → {fk.referencedTable}.{fk.referencedColumn}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
     </div>
   )
 }
