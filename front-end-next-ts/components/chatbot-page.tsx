@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Send, MessageSquare, Database, Code, Table, AlertCircle, Loader2, RefreshCw } from "lucide-react"
+import { Send, MessageSquare, Database, Code, Table, AlertCircle, Loader2, RefreshCw, Copy, Check } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { useAuth } from "@/contexts/AuthContext"
 import { chatbotApi, datasourceApi, streamChatbot, type ChatResponse, type DatabaseConfigDTO } from "@/lib/api"
@@ -33,9 +33,11 @@ export function ChatbotPage() {
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState("")
   const [isLoading, setIsLoading] = useState(false)
+  const [loadingMessage, setLoadingMessage] = useState("")
   const [databases, setDatabases] = useState<DatabaseConfigDTO[]>([])
   const [selectedDatabaseId, setSelectedDatabaseId] = useState<number | null>(null)
   const [loadingDatabases, setLoadingDatabases] = useState(true)
+  const [copiedSql, setCopiedSql] = useState<number | null>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
 
   // Auto-scroll to bottom when messages change
@@ -51,6 +53,17 @@ export function ChatbotPage() {
       loadDatabases()
     }
   }, [user])
+
+  const copySqlToClipboard = async (sql: string, messageId: number) => {
+    try {
+      await navigator.clipboard.writeText(sql)
+      setCopiedSql(messageId)
+      toast.success("SQL copied to clipboard!")
+      setTimeout(() => setCopiedSql(null), 2000)
+    } catch (error) {
+      toast.error("Failed to copy SQL")
+    }
+  }
 
   const loadDatabases = async () => {
     if (!user?.userId) return
@@ -98,6 +111,7 @@ export function ChatbotPage() {
     const questionText = input.trim()
     setInput("")
     setIsLoading(true)
+    setLoadingMessage("Generating query...")
 
     // Add user question to messages
     const questionMessage: Message = {
@@ -110,6 +124,7 @@ export function ChatbotPage() {
     setMessages((prev) => [...prev, questionMessage])
 
     try {
+      setLoadingMessage("Analyzing data...")
       const response = await chatbotApi.ask({
         question: questionText,
         databaseConfigId: selectedDatabaseId,
@@ -248,6 +263,113 @@ export function ChatbotPage() {
     }
   }
 
+  const renderMarkdown = (text: string) => {
+    // Simple markdown renderer for tables and basic formatting
+    const lines = text.split('\n')
+    const elements: React.ReactNode[] = []
+    let inTable = false
+    let tableRows: string[][] = []
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i]
+
+      // Detect table rows (lines with |)
+      if (line.trim().startsWith('|') && line.trim().endsWith('|')) {
+        if (!inTable) {
+          inTable = true
+          tableRows = []
+        }
+
+        // Skip separator row (|---|---|)
+        if (line.match(/^\|[\s-:|]+\|$/)) {
+          continue
+        }
+
+        const cells = line
+          .split('|')
+          .map(cell => cell.trim())
+          .filter(cell => cell !== '')
+
+        tableRows.push(cells)
+      } else {
+        // End of table or regular text
+        if (inTable && tableRows.length > 0) {
+          const headers = tableRows[0]
+          const rows = tableRows.slice(1)
+
+          elements.push(
+            <div key={`table-${i}`} className="overflow-x-auto my-3">
+              <table className="w-full text-xs border-collapse border border-border rounded-lg">
+                <thead className="bg-muted">
+                  <tr>
+                    {headers.map((header, idx) => (
+                      <th key={idx} className="text-left p-2 font-semibold border-b border-border">
+                        {header}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows.map((row, rowIdx) => (
+                    <tr key={rowIdx} className="border-b border-border/50 hover:bg-muted/30">
+                      {row.map((cell, cellIdx) => (
+                        <td key={cellIdx} className="p-2">
+                          {cell}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )
+
+          inTable = false
+          tableRows = []
+        }
+
+        if (line.trim()) {
+          elements.push(<p key={`p-${i}`} className="my-1">{line}</p>)
+        }
+      }
+    }
+
+    // Handle remaining table at end
+    if (inTable && tableRows.length > 0) {
+      const headers = tableRows[0]
+      const rows = tableRows.slice(1)
+
+      elements.push(
+        <div key="table-final" className="overflow-x-auto my-3">
+          <table className="w-full text-xs border-collapse border border-border rounded-lg">
+            <thead className="bg-muted">
+              <tr>
+                {headers.map((header, idx) => (
+                  <th key={idx} className="text-left p-2 font-semibold border-b border-border">
+                    {header}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((row, rowIdx) => (
+                <tr key={rowIdx} className="border-b border-border/50 hover:bg-muted/30">
+                  {row.map((cell, cellIdx) => (
+                    <td key={cellIdx} className="p-2">
+                      {cell}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )
+    }
+
+    return <div>{elements}</div>
+  }
+
   const renderSqlResult = (result: Array<Record<string, any>>) => {
     if (!result || result.length === 0) {
       return (
@@ -374,16 +496,41 @@ export function ChatbotPage() {
                 {(message.type === "answer" || message.type === "error") && (
                   <div className="flex justify-start">
                     <div className="max-w-2xl space-y-3">
-                      {/* SQL Query */}
+                      {/* SQL Query - Terminal Style */}
                       {message.sqlQuery && (
-                        <div className="bg-card border border-border rounded-lg p-3">
-                          <div className="flex items-center gap-2 mb-2">
-                            <Code className="w-4 h-4 text-blue-500" />
-                            <span className="text-xs font-semibold">
-                              Generated SQL Query
-                            </span>
+                        <div className="bg-slate-900 border border-slate-700 rounded-lg overflow-hidden">
+                          <div className="flex items-center justify-between bg-slate-800 px-3 py-2 border-b border-slate-700">
+                            <div className="flex items-center gap-2">
+                              <div className="flex gap-1.5">
+                                <div className="w-3 h-3 rounded-full bg-red-500"></div>
+                                <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
+                                <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                              </div>
+                              <Code className="w-4 h-4 text-slate-400" />
+                              <span className="text-xs font-mono text-slate-300">
+                                Generated SQL Query
+                              </span>
+                            </div>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-6 px-2 text-slate-400 hover:text-white hover:bg-slate-700"
+                              onClick={() => copySqlToClipboard(message.sqlQuery!, message.id)}
+                            >
+                              {copiedSql === message.id ? (
+                                <>
+                                  <Check className="w-3 h-3 mr-1" />
+                                  <span className="text-xs">Copied!</span>
+                                </>
+                              ) : (
+                                <>
+                                  <Copy className="w-3 h-3 mr-1" />
+                                  <span className="text-xs">Copy</span>
+                                </>
+                              )}
+                            </Button>
                           </div>
-                          <pre className="text-xs bg-muted p-2 rounded overflow-x-auto">
+                          <pre className="text-xs font-mono bg-slate-900 text-green-400 p-4 overflow-x-auto">
                             <code>{message.sqlQuery}</code>
                           </pre>
                         </div>
@@ -416,12 +563,12 @@ export function ChatbotPage() {
                             <span className="text-xs font-semibold">Error</span>
                           </div>
                         )}
-                        <p className="text-sm whitespace-pre-wrap">
-                          {message.answer}
+                        <div className="text-sm">
+                          {renderMarkdown(message.answer)}
                           {message.isStreaming && (
                             <span className="inline-block w-2 h-4 ml-1 bg-primary animate-pulse" />
                           )}
-                        </p>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -435,7 +582,7 @@ export function ChatbotPage() {
                   <div className="flex gap-2 items-center">
                     <Loader2 className="w-4 h-4 animate-spin text-primary" />
                     <span className="text-sm text-muted-foreground">
-                      Processing your question...
+                      {loadingMessage || "Processing your question..."}
                     </span>
                   </div>
                 </div>
