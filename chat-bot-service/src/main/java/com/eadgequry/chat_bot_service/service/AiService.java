@@ -113,16 +113,29 @@ public class AiService {
     private String buildQueryPrompt(String question, DatabaseSchemaDTO schema, String previousError) {
         StringBuilder prompt = new StringBuilder();
 
+        // Get database type
+        String databaseType = schema != null && schema.getDatabaseType() != null
+            ? schema.getDatabaseType().toUpperCase()
+            : "UNKNOWN";
+
         prompt.append("Generate a SELECT SQL query to answer this question.\n\n");
+
+        prompt.append("TARGET DATABASE TYPE: ").append(databaseType).append("\n");
+        prompt.append("IMPORTANT: Use the correct SQL syntax for ").append(databaseType).append(" database!\n\n");
 
         prompt.append("CRITICAL RULES:\n");
         prompt.append("1. Generate ONLY the SQL query, nothing else\n");
-        prompt.append("2. Query MUST be syntactically correct\n");
+        prompt.append("2. Query MUST be syntactically correct for ").append(databaseType).append("\n");
         prompt.append("3. ALL quotes must be properly closed\n");
         prompt.append("4. Use LIKE with correct quotes: LIKE '%keyword%'\n");
         prompt.append("5. NO explanations, just the SQL query\n");
         prompt.append("6. NEVER return 'id' columns in SELECT\n");
         prompt.append("7. ONLY SELECT queries - NO INSERT, UPDATE, DELETE, DROP, etc.\n\n");
+
+        // Add database-specific syntax rules
+        prompt.append("DATABASE-SPECIFIC SYNTAX FOR ").append(databaseType).append(":\n");
+        prompt.append(getDatabaseSpecificSyntax(databaseType));
+        prompt.append("\n");
 
         if (previousError != null) {
             prompt.append("PREVIOUS ERROR: ").append(previousError).append("\n");
@@ -134,21 +147,117 @@ public class AiService {
         prompt.append(formatSchemaInfo(schema));
         prompt.append("\n\n");
 
-        prompt.append("EXAMPLES:\n");
-        prompt.append("Question: \"Show all users\"\n");
-        prompt.append("SQL: SELECT * FROM users\n\n");
-
-        prompt.append("Question: \"Count total orders\"\n");
-        prompt.append("SQL: SELECT COUNT(*) as total FROM orders\n\n");
-
-        prompt.append("Question: \"Find products with price > 100\"\n");
-        prompt.append("SQL: SELECT name, price FROM products WHERE price > 100\n\n");
+        prompt.append("EXAMPLES FOR ").append(databaseType).append(":\n");
+        prompt.append(getDatabaseSpecificExamples(databaseType));
+        prompt.append("\n");
 
         prompt.append("Now generate SQL for:\n");
         prompt.append("Question: \"").append(question).append("\"\n");
         prompt.append("SQL:");
 
         return prompt.toString();
+    }
+
+    /**
+     * Get database-specific SQL syntax rules
+     */
+    private String getDatabaseSpecificSyntax(String databaseType) {
+        StringBuilder syntax = new StringBuilder();
+
+        switch (databaseType.toUpperCase()) {
+            case "MYSQL":
+                syntax.append("- Use LIMIT for row limiting: SELECT * FROM table LIMIT 10\n");
+                syntax.append("- Use backticks for identifiers: `table_name`, `column_name`\n");
+                syntax.append("- String concat: CONCAT(str1, str2) or CONCAT_WS(separator, str1, str2)\n");
+                syntax.append("- Date functions: NOW(), CURDATE(), DATE_FORMAT(date, format)\n");
+                syntax.append("- Case-insensitive comparison is default\n");
+                break;
+
+            case "POSTGRESQL":
+                syntax.append("- Use LIMIT for row limiting: SELECT * FROM table LIMIT 10\n");
+                syntax.append("- Use double quotes for case-sensitive identifiers: \"TableName\"\n");
+                syntax.append("- String concat: str1 || str2 or CONCAT(str1, str2)\n");
+                syntax.append("- Date functions: NOW(), CURRENT_DATE, TO_CHAR(date, format)\n");
+                syntax.append("- Use ILIKE for case-insensitive pattern matching\n");
+                syntax.append("- Boolean type: TRUE/FALSE\n");
+                break;
+
+            case "SQLSERVER":
+                syntax.append("- Use TOP for row limiting: SELECT TOP 10 * FROM table\n");
+                syntax.append("- Use square brackets for identifiers: [table_name], [column name]\n");
+                syntax.append("- String concat: str1 + str2 or CONCAT(str1, str2)\n");
+                syntax.append("- Date functions: GETDATE(), CONVERT(), FORMAT()\n");
+                syntax.append("- Use schema prefix: dbo.table_name\n");
+                break;
+
+            case "ORACLE":
+                syntax.append("- Use FETCH FIRST for row limiting: SELECT * FROM table FETCH FIRST 10 ROWS ONLY\n");
+                syntax.append("- Or use ROWNUM: SELECT * FROM table WHERE ROWNUM <= 10\n");
+                syntax.append("- Use double quotes for case-sensitive identifiers: \"table_name\"\n");
+                syntax.append("- String concat: str1 || str2 or CONCAT(str1, str2)\n");
+                syntax.append("- Date functions: SYSDATE, TO_DATE(), TO_CHAR()\n");
+                syntax.append("- No LIMIT keyword - use ROWNUM or FETCH FIRST\n");
+                break;
+
+            case "H2":
+                syntax.append("- Use LIMIT for row limiting: SELECT * FROM table LIMIT 10\n");
+                syntax.append("- Compatible with both MySQL and PostgreSQL syntax\n");
+                syntax.append("- Use double quotes for identifiers: \"table_name\"\n");
+                break;
+
+            default:
+                syntax.append("- Use standard SQL syntax\n");
+                syntax.append("- Be careful with quotes and identifiers\n");
+                break;
+        }
+
+        return syntax.toString();
+    }
+
+    /**
+     * Get database-specific SQL examples
+     */
+    private String getDatabaseSpecificExamples(String databaseType) {
+        StringBuilder examples = new StringBuilder();
+
+        switch (databaseType.toUpperCase()) {
+            case "MYSQL":
+                examples.append("Question: \"Show first 10 users\"\n");
+                examples.append("SQL: SELECT * FROM users LIMIT 10\n\n");
+                examples.append("Question: \"Find users created today\"\n");
+                examples.append("SQL: SELECT * FROM users WHERE DATE(created_at) = CURDATE()\n\n");
+                break;
+
+            case "POSTGRESQL":
+                examples.append("Question: \"Show first 10 users\"\n");
+                examples.append("SQL: SELECT * FROM users LIMIT 10\n\n");
+                examples.append("Question: \"Find users with name containing 'john' (case-insensitive)\"\n");
+                examples.append("SQL: SELECT * FROM users WHERE name ILIKE '%john%'\n\n");
+                break;
+
+            case "SQLSERVER":
+                examples.append("Question: \"Show first 10 users\"\n");
+                examples.append("SQL: SELECT TOP 10 * FROM users\n\n");
+                examples.append("Question: \"Find users created today\"\n");
+                examples.append("SQL: SELECT * FROM users WHERE CAST(created_at AS DATE) = CAST(GETDATE() AS DATE)\n\n");
+                break;
+
+            case "ORACLE":
+                examples.append("Question: \"Show first 10 users\"\n");
+                examples.append("SQL: SELECT * FROM users FETCH FIRST 10 ROWS ONLY\n\n");
+                examples.append("Question: \"Find users created today\"\n");
+                examples.append("SQL: SELECT * FROM users WHERE TRUNC(created_at) = TRUNC(SYSDATE)\n\n");
+                break;
+
+            default:
+                examples.append("Question: \"Show all users\"\n");
+                examples.append("SQL: SELECT * FROM users\n\n");
+                examples.append("Question: \"Count total orders\"\n");
+                examples.append("SQL: SELECT COUNT(*) as total FROM orders\n\n");
+                break;
+        }
+
+        return examples.toString();
     }
 
     /**
