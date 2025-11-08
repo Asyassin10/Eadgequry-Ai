@@ -5,7 +5,7 @@ import com.eadgequry.chat_bot_service.dto.QueryExecutionResponse;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.*;
 
-@FeignClient(name = "data-source", path = "/api/datasource")
+@FeignClient(name = "data-source", path = "/datasource")
 public interface DataSourceClient {
 
     /**

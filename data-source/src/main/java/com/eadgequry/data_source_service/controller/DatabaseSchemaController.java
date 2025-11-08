@@ -9,7 +9,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/datasource/schemas")
+@RequestMapping("/datasource/schemas")
 @Tag(name = "Database Schema", description = "APIs for retrieving database schemas")
 public class DatabaseSchemaController {
 

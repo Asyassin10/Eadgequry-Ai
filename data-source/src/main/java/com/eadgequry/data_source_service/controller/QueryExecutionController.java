@@ -14,7 +14,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/datasource/query")
+@RequestMapping("/datasource/query")
 @Tag(name = "Query Execution", description = "Execute SQL queries on configured databases")
 @RequiredArgsConstructor
 public class QueryExecutionController {

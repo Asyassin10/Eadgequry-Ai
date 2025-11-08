@@ -20,7 +20,7 @@ import java.util.List;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/api/datasource/configs")
+@RequestMapping("/datasource/configs")
 @Tag(name = "Database Configuration", description = "APIs for managing database connections and configurations")
 public class DatabaseConfigController {
 
