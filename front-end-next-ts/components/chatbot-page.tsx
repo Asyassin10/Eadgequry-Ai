@@ -57,7 +57,7 @@ export function ChatbotPage() {
     }
   }, [user])
 
-  // Load schema when database is selected
+  // Load schema when database is selected (DO NOT clear conversation)
   useEffect(() => {
     if (selectedDatabaseId && user?.userId) {
       loadSchema(selectedDatabaseId, user.userId)
@@ -65,6 +65,8 @@ export function ChatbotPage() {
       setSchema(null)
     }
   }, [selectedDatabaseId, user])
+
+  const [parsedSchema, setParsedSchema] = useState<any>(null)
 
   const loadSchema = async (configId: number, userId: number) => {
     try {
@@ -78,9 +80,10 @@ export function ChatbotPage() {
 
       if (response.data) {
         setSchema(response.data)
-        // Auto-expand all tables by default
-        const allTables = new Set(response.data.tables.map(t => t.name))
-        setExpandedTables(allTables)
+        const parsed = JSON.parse(response.data.schemaJson)
+        setParsedSchema(parsed)
+        // Start with all tables collapsed (empty set)
+        setExpandedTables(new Set())
       }
     } catch (error) {
       console.error("Error loading schema:", error)
@@ -312,12 +315,10 @@ export function ChatbotPage() {
   }
 
   const renderMarkdown = (text: string) => {
-    // Handle null/undefined text
     if (!text) {
       return <div className="text-muted-foreground italic">No response</div>
     }
 
-    // Simple markdown renderer for tables and basic formatting
     const lines = text.split('\n')
     const elements: React.ReactNode[] = []
     let inTable = false
@@ -326,14 +327,12 @@ export function ChatbotPage() {
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i]
 
-      // Detect table rows (lines with |)
       if (line.trim().startsWith('|') && line.trim().endsWith('|')) {
         if (!inTable) {
           inTable = true
           tableRows = []
         }
 
-        // Skip separator row (|---|---|)
         if (line.match(/^\|[\s-:|]+\|$/)) {
           continue
         }
@@ -345,7 +344,6 @@ export function ChatbotPage() {
 
         tableRows.push(cells)
       } else {
-        // End of table or regular text
         if (inTable && tableRows.length > 0) {
           const headers = tableRows[0]
           const rows = tableRows.slice(1)
@@ -387,7 +385,6 @@ export function ChatbotPage() {
       }
     }
 
-    // Handle remaining table at end
     if (inTable && tableRows.length > 0) {
       const headers = tableRows[0]
       const rows = tableRows.slice(1)
@@ -476,7 +473,7 @@ export function ChatbotPage() {
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <MessageSquare className="w-5 h-5 text-primary" />
+              <img src="/logo.png" alt="EadgeQuery Logo" className="w-10 h-10" />
               <CardTitle>EadgeQuery AI Chatbot</CardTitle>
               <Badge className="bg-primary text-primary-foreground">
                 AI Assistant
@@ -514,18 +511,19 @@ export function ChatbotPage() {
       </Card>
 
       {/* Main Content: Chat Area + Schema Panel */}
-      <div className="flex-1 grid grid-cols-1 lg:grid-cols-3 gap-4">
+      <div className="flex-1 grid grid-cols-1 lg:grid-cols-3 gap-4 min-h-0">
         {/* Chat Area - Takes 2/3 of width on large screens */}
         <Card className="lg:col-span-2 bg-card border-border flex flex-col">
-          <CardContent className="flex-1 flex flex-col gap-4 p-4">
-            {/* Messages */}
+          <CardContent className="flex-1 flex flex-col gap-4 p-4 min-h-0">
+            {/* Messages with fixed height and scroll */}
             <div
               ref={scrollRef}
-              className="flex-1 space-y-4 overflow-y-auto bg-muted/20 rounded-lg p-4"
+              className="flex-1 space-y-4 overflow-y-auto bg-muted/20 rounded-lg p-4 min-h-0"
+              style={{ maxHeight: 'calc(100vh - 300px)' }}
             >
               {messages.length === 0 && (
-                <div className="flex flex-col items-center justify-center h-full text-center">
-                  <MessageSquare className="w-12 h-12 text-muted-foreground mb-3" />
+                <div className="flex flex-col items-center justify-center h-full text-center py-8">
+                  <img src="/logo.png" alt="EadgeQuery Logo" className="w-32 h-32 mb-4" />
                   <h3 className="text-lg font-semibold mb-2">
                     Welcome to EadgeQuery AI Chatbot
                   </h3>
@@ -548,12 +546,16 @@ export function ChatbotPage() {
                   )}
 
                   {/* AI Answer */}
+
                   {(message.type === "answer" || message.type === "error") && (
                     <div className="flex justify-start">
                       <div className="max-w-2xl space-y-3">
                         {/* SQL Query - Terminal Style */}
                         {message.sqlQuery && (
+                          
                           <div className="bg-slate-900 border border-slate-700 rounded-lg overflow-hidden">
+                                                                        <img src="logo.png" className="w-12 h-12   mb-3" alt="" />
+
                             <div className="flex items-center justify-between bg-slate-800 px-3 py-2 border-b border-slate-700">
                               <div className="flex items-center gap-2">
                                 <div className="flex gap-1.5">
@@ -585,7 +587,7 @@ export function ChatbotPage() {
                                 )}
                               </Button>
                             </div>
-                            <pre className="text-xs font-mono bg-slate-900 text-green-400 p-4 overflow-x-auto">
+                            <pre className="text-xs font-mono bg-slate-900 text-green-400 p-4 overflow-x-auto max-h-60 overflow-y-auto">
                               <code>{message.sqlQuery}</code>
                             </pre>
                           </div>
@@ -600,17 +602,18 @@ export function ChatbotPage() {
                                 Query Results ({message.sqlResult.length} rows)
                               </span>
                             </div>
-                            {renderSqlResult(message.sqlResult)}
+                            <div className="max-h-60 overflow-y-auto">
+                              {renderSqlResult(message.sqlResult)}
+                            </div>
                           </div>
                         )}
-
+                          <img src="logo.png" className="w-12 h-12   mb-3" alt="" />
                         {/* AI Answer */}
                         <div
-                          className={`px-4 py-3 rounded-lg rounded-bl-none ${
-                            message.type === "error"
-                              ? "bg-destructive/10 border border-destructive text-destructive"
-                              : "bg-card border border-border"
-                          }`}
+                          className={`px-4 py-3 rounded-lg rounded-bl-none ${message.type === "error"
+                            ? "bg-destructive/10 border border-destructive text-destructive"
+                            : "bg-card border border-border"
+                            }`}
                         >
                           {message.type === "error" && (
                             <div className="flex items-center gap-2 mb-2">
@@ -618,7 +621,7 @@ export function ChatbotPage() {
                               <span className="text-xs font-semibold">Error</span>
                             </div>
                           )}
-                          <div className="text-sm">
+                          <div className="text-sm max-h-80 overflow-y-auto">
                             {renderMarkdown(message.answer)}
                             {message.isStreaming && (
                               <span className="inline-block w-2 h-4 ml-1 bg-primary animate-pulse" />
@@ -691,7 +694,7 @@ export function ChatbotPage() {
               <CardTitle className="text-sm">Database Schema</CardTitle>
             </div>
           </CardHeader>
-          <CardContent className="flex-1 overflow-y-auto p-4">
+          <CardContent className="flex-1 overflow-y-auto p-4 min-h-0">
             {loadingSchema && (
               <div className="flex items-center justify-center h-32">
                 <div className="flex flex-col items-center gap-2">
@@ -723,76 +726,78 @@ export function ChatbotPage() {
               <div className="space-y-2">
                 <div className="mb-3 p-2 bg-muted/50 rounded-lg">
                   <div className="text-xs font-semibold text-muted-foreground">
-                    {schema.databaseName}
+                    {schema.databaseName || JSON.parse(schema.schemaJson).databaseName}
                   </div>
                   <div className="text-xs text-muted-foreground">
-                    Type: {schema.databaseType}
+                    Type: {schema.databaseType || JSON.parse(schema.schemaJson).databaseType}
                   </div>
                   <div className="text-xs text-muted-foreground">
-                    Tables: {schema.tables.length}
+                    Tables: {JSON.parse(schema.schemaJson).tables.length}
                   </div>
                 </div>
 
-                {schema.tables.map((table) => (
-                  <div
-                    key={table.name}
-                    className="border border-border rounded-lg overflow-hidden"
-                  >
-                    <button
-                      onClick={() => toggleTable(table.name)}
-                      className="w-full flex items-center justify-between p-2 bg-muted/30 hover:bg-muted/50 transition-colors"
+                <div className="space-y-2 max-h-96 overflow-y-auto">
+                  {JSON.parse(schema.schemaJson).tables.map((table: any) => (
+                    <div
+                      key={table.name}
+                      className="border border-border rounded-lg overflow-hidden"
                     >
-                      <div className="flex items-center gap-2">
-                        <Table className="w-3 h-3 text-primary" />
-                        <span className="text-xs font-semibold">{table.name}</span>
-                      </div>
-                      {expandedTables.has(table.name) ? (
-                        <ChevronDown className="w-3 h-3 text-muted-foreground" />
-                      ) : (
-                        <ChevronRight className="w-3 h-3 text-muted-foreground" />
-                      )}
-                    </button>
-
-                    {expandedTables.has(table.name) && (
-                      <div className="p-2 space-y-1 bg-card">
-                        {table.columns.map((column) => (
-                          <div
-                            key={column.name}
-                            className="flex items-start justify-between text-xs p-1 hover:bg-muted/20 rounded"
-                          >
-                            <div className="flex-1">
-                              <div className="font-mono text-foreground">
-                                {column.name}
-                              </div>
-                              <div className="text-muted-foreground text-[10px]">
-                                {column.type}
-                                {!column.nullable && (
-                                  <span className="ml-1 text-primary">NOT NULL</span>
-                                )}
-                                {table.primaryKeys.includes(column.name) && (
-                                  <span className="ml-1 text-yellow-500">PK</span>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-
-                        {table.foreignKeys && table.foreignKeys.length > 0 && (
-                          <div className="mt-2 pt-2 border-t border-border">
-                            <div className="text-[10px] font-semibold text-muted-foreground mb-1">
-                              Foreign Keys
-                            </div>
-                            {table.foreignKeys.map((fk, idx) => (
-                              <div key={idx} className="text-[10px] text-muted-foreground">
-                                {fk.column} → {fk.referencedTable}.{fk.referencedColumn}
-                              </div>
-                            ))}
-                          </div>
+                      <button
+                        onClick={() => toggleTable(table.name)}
+                        className="w-full flex items-center justify-between p-2 bg-muted/30 hover:bg-muted/50 transition-colors"
+                      >
+                        <div className="flex items-center gap-2">
+                          <Table className="w-3 h-3 text-primary" />
+                          <span className="text-xs font-semibold">{table.name}</span>
+                        </div>
+                        {expandedTables.has(table.name) ? (
+                          <ChevronDown className="w-3 h-3 text-muted-foreground" />
+                        ) : (
+                          <ChevronRight className="w-3 h-3 text-muted-foreground" />
                         )}
-                      </div>
-                    )}
-                  </div>
-                ))}
+                      </button>
+
+                      {expandedTables.has(table.name) && (
+                        <div className="p-2 space-y-1 bg-card max-h-60 overflow-y-auto">
+                          {table.columns.map((column: any) => (
+                            <div
+                              key={column.name}
+                              className="flex items-start justify-between text-xs p-1 hover:bg-muted/20 rounded"
+                            >
+                              <div className="flex-1">
+                                <div className="font-mono text-foreground">
+                                  {column.name}
+                                </div>
+                                <div className="text-muted-foreground text-[10px]">
+                                  {column.type}
+                                  {!column.nullable && (
+                                    <span className="ml-1 text-primary">NOT NULL</span>
+                                  )}
+                                  {table.primaryKeys && table.primaryKeys.includes(column.name) && (
+                                    <span className="ml-1 text-yellow-500">PK</span>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+
+                          {table.foreignKeys && table.foreignKeys.length > 0 && (
+                            <div className="mt-2 pt-2 border-t border-border">
+                              <div className="text-[10px] font-semibold text-muted-foreground mb-1">
+                                Foreign Keys
+                              </div>
+                              {table.foreignKeys.map((fk: any, idx: number) => (
+                                <div key={idx} className="text-[10px] text-muted-foreground">
+                                  {fk.column} → {fk.referencedTable}.{fk.referencedColumn}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
           </CardContent>
