@@ -1,7 +1,5 @@
 "use client"
 
-import type React from "react"
-
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -13,19 +11,12 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { toast } from "sonner"
 import { datasourceApi, type DatabaseConfigDTO, type CreateDatabaseConfigRequest } from "@/lib/api"
 
-// Define database types
 const DATABASE_TYPES = [
   { value: "mysql", label: "MySQL", defaultPort: "3306", available: true },
   { value: "postgresql", label: "PostgreSQL", defaultPort: "5432", available: true },
-  { value: "sqlserver", label: "SQL Server", defaultPort: "1433", available: false },
-  { value: "sqlanywhere", label: "SQL Anywhere", defaultPort: "2638", available: false },
-  { value: "sqlite", label: "SQLite", defaultPort: "", available: false },
-  { value: "snowflake", label: "Snowflake", defaultPort: "", available: false },
-  { value: "oracle", label: "Oracle", defaultPort: "1521", available: false },
-  { value: "bigquery", label: "BigQuery", defaultPort: "", available: false },
-  { value: "mariadb", label: "MariaDB", defaultPort: "3306", available: false },
-  { value: "redshift", label: "Redshift", defaultPort: "5439", available: false },
 ]
+
+const MAX_DATABASES = 3
 
 export function DatasourcePage() {
   const [dbType, setDbType] = useState("mysql")
@@ -38,39 +29,34 @@ export function DatasourcePage() {
     password: "",
     knowledge: "",
   })
-  const [savedDatabase, setSavedDatabase] = useState<DatabaseConfigDTO | null>(null)
-  const [showLimitMessage, setShowLimitMessage] = useState(false)
-  const [showUnavailableAlert, setShowUnavailableAlert] = useState(false)
+  const [savedDatabases, setSavedDatabases] = useState<DatabaseConfigDTO[]>([])
   const [loading, setLoading] = useState(false)
   const [userId, setUserId] = useState<number | null>(null)
 
-  // Load user data and saved configs on mount
   useEffect(() => {
-    const userStr = localStorage.getItem('user')
+    const userStr = localStorage.getItem("user")
     if (userStr) {
       try {
         const user = JSON.parse(userStr)
         setUserId(user.userId)
         loadConfigs(user.userId)
       } catch (error) {
-        console.error('Failed to parse user data:', error)
-        toast.error('Failed to load user data')
+        console.error("Failed to parse user data:", error)
+        toast.error("Failed to load user data")
       }
     }
   }, [])
 
-  // Load database configurations
   const loadConfigs = async (uid: number) => {
     setLoading(true)
     try {
       const response = await datasourceApi.getAllConfigs(uid)
       if (response.data && response.data.length > 0) {
-        // Show the first config (since we only allow one for now)
-        setSavedDatabase(response.data[0])
+        setSavedDatabases(response.data)
       }
     } catch (error) {
-      console.error('Failed to load configs:', error)
-      toast.error('Failed to load database configurations')
+      console.error("Failed to load configs:", error)
+      toast.error("Failed to load database configurations")
     } finally {
       setLoading(false)
     }
@@ -84,55 +70,27 @@ export function DatasourcePage() {
   const handleDbTypeChange = (value: string) => {
     setDbType(value)
     const selectedDb = DATABASE_TYPES.find((db) => db.value === value)
-
-    // Check if database is available
-    if (selectedDb && !selectedDb.available) {
-      setShowUnavailableAlert(true)
-      toast.info(`${selectedDb.label} is not available yet. Coming soon in v1!`, {
-        duration: 4000,
-      })
-      // Set basic form data but disable functionality
-      setFormData({
-        host: "",
-        port: "",
-        database: "",
-        username: "",
-        password: "",
-        knowledge: formData.knowledge,
-      })
-      return
-    }
-
-    setShowUnavailableAlert(false)
-
-    // Reset form with appropriate defaults for available databases (MySQL, PostgreSQL)
-    const newFormData: Record<string, string> = {
-      knowledge: formData.knowledge, // Keep knowledge field
+    setFormData({
+      ...formData,
       host: "localhost",
       port: selectedDb?.defaultPort || "",
       database: "",
       username: "",
       password: "",
-    }
-
-    setFormData(newFormData)
+    })
   }
 
   const handleSave = async () => {
     if (!userId) {
-      toast.error('User not logged in')
+      toast.error("User not logged in")
       return
     }
 
-    const selectedDb = DATABASE_TYPES.find((db) => db.value === dbType)
-
-    // Prevent saving unavailable databases
-    if (selectedDb && !selectedDb.available) {
-      toast.error(`Cannot save ${selectedDb.label}. This database is not available yet.`)
+    if (savedDatabases.length >= MAX_DATABASES) {
+      toast.error(`You can only have up to ${MAX_DATABASES} databases`)
       return
     }
 
-    // Basic validation for MySQL and PostgreSQL
     if (!formData.name || !formData.username || !formData.password || !formData.database) {
       toast.error("Please fill in all required fields including connection name")
       return
@@ -153,192 +111,75 @@ export function DatasourcePage() {
       const response = await datasourceApi.createConfig(userId, requestData)
 
       if (response.error) {
-        // Show detailed error message from connection test
-        let errorMsg = response.error.message || 'Failed to save configuration'
-
-        // Show longer duration for connection errors
-        const duration = errorMsg.includes('Connection') ? 7000 : 5000
-        toast.error(errorMsg, { duration })
+        toast.error(response.error.message || "Failed to save configuration")
         return
       }
 
       if (response.data) {
-        setSavedDatabase(response.data)
+        setSavedDatabases((prev) => [...prev, response.data])
         toast.success("Database configuration saved successfully!")
-
-        // Reset form
-        handleDbTypeChange(dbType)
+        setFormData({
+          name: "",
+          host: "localhost",
+          port: DATABASE_TYPES.find((db) => db.value === dbType)?.defaultPort || "",
+          database: "",
+          username: "",
+          password: "",
+          knowledge: "",
+        })
       }
     } catch (error) {
-      console.error('Failed to save config:', error)
-      toast.error('Failed to save database configuration')
+      console.error("Failed to save config:", error)
+      toast.error("Failed to save database configuration")
     } finally {
       setLoading(false)
     }
   }
 
-  const handleAddMore = () => {
-    setShowLimitMessage(true)
-    setTimeout(() => setShowLimitMessage(false), 4000)
-  }
-
-  const handleDelete = async () => {
-    if (!userId || !savedDatabase) {
-      return
-    }
-
+  const handleDelete = async (id: number) => {
+    if (!userId) return
     setLoading(true)
     try {
-      const response = await datasourceApi.deleteConfig(savedDatabase.id, userId)
-
+      const response = await datasourceApi.deleteConfig(id, userId)
       if (response.error) {
-        toast.error(response.error.message || 'Failed to delete configuration')
+        toast.error(response.error.message || "Failed to delete configuration")
         return
       }
-
-      setSavedDatabase(null)
+      setSavedDatabases((prev) => prev.filter((db) => db.id !== id))
       toast.success("Database configuration deleted successfully!")
     } catch (error) {
-      console.error('Failed to delete config:', error)
-      toast.error('Failed to delete database configuration')
+      console.error("Failed to delete config:", error)
+      toast.error("Failed to delete database configuration")
     } finally {
       setLoading(false)
     }
   }
 
-  const handleTestConnection = async () => {
-    if (!savedDatabase || !userId) {
-      toast.error('No database configuration to test')
+  const handleTestConnection = async (id: number) => {
+    if (!userId) {
+      toast.error("User not logged in")
       return
     }
 
     setLoading(true)
     try {
-      const response = await datasourceApi.testConnection(savedDatabase.id, userId)
-
+      const response = await datasourceApi.testConnection(id, userId)
       if (response.error) {
-        const errorMsg = response.error.message || 'Connection test failed'
-        toast.error(errorMsg, { duration: 5000 })
+        toast.error(response.error.message || "Connection test failed")
         return
       }
 
-      if (response.data) {
-        if (response.data.success) {
-          toast.success(response.data.message || 'Connection test successful!')
-        } else {
-          // Show detailed error message from backend
-          let errorMsg = response.data.message
-          if (response.data.exceptionType) {
-            errorMsg += `\n\nError Type: ${response.data.exceptionType}`
-          }
-          if (response.data.sqlState) {
-            errorMsg += `\nSQL State: ${response.data.sqlState}`
-          }
-          toast.error(errorMsg, { duration: 7000 })
-        }
+      if (response.data?.success) {
+        toast.success(response.data.message || "Connection test successful!")
+      } else {
+        toast.error(response.data?.message || "Connection failed", { duration: 7000 })
       }
     } catch (error) {
-      console.error('Failed to test connection:', error)
-      toast.error('Connection test failed')
+      console.error("Failed to test connection:", error)
+      toast.error("Connection test failed")
     } finally {
       setLoading(false)
     }
-  }
-
-  const renderConnectionFields = () => {
-    const selectedDb = DATABASE_TYPES.find((db) => db.value === dbType)
-
-    // Show message for unavailable databases
-    if (selectedDb && !selectedDb.available) {
-      return (
-        <Alert className="bg-yellow-50 dark:bg-yellow-950 border-yellow-200 dark:border-yellow-800">
-          <AlertCircle className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />
-          <AlertDescription className="text-yellow-800 dark:text-yellow-200">
-            <strong>{selectedDb.label}</strong> is not available yet. This database type will be supported in version 1.
-            <br />
-            Please select MySQL or PostgreSQL for now.
-          </AlertDescription>
-        </Alert>
-      )
-    }
-
-    // Standard fields for MySQL and PostgreSQL
-    return (
-      <>
-        <div className="space-y-2">
-          <Label htmlFor="name">Connection Name *</Label>
-          <Input
-            id="name"
-            name="name"
-            placeholder="My Database"
-            value={formData.name || ""}
-            onChange={handleChange}
-            className="bg-input border-border"
-          />
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="host">Host *</Label>
-          <Input
-            id="host"
-            name="host"
-            placeholder="localhost"
-            value={formData.host || ""}
-            onChange={handleChange}
-            className="bg-input border-border"
-          />
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="port">Port *</Label>
-          <Input
-            id="port"
-            name="port"
-            placeholder={DATABASE_TYPES.find((db) => db.value === dbType)?.defaultPort || ""}
-            value={formData.port || ""}
-            onChange={handleChange}
-            className="bg-input border-border"
-          />
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="database">Database Name *</Label>
-          <Input
-            id="database"
-            name="database"
-            placeholder="my_database"
-            value={formData.database || ""}
-            onChange={handleChange}
-            className="bg-input border-border"
-          />
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="username">Username *</Label>
-          <Input
-            id="username"
-            name="username"
-            placeholder="Enter your username"
-            value={formData.username || ""}
-            onChange={handleChange}
-            className="bg-input border-border"
-          />
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="password">Password *</Label>
-          <Input
-            id="password"
-            name="password"
-            type="password"
-            placeholder="Enter your password"
-            value={formData.password || ""}
-            onChange={handleChange}
-            className="bg-input border-border"
-          />
-        </div>
-      </>
-    )
   }
 
   const getDbTypeLabel = (type: string) => {
@@ -347,110 +188,69 @@ export function DatasourcePage() {
 
   return (
     <div className="p-6 space-y-6">
-      {showLimitMessage && (
-        <Alert className="bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800">
-          <AlertCircle className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-          <AlertDescription className="text-blue-800 dark:text-blue-200">
-            You can add only one database for now. Multiple databases will be available in the next version.
-          </AlertDescription>
-        </Alert>
-      )}
-
-      {savedDatabase ? (
-        <div className="space-y-6">
-          <Card className="bg-card border-border">
-            <CardHeader className="flex flex-row items-start justify-between space-y-0">
-              <div className="flex items-center gap-3">
-                <Database className="h-5 w-5 text-primary" />
-                <div>
-                  <CardTitle className="text-lg">{savedDatabase.name}</CardTitle>
-                  <CardDescription>
-                    {savedDatabase.type === "sqlite"
-                      ? savedDatabase.filePath
-                      : savedDatabase.type === "bigquery"
-                        ? `${savedDatabase.projectId} / ${savedDatabase.dataset}`
-                        : savedDatabase.type === "snowflake"
-                          ? savedDatabase.account
-                          : `${savedDatabase.host}:${savedDatabase.port}`}
-                  </CardDescription>
-                </div>
-              </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleDelete}
-                disabled={loading}
-                className="text-destructive hover:text-destructive hover:bg-destructive/10"
-              >
-                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
-              </Button>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <span className="text-muted-foreground">Type:</span>
-                  <p className="font-medium">{getDbTypeLabel(savedDatabase.type)}</p>
-                </div>
-                {savedDatabase.username && (
+      {/* Show all saved databases */}
+      {savedDatabases.length > 0 && (
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+          {savedDatabases.map((db) => (
+            <Card key={db.id} className="bg-card border-border">
+              <CardHeader className="flex flex-row items-start justify-between space-y-0">
+                <div className="flex items-center gap-3">
+                  <Database className="h-5 w-5 text-primary" />
                   <div>
-                    <span className="text-muted-foreground">Username:</span>
-                    <p className="font-medium">{savedDatabase.username}</p>
+                    <CardTitle className="text-lg">{db.name}</CardTitle>
+                    <CardDescription>
+                      {db.host}:{db.port}
+                    </CardDescription>
                   </div>
-                )}
-                {savedDatabase.databaseName && (
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleDelete(db.id)}
+                  disabled={loading}
+                  className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                >
+                  {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                </Button>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <span className="text-muted-foreground">Type:</span>
+                    <p className="font-medium">{getDbTypeLabel(db.type)}</p>
+                  </div>
                   <div>
                     <span className="text-muted-foreground">Database:</span>
-                    <p className="font-medium">{savedDatabase.databaseName}</p>
+                    <p className="font-medium">{db.databaseName}</p>
                   </div>
-                )}
-                {savedDatabase.port && (
-                  <div>
-                    <span className="text-muted-foreground">Port:</span>
-                    <p className="font-medium">{savedDatabase.port}</p>
-                  </div>
-                )}
-                {savedDatabase.status && (
-                  <div>
-                    <span className="text-muted-foreground">Status:</span>
-                    <p className="font-medium">{savedDatabase.status}</p>
-                  </div>
-                )}
-                {savedDatabase.isConnected !== undefined && (
-                  <div>
-                    <span className="text-muted-foreground">Connected:</span>
-                    <p className="font-medium">{savedDatabase.isConnected ? "Yes" : "No"}</p>
-                  </div>
-                )}
-              </div>
-              <div className="flex gap-4 mt-4">
-                <Button
-                  onClick={handleTestConnection}
-                  disabled={loading}
-                  variant="outline"
-                  className="flex-1 border-border"
-                >
-                  {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                  Test Connection
-                </Button>
-                <Button
-                  onClick={handleAddMore}
-                  disabled={loading}
-                  className="flex-1 bg-primary hover:bg-secondary text-primary-foreground"
-                >
-                  Add Another Database
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+                </div>
+                <div className="flex gap-4 mt-4">
+                  <Button
+                    onClick={() => handleTestConnection(db.id)}
+                    disabled={loading}
+                    variant="outline"
+                    className="flex-1 border-border"
+                  >
+                    {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                    Test Connection
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
         </div>
-      ) : (
+      )}
+
+      {/* Add new database form */}
+      {savedDatabases.length < MAX_DATABASES ? (
         <Card className="bg-card border-border">
           <CardHeader>
-            <CardTitle>Database Configuration</CardTitle>
-            <CardDescription>Configure your datasource connection</CardDescription>
+            <CardTitle>Add New Database</CardTitle>
+            <CardDescription>
+              You can add up to {MAX_DATABASES} databases. ({MAX_DATABASES - savedDatabases.length} remaining)
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            {/* Database Type */}
             <div className="space-y-2">
               <Label htmlFor="dbtype">Database Type *</Label>
               <Select value={dbType} onValueChange={handleDbTypeChange}>
@@ -467,42 +267,51 @@ export function DatasourcePage() {
               </Select>
             </div>
 
-            {/* Dynamic Connection Fields */}
-            {renderConnectionFields()}
+            <div className="space-y-2">
+              <Label htmlFor="name">Connection Name *</Label>
+              <Input id="name" name="name" placeholder="My Database" value={formData.name} onChange={handleChange} />
+            </div>
 
-            {/* Knowledge Database - Only show for available databases */}
-            {!showUnavailableAlert && (
-              <div className="space-y-2">
-                <Label htmlFor="knowledge">Knowledge Database Context</Label>
-                <textarea
-                  id="knowledge"
-                  name="knowledge"
-                  placeholder="Describe your database schema and tables to help AI understand your data structure..."
-                  value={formData.knowledge || ""}
-                  onChange={handleChange}
-                  className="w-full px-3 py-2 rounded-md bg-input border border-border text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary min-h-32 resize-none"
-                />
-                <p className="text-sm text-muted-foreground">
-                  Optional: Provide context about your database structure to improve AI responses
-                </p>
-              </div>
-            )}
+            <div className="space-y-2">
+              <Label htmlFor="host">Host *</Label>
+              <Input id="host" name="host" placeholder="localhost" value={formData.host} onChange={handleChange} />
+            </div>
 
-            {/* Buttons - Only show for available databases */}
-            {!showUnavailableAlert && (
-              <div className="flex gap-4 pt-4">
-                <Button
-                  onClick={handleSave}
-                  disabled={loading}
-                  className="bg-primary hover:bg-secondary text-primary-foreground"
-                >
-                  {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                  Save Configuration
-                </Button>
-              </div>
-            )}
+            <div className="space-y-2">
+              <Label htmlFor="port">Port *</Label>
+              <Input id="port" name="port" placeholder="3306" value={formData.port} onChange={handleChange} />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="database">Database Name *</Label>
+              <Input id="database" name="database" placeholder="my_database" value={formData.database} onChange={handleChange} />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="username">Username *</Label>
+              <Input id="username" name="username" placeholder="root" value={formData.username} onChange={handleChange} />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="password">Password *</Label>
+              <Input id="password" name="password" type="password" placeholder="password" value={formData.password} onChange={handleChange} />
+            </div>
+
+            <div className="flex gap-4 pt-4">
+              <Button onClick={handleSave} disabled={loading} className="bg-primary hover:bg-secondary text-primary-foreground">
+                {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                Save Configuration
+              </Button>
+            </div>
           </CardContent>
         </Card>
+      ) : (
+        <Alert className="bg-yellow-50 dark:bg-yellow-950 border-yellow-200 dark:border-yellow-800">
+          <AlertCircle className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />
+          <AlertDescription className="text-yellow-800 dark:text-yellow-200">
+            You have reached the maximum number of databases ({MAX_DATABASES}). Delete one to add another.
+          </AlertDescription>
+        </Alert>
       )}
     </div>
   )
