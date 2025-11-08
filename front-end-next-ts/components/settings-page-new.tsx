@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { profileApi, authApi, type ProfileResponse, type UpdateProfileRequest, type UpdateEmailRequest, type UpdatePasswordRequest } from '@/lib/api';
+import { profileApi, authApi, aiSettingsApi, type ProfileResponse, type UpdateProfileRequest, type UpdateEmailRequest, type UpdatePasswordRequest, type UserAiSettingsDTO, type AiProvider } from '@/lib/api';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -14,7 +14,7 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, User, Mail, Lock, Save, Settings2 } from 'lucide-react';
+import { Loader2, User, Mail, Lock, Save, Settings2, Brain, Key, CheckCircle } from 'lucide-react';
 import { toast } from 'sonner';
 
 // User preferences interface
@@ -57,6 +57,15 @@ export function SettingsPageNew() {
     language: 'en',
   });
   const [isSavingPreferences, setIsSavingPreferences] = useState(false);
+
+  // AI Settings state
+  const [loadingAiSettings, setLoadingAiSettings] = useState(true);
+  const [savingAiSettings, setSavingAiSettings] = useState(false);
+  const [providers, setProviders] = useState<AiProvider[]>([]);
+  const [selectedProvider, setSelectedProvider] = useState<string>("DEMO");
+  const [selectedModel, setSelectedModel] = useState<string>("");
+  const [apiKey, setApiKey] = useState<string>("");
+  const [hasExistingKey, setHasExistingKey] = useState(false);
 
   // Profile form
   const {
@@ -136,6 +145,81 @@ export function SettingsPageNew() {
 
     loadProfile();
   }, [user, resetProfile]);
+
+  // Load AI settings and providers
+  useEffect(() => {
+    if (user?.userId) {
+      loadAiSettings();
+      loadProviders();
+    }
+  }, [user]);
+
+  const loadAiSettings = async () => {
+    if (!user?.userId) return;
+
+    try {
+      setLoadingAiSettings(true);
+      const response = await aiSettingsApi.getUserSettings(user.userId);
+
+      if (response.data) {
+        setSelectedProvider(response.data.provider);
+        setSelectedModel(response.data.model);
+        setHasExistingKey(response.data.hasApiKey);
+      }
+    } catch (error) {
+      console.error("Error loading AI settings:", error);
+    } finally {
+      setLoadingAiSettings(false);
+    }
+  };
+
+  const loadProviders = async () => {
+    try {
+      const response = await aiSettingsApi.getAvailableProviders();
+      if (response.data) {
+        setProviders(response.data.providers);
+      }
+    } catch (error) {
+      console.error("Error loading providers:", error);
+    }
+  };
+
+  const handleSaveAiSettings = async () => {
+    if (!user?.userId) return;
+
+    if (!selectedProvider || !selectedModel) {
+      toast.error("Please select a provider and model");
+      return;
+    }
+
+    const needsApiKey = selectedProvider === "CLAUDE" || selectedProvider === "OPENAI";
+    if (needsApiKey && !apiKey && !hasExistingKey) {
+      toast.error("Please enter an API key for this provider");
+      return;
+    }
+
+    try {
+      setSavingAiSettings(true);
+      const response = await aiSettingsApi.updateUserSettings(user.userId, {
+        provider: selectedProvider,
+        model: selectedModel,
+        apiKey: apiKey || undefined,
+      });
+
+      if (response.data) {
+        setHasExistingKey(response.data.hasApiKey);
+        setApiKey("");
+        toast.success("AI settings saved successfully!");
+      } else if (response.error) {
+        toast.error(response.error.message || "Failed to save AI settings");
+      }
+    } catch (error) {
+      console.error("Error saving AI settings:", error);
+      toast.error("Failed to save AI settings");
+    } finally {
+      setSavingAiSettings(false);
+    }
+  };
 
   // Handle profile update
   const onSubmitProfile = async (data: ProfileFormData) => {
@@ -239,7 +323,7 @@ export function SettingsPageNew() {
       </div>
 
       <Tabs defaultValue="profile" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="profile">
             <User className="w-4 h-4 mr-2" />
             Profile
@@ -251,6 +335,10 @@ export function SettingsPageNew() {
           <TabsTrigger value="password">
             <Lock className="w-4 h-4 mr-2" />
             Password
+          </TabsTrigger>
+          <TabsTrigger value="ai-settings">
+            <Brain className="w-4 h-4 mr-2" />
+            AI
           </TabsTrigger>
           <TabsTrigger value="preferences">
             <Settings2 className="w-4 h-4 mr-2" />
@@ -472,6 +560,149 @@ export function SettingsPageNew() {
                   )}
                 </Button>
               </form>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* AI Settings Tab */}
+        <TabsContent value="ai-settings">
+          <Card>
+            <CardHeader>
+              <CardTitle>AI Provider Settings</CardTitle>
+              <CardDescription>
+                Configure which AI provider and model to use for your database queries
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {loadingAiSettings ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  {/* Provider Selection */}
+                  <div className="space-y-2">
+                    <Label htmlFor="provider">AI Provider</Label>
+                    <Select value={selectedProvider} onValueChange={setSelectedProvider}>
+                      <SelectTrigger id="provider" className="bg-input border-border">
+                        <SelectValue placeholder="Select AI provider" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {providers.map((provider) => (
+                          <SelectItem key={provider.code} value={provider.code}>
+                            {provider.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {selectedProvider === "DEMO" && (
+                      <p className="text-xs text-muted-foreground">
+                        ✨ Free to use! Uses the platform's OpenRouter API key.
+                      </p>
+                    )}
+                    {(selectedProvider === "CLAUDE" || selectedProvider === "OPENAI") && (
+                      <p className="text-xs text-muted-foreground">
+                        🔑 Requires your own API key from{" "}
+                        {selectedProvider === "CLAUDE" ? "Anthropic" : "OpenAI"}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Model Selection */}
+                  <div className="space-y-2">
+                    <Label htmlFor="model">Model</Label>
+                    <Select
+                      value={selectedModel}
+                      onValueChange={setSelectedModel}
+                      disabled={!providers.find(p => p.code === selectedProvider)}
+                    >
+                      <SelectTrigger id="model" className="bg-input border-border">
+                        <SelectValue placeholder="Select model" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {providers
+                          .find(p => p.code === selectedProvider)
+                          ?.models.map((model) => (
+                            <SelectItem key={model} value={model}>
+                              {model}
+                            </SelectItem>
+                          ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* API Key Input (only for Claude and OpenAI) */}
+                  {(selectedProvider === "CLAUDE" || selectedProvider === "OPENAI") && (
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <Label htmlFor="apiKey">API Key</Label>
+                        {hasExistingKey && (
+                          <span className="text-xs text-green-600 flex items-center gap-1">
+                            <CheckCircle className="w-3 h-3" />
+                            Configured
+                          </span>
+                        )}
+                      </div>
+                      <div className="relative">
+                        <Key className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
+                        <Input
+                          id="apiKey"
+                          type="password"
+                          placeholder={hasExistingKey ? "Enter new key to update" : "Enter your API key"}
+                          value={apiKey}
+                          onChange={(e) => setApiKey(e.target.value)}
+                          className="pl-10 bg-input border-border"
+                          disabled={savingAiSettings}
+                        />
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        {selectedProvider === "CLAUDE"
+                          ? "Get your API key from https://console.anthropic.com/"
+                          : "Get your API key from https://platform.openai.com/api-keys"
+                        }
+                      </p>
+                      <p className="text-xs text-yellow-600">
+                        🔒 Your API key will be encrypted and stored securely
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Save Button */}
+                  <Button
+                    onClick={handleSaveAiSettings}
+                    disabled={savingAiSettings || !selectedProvider || !selectedModel}
+                    className="w-full sm:w-auto bg-primary hover:bg-secondary text-primary-foreground"
+                  >
+                    {savingAiSettings ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Saving...
+                      </>
+                    ) : (
+                      <>
+                        <Save className="mr-2 h-4 w-4" />
+                        Save AI Settings
+                      </>
+                    )}
+                  </Button>
+
+                  {/* Information */}
+                  <div className="mt-6 p-4 bg-muted/50 rounded-lg space-y-3">
+                    <h4 className="font-semibold text-sm">Provider Options:</h4>
+                    <div className="space-y-2 text-xs text-muted-foreground">
+                      <div>
+                        <strong>🎁 DEMO:</strong> Free platform key, no setup required
+                      </div>
+                      <div>
+                        <strong>🤖 Claude:</strong> Your own Anthropic API key for direct access
+                      </div>
+                      <div>
+                        <strong>🚀 OpenAI:</strong> Your own OpenAI API key for direct access
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
