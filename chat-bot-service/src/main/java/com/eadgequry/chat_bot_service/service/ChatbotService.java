@@ -44,6 +44,7 @@ public class ChatbotService {
      */
     @Transactional
     public ChatResponse ask(ChatRequest request) {
+        String sqlQuery = null;
         try {
             String question = request.getQuestion().trim();
             Long userId = request.getUserId();
@@ -60,7 +61,7 @@ public class ChatbotService {
             DatabaseSchemaDTO schema = dataSourceClient.getSchemaByConfigId(databaseConfigId, userId);
 
             // Generate SQL query with retries
-            String sqlQuery = generateQueryWithRetries(question, schema);
+            sqlQuery = generateQueryWithRetries(question, schema);
 
             // Clean SQL
             sqlQuery = sqlValidatorService.cleanQuery(sqlQuery);
@@ -69,7 +70,29 @@ public class ChatbotService {
             QueryExecutionResponse queryResult = dataSourceClient.executeQuery(databaseConfigId, userId, sqlQuery);
 
             if (!queryResult.isSuccess()) {
-                throw new ChatBotException("Query execution failed: " + queryResult.getError());
+                String errorMsg = queryResult.getError();
+
+                // Check if it's a forbidden keyword error
+                if (isForbiddenKeywordError(errorMsg)) {
+                    log.warn("Forbidden SQL operation attempted: {}", sqlQuery);
+                    String friendlyError = buildForbiddenOperationResponse(errorMsg, schema.getDatabaseType());
+
+                    // Save conversation with error
+                    String sessionId = getOrCreateSession(userId, databaseConfigId);
+                    saveConversation(userId, databaseConfigId, sessionId, question, sqlQuery, null, friendlyError, errorMsg);
+
+                    // Return error response but include the SQL query so user can see what was attempted
+                    return ChatResponse.builder()
+                            .success(false)
+                            .question(question)
+                            .sqlQuery(sqlQuery)  // Show the generated query
+                            .sqlResult(null)
+                            .answer(friendlyError)
+                            .error(friendlyError)
+                            .build();
+                }
+
+                throw new ChatBotException("Query execution failed: " + errorMsg);
             }
 
             // Generate answer
@@ -83,8 +106,101 @@ public class ChatbotService {
 
         } catch (Exception e) {
             log.error("Error processing question", e);
+
+            // If we have a SQL query and it's a forbidden keyword error, handle it gracefully
+            if (sqlQuery != null && isForbiddenKeywordError(e.getMessage())) {
+                String friendlyError = buildForbiddenOperationResponse(e.getMessage(), "");
+                return ChatResponse.builder()
+                        .success(false)
+                        .question(request.getQuestion())
+                        .sqlQuery(sqlQuery)
+                        .sqlResult(null)
+                        .answer(friendlyError)
+                        .error(friendlyError)
+                        .build();
+            }
+
             return ChatResponse.error("Error: " + e.getMessage());
         }
+    }
+
+    /**
+     * Check if error message indicates a forbidden SQL keyword was used
+     */
+    private boolean isForbiddenKeywordError(String errorMessage) {
+        if (errorMessage == null) {
+            return false;
+        }
+
+        String lowerError = errorMessage.toLowerCase();
+        return lowerError.contains("forbidden") ||
+               lowerError.contains("only select queries are allowed") ||
+               lowerError.contains("insert") && lowerError.contains("not allowed") ||
+               lowerError.contains("update") && lowerError.contains("not allowed") ||
+               lowerError.contains("delete") && lowerError.contains("not allowed") ||
+               lowerError.contains("drop") && lowerError.contains("not allowed") ||
+               lowerError.contains("alter") && lowerError.contains("not allowed") ||
+               lowerError.contains("create") && lowerError.contains("not allowed");
+    }
+
+    /**
+     * Build a friendly response for forbidden operations
+     */
+    private String buildForbiddenOperationResponse(String errorMessage, String databaseType) {
+        StringBuilder response = new StringBuilder();
+
+        response.append("⚠️ **I understand what you want to do, but I can't execute this operation.**\n\n");
+
+        // Extract which keyword was detected
+        String forbiddenKeyword = extractForbiddenKeyword(errorMessage);
+
+        if (forbiddenKeyword != null) {
+            response.append("**Reason:** The query contains a `").append(forbiddenKeyword)
+                    .append("` operation, which is not allowed for safety reasons.\n\n");
+        } else {
+            response.append("**Reason:** This query contains operations that modify or delete data, which is not allowed for safety reasons.\n\n");
+        }
+
+        response.append("**Security Policy:**\n");
+        response.append("• ✅ **Allowed:** SELECT queries (read data only)\n");
+        response.append("• ❌ **Not Allowed:** INSERT, UPDATE, DELETE, DROP, ALTER, CREATE, TRUNCATE, etc.\n\n");
+
+        response.append("**What I can help you with:**\n");
+        response.append("• View and analyze your data\n");
+        response.append("• Count records and calculate statistics\n");
+        response.append("• Search and filter information\n");
+        response.append("• Generate reports and summaries\n\n");
+
+        response.append("**Alternative suggestions:**\n");
+        response.append("• Ask me to \"show\" or \"find\" data instead\n");
+        response.append("• Use your database management tool for data modifications\n");
+        response.append("• Contact your database administrator for write access\n\n");
+
+        response.append("I generated the SQL query above so you can see what would be executed, ");
+        response.append("but for your database's safety, I cannot run it.");
+
+        return response.toString();
+    }
+
+    /**
+     * Extract the forbidden keyword from error message
+     */
+    private String extractForbiddenKeyword(String errorMessage) {
+        if (errorMessage == null) {
+            return null;
+        }
+
+        String[] forbiddenKeywords = {"INSERT", "UPDATE", "DELETE", "DROP", "ALTER",
+                                       "CREATE", "TRUNCATE", "REPLACE", "MERGE"};
+
+        String upperError = errorMessage.toUpperCase();
+        for (String keyword : forbiddenKeywords) {
+            if (upperError.contains(keyword)) {
+                return keyword;
+            }
+        }
+
+        return null;
     }
 
     /**
@@ -93,6 +209,7 @@ public class ChatbotService {
     @Transactional
     public Flux<String> askStreaming(ChatRequest request) {
         return Flux.defer(() -> {
+            String sqlQuery = null;
             try {
                 String question = request.getQuestion().trim();
                 Long userId = request.getUserId();
@@ -102,31 +219,53 @@ public class ChatbotService {
                 DatabaseSchemaDTO schema = dataSourceClient.getSchemaByConfigId(databaseConfigId, userId);
 
                 // Generate SQL query
-                String sqlQuery = generateQueryWithRetries(question, schema);
+                sqlQuery = generateQueryWithRetries(question, schema);
 
                 // Clean SQL
                 String cleanedQuery = sqlValidatorService.cleanQuery(sqlQuery);
+                final String finalSqlQuery = cleanedQuery;
 
                 // Execute query (datasource will validate for security)
                 QueryExecutionResponse queryResult = dataSourceClient.executeQuery(databaseConfigId, userId, cleanedQuery);
 
                 if (!queryResult.isSuccess()) {
-                    return Flux.error(new ChatBotException("Query execution failed: " + queryResult.getError()));
+                    String errorMsg = queryResult.getError();
+
+                    // Check if it's a forbidden keyword error
+                    if (isForbiddenKeywordError(errorMsg)) {
+                        log.warn("Forbidden SQL operation attempted in streaming: {}", finalSqlQuery);
+                        String friendlyError = buildForbiddenOperationResponse(errorMsg, schema.getDatabaseType());
+
+                        // Save conversation with error
+                        String sessionId = getOrCreateSession(userId, databaseConfigId);
+                        saveConversation(userId, databaseConfigId, sessionId, question, finalSqlQuery, null, friendlyError, errorMsg);
+
+                        // Return error as flux
+                        return Flux.just(friendlyError);
+                    }
+
+                    return Flux.error(new ChatBotException("Query execution failed: " + errorMsg));
                 }
 
                 // Generate streaming answer
                 String sessionId = getOrCreateSession(userId, databaseConfigId);
-                final String finalQuery = cleanedQuery;
 
-                return aiService.generateStreamingAnswer(question, finalQuery, queryResult.getResult())
+                return aiService.generateStreamingAnswer(question, cleanedQuery, queryResult.getResult())
                         .doOnComplete(() -> {
                             // Save conversation after streaming completes
-                            saveConversation(userId, databaseConfigId, sessionId, question, finalQuery,
+                            saveConversation(userId, databaseConfigId, sessionId, question, cleanedQuery,
                                     queryResult.getResult(), "[Streaming response]", null);
                         });
 
             } catch (Exception e) {
                 log.error("Error processing streaming question", e);
+
+                // If we have a SQL query and it's a forbidden keyword error, handle it gracefully
+                if (sqlQuery != null && isForbiddenKeywordError(e.getMessage())) {
+                    String friendlyError = buildForbiddenOperationResponse(e.getMessage(), "");
+                    return Flux.just(friendlyError);
+                }
+
                 return Flux.error(new ChatBotException("Error: " + e.getMessage(), e));
             }
         });
