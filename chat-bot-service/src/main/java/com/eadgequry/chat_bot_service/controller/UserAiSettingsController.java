@@ -10,7 +10,6 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("ai-settings")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*")
 public class UserAiSettingsController {
 
     private final UserAiSettingsService service;
