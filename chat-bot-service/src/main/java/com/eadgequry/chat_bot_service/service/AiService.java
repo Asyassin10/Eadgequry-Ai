@@ -31,6 +31,37 @@ public class AiService {
     private final WebClient webClient;
 
     /**
+     * Check if question is a greeting or non-database question
+     * Returns friendly response if yes, null if it's a database question
+     */
+    public String handleNonDatabaseQuestion(String question) {
+        String lowerQuestion = question.toLowerCase().trim();
+
+        // Handle greetings
+        if (lowerQuestion.matches("^(hi|hello|hey|good morning|good afternoon|good evening).*")) {
+            return "Hello! I'm your AI assistant for Eadge Query. I'm here to help you query and analyze your database using natural language. Just ask me anything about your data!";
+        }
+
+        // Handle "who are you" type questions
+        if (lowerQuestion.matches(".*(who are you|what are you|what can you do|help).*")) {
+            return "I'm an AI-powered database assistant for Eadge Query. I can help you:\n\n" +
+                   "• Query your database using natural language\n" +
+                   "• Generate and execute SQL queries automatically\n" +
+                   "• Analyze and present your data in easy-to-read tables\n\n" +
+                   "Just ask me questions like 'Show all users' or 'Count total orders' and I'll handle the rest!";
+        }
+
+        // Check if question seems unrelated to database
+        if (lowerQuestion.matches(".*(weather|news|joke|game|movie|music|recipe|time|date).*") &&
+            !lowerQuestion.matches(".*(table|database|query|select|data|record|row|column).*")) {
+            return "I'm specifically designed to help you with your database queries. I can answer questions about your data, tables, and records. " +
+                   "Please ask me something about your database, like 'Show all users' or 'Count records in orders table'.";
+        }
+
+        return null; // It's a database question
+    }
+
+    /**
      * Generate SQL query from natural language question
      */
     public String generateSqlQuery(String question, DatabaseSchemaDTO schema, String previousError) {
@@ -121,30 +152,42 @@ public class AiService {
     }
 
     /**
-     * Build simple prompt for answer generation
+     * Build prompt for answer generation - always returns structured table format
      */
     private String buildAnswerPrompt(String question, String sqlQuery, List<Map<String, Object>> result) {
         StringBuilder prompt = new StringBuilder();
 
-        prompt.append("You are a database query assistant.\n\n");
+        prompt.append("You are Eadge Query AI Assistant - a professional database assistant.\n\n");
         prompt.append("User Question: \"").append(question).append("\"\n");
         prompt.append("SQL Query: ").append(sqlQuery).append("\n");
         prompt.append("Query Result: ").append(objectMapper.valueToTree(result).toString()).append("\n\n");
 
         if (result == null || result.isEmpty()) {
-            prompt.append("The query returned no results.\n");
-            prompt.append("- Explain clearly that no data matches the criteria\n");
-            prompt.append("- DO NOT invent information\n\n");
+            prompt.append("The query returned NO results.\n");
+            prompt.append("INSTRUCTIONS:\n");
+            prompt.append("- Explain clearly that no data was found\n");
+            prompt.append("- Suggest checking the search criteria or table name\n");
+            prompt.append("- DO NOT invent data\n\n");
+        } else {
+            prompt.append("CRITICAL FORMATTING RULES:\n");
+            prompt.append("1. ALWAYS present data in MARKDOWN TABLE format\n");
+            prompt.append("2. Use proper markdown table syntax: | Column | Column |\n");
+            prompt.append("3. Include table headers with column names\n");
+            prompt.append("4. NEVER show ID columns or technical fields\n");
+            prompt.append("5. Show ALL rows if under 20, otherwise show first 15 and say 'and X more...'\n");
+            prompt.append("6. After the table, add a brief summary (1-2 sentences)\n");
+            prompt.append("7. Use clear, professional English\n\n");
+
+            prompt.append("EXAMPLE FORMAT:\n");
+            prompt.append("Here are the results:\n\n");
+            prompt.append("| Name | Email | Status |\n");
+            prompt.append("|------|-------|--------|\n");
+            prompt.append("| John | john@test.com | Active |\n");
+            prompt.append("| Jane | jane@test.com | Active |\n\n");
+            prompt.append("Found 2 active users in the database.\n\n");
         }
 
-        prompt.append("INSTRUCTIONS:\n");
-        prompt.append("- Respond in clear, professional English\n");
-        prompt.append("- Present data in TABLE format when appropriate\n");
-        prompt.append("- NEVER mention or display database IDs\n");
-        prompt.append("- Be concise and accurate\n");
-        prompt.append("- If no results, suggest checking the query criteria\n\n");
-
-        prompt.append("Generate a natural language response:\n");
+        prompt.append("Generate the response following the rules above:\n");
         prompt.append("Answer:");
 
         return prompt.toString();

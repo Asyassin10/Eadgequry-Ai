@@ -49,6 +49,13 @@ public class ChatbotService {
             Long userId = request.getUserId();
             Long databaseConfigId = request.getDatabaseConfigId();
 
+            // Check if it's a greeting or non-database question first
+            String nonDbResponse = aiService.handleNonDatabaseQuestion(question);
+            if (nonDbResponse != null) {
+                log.info("Handling non-database question: {}", question);
+                return ChatResponse.success(question, null, null, nonDbResponse);
+            }
+
             // Get database schema
             DatabaseSchemaDTO schema = dataSourceClient.getSchemaByConfigId(databaseConfigId, userId);
 
