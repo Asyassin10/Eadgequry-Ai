@@ -29,6 +29,7 @@ public class AiService {
     private final AiApiProperties aiApiProperties;
     private final ObjectMapper objectMapper;
     private final WebClient webClient;
+    private final UserAiSettingsService userAiSettingsService;
 
     /**
      * Check if question is a greeting or non-database question
@@ -64,11 +65,11 @@ public class AiService {
     /**
      * Generate SQL query from natural language question
      */
-    public String generateSqlQuery(String question, DatabaseSchemaDTO schema, String previousError) {
+    public String generateSqlQuery(Long userId, String question, DatabaseSchemaDTO schema, String previousError) {
         String prompt = buildQueryPrompt(question, schema, previousError);
 
         try {
-            String response = callAiApi(prompt, aiApiProperties.getTemperatureQuery());
+            String response = callAiApi(userId, prompt, aiApiProperties.getTemperatureQuery());
             log.debug("AI generated SQL query: {}", response);
             return response;
         } catch (Exception e) {
@@ -80,11 +81,11 @@ public class AiService {
     /**
      * Generate natural language answer from SQL results
      */
-    public String generateAnswer(String question, String sqlQuery, List<Map<String, Object>> result) {
+    public String generateAnswer(Long userId, String question, String sqlQuery, List<Map<String, Object>> result) {
         String prompt = buildAnswerPrompt(question, sqlQuery, result);
 
         try {
-            String response = callAiApi(prompt, aiApiProperties.getTemperatureAnswer());
+            String response = callAiApi(userId, prompt, aiApiProperties.getTemperatureAnswer());
             log.debug("AI generated answer: {}", response);
             return cleanAnswer(response);
         } catch (Exception e) {
@@ -96,10 +97,10 @@ public class AiService {
     /**
      * Generate streaming answer from SQL results
      */
-    public Flux<String> generateStreamingAnswer(String question, String sqlQuery, List<Map<String, Object>> result) {
+    public Flux<String> generateStreamingAnswer(Long userId, String question, String sqlQuery, List<Map<String, Object>> result) {
         String prompt = buildAnswerPrompt(question, sqlQuery, result);
 
-        return callAiApiStreaming(prompt, aiApiProperties.getTemperatureAnswer())
+        return callAiApiStreaming(userId, prompt, aiApiProperties.getTemperatureAnswer())
                 .map(this::cleanAnswer)
                 .onErrorResume(e -> {
                     log.error("Failed to generate streaming answer", e);
@@ -472,11 +473,52 @@ public class AiService {
     }
 
     /**
+     * Get provider configuration based on user settings
+     */
+    private ProviderConfig getProviderConfig(Long userId) {
+        UserAiSettings settings = userAiSettingsService.getUserSettingsEntity(userId);
+
+        ProviderConfig config = new ProviderConfig();
+        config.provider = settings.getProvider();
+        config.model = settings.getModel();
+
+        switch (settings.getProvider()) {
+            case DEMO:
+                // Use platform's OpenRouter key
+                config.url = aiApiProperties.getUrl();
+                config.apiKey = aiApiProperties.getKey();
+                break;
+
+            case CLAUDE:
+                // Use user's Anthropic API key
+                config.url = "https://api.anthropic.com/v1/messages";
+                config.apiKey = userAiSettingsService.getDecryptedApiKey(userId);
+                if (config.apiKey == null) {
+                    throw new ChatBotException("Claude API key not configured. Please add your API key in settings.");
+                }
+                break;
+
+            case OPENAI:
+                // Use user's OpenAI API key
+                config.url = "https://api.openai.com/v1/chat/completions";
+                config.apiKey = userAiSettingsService.getDecryptedApiKey(userId);
+                if (config.apiKey == null) {
+                    throw new ChatBotException("OpenAI API key not configured. Please add your API key in settings.");
+                }
+                break;
+        }
+
+        return config;
+    }
+
+    /**
      * Call AI API (non-streaming)
      */
-    private String callAiApi(String prompt, Double temperature) {
+    private String callAiApi(Long userId, String prompt, Double temperature) {
+        ProviderConfig config = getProviderConfig(userId);
+
         Map<String, Object> requestBody = Map.of(
-                "model", aiApiProperties.getModel(),
+                "model", config.model,
                 "messages", List.of(
                         Map.of("role", "system", "content",
                             "You are an EXPERT AI database assistant with ADVANCED natural language understanding. " +
@@ -493,14 +535,14 @@ public class AiService {
         );
 
         try {
-            log.debug("Calling AI API: {} with model: {}", aiApiProperties.getUrl(), aiApiProperties.getModel());
+            log.debug("Calling AI API: {} with model: {} (provider: {})", config.url, config.model, config.provider);
 
             String response = webClient.post()
-                    .uri(aiApiProperties.getUrl())
-                    .header("Authorization", "Bearer " + aiApiProperties.getKey())
+                    .uri(config.url)
+                    .header("Authorization", "Bearer " + config.apiKey)
                     .header("Content-Type", "application/json")
-                    .header("HTTP-Referer", "http://localhost:3000")  // OpenRouter recommended header
-                    .header("X-Title", "Eadgequry AI Chatbot")        // OpenRouter recommended header
+                    .header("HTTP-Referer", "http://localhost:3000")
+                    .header("X-Title", "Eadgequry AI Chatbot")
                     .bodyValue(requestBody)
                     .retrieve()
                     .onStatus(
@@ -552,9 +594,11 @@ public class AiService {
     /**
      * Call AI API with streaming
      */
-    private Flux<String> callAiApiStreaming(String prompt, Double temperature) {
+    private Flux<String> callAiApiStreaming(Long userId, String prompt, Double temperature) {
+        ProviderConfig config = getProviderConfig(userId);
+
         Map<String, Object> requestBody = Map.of(
-                "model", aiApiProperties.getModel(),
+                "model", config.model,
                 "messages", List.of(
                         Map.of("role", "system", "content",
                             "You are an EXPERT AI database assistant with ADVANCED natural language understanding. " +
@@ -572,8 +616,8 @@ public class AiService {
         );
 
         return webClient.post()
-                .uri(aiApiProperties.getUrl())
-                .header("Authorization", "Bearer " + aiApiProperties.getKey())
+                .uri(config.url)
+                .header("Authorization", "Bearer " + config.apiKey)
                 .header("Content-Type", "application/json")
                 .header("HTTP-Referer", "http://localhost:3000")  // OpenRouter recommended header
                 .header("X-Title", "Eadgequry AI Chatbot")        // OpenRouter recommended header
@@ -650,5 +694,15 @@ public class AiService {
             return "";
         }
         return answer.trim().replaceAll("^\"|\"$", "").replaceAll("^'|'$", "");
+    }
+
+    /**
+     * Helper class for provider configuration
+     */
+    private static class ProviderConfig {
+        UserAiSettings.AiProvider provider;
+        String url;
+        String apiKey;
+        String model;
     }
 }
