@@ -215,6 +215,8 @@ public class AiService {
                     .uri(aiApiProperties.getUrl())
                     .header("Authorization", "Bearer " + aiApiProperties.getKey())
                     .header("Content-Type", "application/json")
+                    .header("HTTP-Referer", "http://localhost:3000")  // OpenRouter recommended header
+                    .header("X-Title", "Eadgequry AI Chatbot")        // OpenRouter recommended header
                     .bodyValue(requestBody)
                     .retrieve()
                     .onStatus(
@@ -282,6 +284,8 @@ public class AiService {
                 .uri(aiApiProperties.getUrl())
                 .header("Authorization", "Bearer " + aiApiProperties.getKey())
                 .header("Content-Type", "application/json")
+                .header("HTTP-Referer", "http://localhost:3000")  // OpenRouter recommended header
+                .header("X-Title", "Eadgequry AI Chatbot")        // OpenRouter recommended header
                 .bodyValue(requestBody)
                 .retrieve()
                 .bodyToFlux(String.class)
