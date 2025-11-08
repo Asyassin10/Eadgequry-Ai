@@ -8,7 +8,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/ai-settings")
+@RequestMapping("ai-settings")
 @RequiredArgsConstructor
 @CrossOrigin(origins = "*")
 public class UserAiSettingsController {
@@ -52,21 +52,21 @@ public class UserAiSettingsController {
         ProvidersResponse response = new ProvidersResponse();
 
         // DEMO provider
-        response.addProvider("DEMO", "Platform Demo (Free)", new String[]{
+        response.addProvider("DEMO", "Platform Demo (Free)", new String[] {
                 "anthropic/claude-3.5-sonnet",
                 "anthropic/claude-3-opus",
                 "openai/gpt-4-turbo"
         });
 
         // Claude provider
-        response.addProvider("CLAUDE", "Anthropic Claude (Your API Key)", new String[]{
+        response.addProvider("CLAUDE", "Anthropic Claude (Your API Key)", new String[] {
                 "claude-3-5-sonnet-20241022",
                 "claude-3-opus-20240229",
                 "claude-3-sonnet-20240229"
         });
 
         // OpenAI provider
-        response.addProvider("OPENAI", "OpenAI (Your API Key)", new String[]{
+        response.addProvider("OPENAI", "OpenAI (Your API Key)", new String[] {
                 "gpt-4-turbo",
                 "gpt-4",
                 "gpt-3.5-turbo"

@@ -3,6 +3,7 @@ package com.eadgequry.chat_bot_service.service;
 import com.eadgequry.chat_bot_service.config.AiApiProperties;
 import com.eadgequry.chat_bot_service.dto.DatabaseSchemaDTO;
 import com.eadgequry.chat_bot_service.exception.ChatBotException;
+import com.eadgequry.chat_bot_service.model.UserAiSettings;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
