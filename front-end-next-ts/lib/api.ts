@@ -423,6 +423,21 @@ export const chatbotApi = {
     api.get<{ message: string }>(`${CHATBOT_API}/health`),
 };
 
+// AI Settings API endpoints
+export const aiSettingsApi = {
+  getUserSettings: (userId: number) =>
+    api.get<UserAiSettingsDTO>(`${CHATBOT_API}/ai-settings/user/${userId}`),
+
+  updateUserSettings: (userId: number, data: UpdateAiSettingsRequest) =>
+    api.put<UserAiSettingsDTO>(`${CHATBOT_API}/ai-settings/user/${userId}`, data),
+
+  deleteUserSettings: (userId: number) =>
+    api.delete<void>(`${CHATBOT_API}/ai-settings/user/${userId}`),
+
+  getAvailableProviders: () =>
+    api.get<AvailableProvidersResponse>(`${CHATBOT_API}/ai-settings/providers`),
+};
+
 // Chatbot types
 export interface ChatRequest {
   question: string;
@@ -492,4 +507,30 @@ export async function* streamChatbot(data: ChatRequest): AsyncGenerator<string> 
       }
     }
   }
+}
+
+// AI Settings types
+export interface UserAiSettingsDTO {
+  id?: number;
+  userId: number;
+  provider: string; // 'DEMO' | 'CLAUDE' | 'OPENAI'
+  model: string;
+  apiKey?: string;  // Never returned by API
+  hasApiKey: boolean;
+}
+
+export interface UpdateAiSettingsRequest {
+  provider: string;
+  model: string;
+  apiKey?: string;
+}
+
+export interface AvailableProvidersResponse {
+  providers: AiProvider[];
+}
+
+export interface AiProvider {
+  code: string;
+  name: string;
+  models: string[];
 }

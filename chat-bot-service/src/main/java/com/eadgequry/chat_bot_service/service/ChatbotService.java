@@ -61,7 +61,7 @@ public class ChatbotService {
             DatabaseSchemaDTO schema = dataSourceClient.getSchemaByConfigId(databaseConfigId, userId);
 
             // Generate SQL query with retries
-            sqlQuery = generateQueryWithRetries(question, schema);
+            sqlQuery = generateQueryWithRetries(userId, question, schema);
 
             // Clean SQL
             sqlQuery = sqlValidatorService.cleanQuery(sqlQuery);
@@ -96,7 +96,7 @@ public class ChatbotService {
             }
 
             // Generate answer
-            String answer = aiService.generateAnswer(question, sqlQuery, queryResult.getResult());
+            String answer = aiService.generateAnswer(userId, question, sqlQuery, queryResult.getResult());
 
             // Save conversation
             String sessionId = getOrCreateSession(userId, databaseConfigId);
@@ -219,7 +219,7 @@ public class ChatbotService {
                 DatabaseSchemaDTO schema = dataSourceClient.getSchemaByConfigId(databaseConfigId, userId);
 
                 // Generate SQL query
-                sqlQuery = generateQueryWithRetries(question, schema);
+                sqlQuery = generateQueryWithRetries(userId, question, schema);
 
                 // Clean SQL
                 String cleanedQuery = sqlValidatorService.cleanQuery(sqlQuery);
@@ -250,7 +250,7 @@ public class ChatbotService {
                 // Generate streaming answer
                 String sessionId = getOrCreateSession(userId, databaseConfigId);
 
-                return aiService.generateStreamingAnswer(question, cleanedQuery, queryResult.getResult())
+                return aiService.generateStreamingAnswer(userId, question, cleanedQuery, queryResult.getResult())
                         .doOnComplete(() -> {
                             // Save conversation after streaming completes
                             saveConversation(userId, databaseConfigId, sessionId, question, cleanedQuery,
@@ -274,12 +274,12 @@ public class ChatbotService {
     /**
      * Generate SQL query with retries
      */
-    private String generateQueryWithRetries(String question, DatabaseSchemaDTO schema) {
+    private String generateQueryWithRetries(Long userId, String question, DatabaseSchemaDTO schema) {
         String lastError = null;
 
         for (int attempt = 0; attempt <= maxRetries; attempt++) {
             try {
-                String query = aiService.generateSqlQuery(question, schema, lastError);
+                String query = aiService.generateSqlQuery(userId, question, schema, lastError);
                 String cleaned = sqlValidatorService.cleanQuery(query);
                 return cleaned;
             } catch (Exception e) {
