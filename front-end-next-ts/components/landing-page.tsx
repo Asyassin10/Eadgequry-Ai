@@ -61,6 +61,9 @@ export function LandingPage() {
               <Link href="/docs" className="text-sm font-medium hover:text-primary transition-colors">
                 Docs
               </Link>
+              <Link href="/blog" className="text-sm font-medium hover:text-primary transition-colors">
+                Blog
+              </Link>
             </div>
             <div className="flex items-center gap-4">
               <Link href="/login">
@@ -340,6 +343,104 @@ export function LandingPage() {
               <p className="text-muted-foreground">
                 Receive beautifully formatted results with SQL queries you can review and export
               </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Supported Databases Section */}
+      <section className="bg-muted/50 py-20">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-5xl font-bold mb-4">
+              Works with Your Database
+            </h2>
+            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+              Connect to the most popular database platforms with seamless integration
+            </p>
+          </div>
+
+          {/* Database Logos Grid with Animation */}
+          <div className="max-w-5xl mx-auto">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-8 items-center justify-items-center">
+              {/* MySQL */}
+              <div className="group flex flex-col items-center gap-4 p-6 rounded-2xl bg-background/50 hover:bg-background hover:shadow-lg transition-all duration-300 hover:scale-110 w-full">
+                <div className="w-20 h-20 flex items-center justify-center text-5xl bg-gradient-to-br from-blue-600 to-blue-400 rounded-xl shadow-md group-hover:shadow-xl transition-shadow">
+                  🐬
+                </div>
+                <span className="font-semibold text-sm">MySQL</span>
+              </div>
+
+              {/* PostgreSQL */}
+              <div className="group flex flex-col items-center gap-4 p-6 rounded-2xl bg-background/50 hover:bg-background hover:shadow-lg transition-all duration-300 hover:scale-110 w-full">
+                <div className="w-20 h-20 flex items-center justify-center text-5xl bg-gradient-to-br from-blue-900 to-blue-700 rounded-xl shadow-md group-hover:shadow-xl transition-shadow">
+                  🐘
+                </div>
+                <span className="font-semibold text-sm">PostgreSQL</span>
+              </div>
+
+              {/* Oracle */}
+              <div className="group flex flex-col items-center gap-4 p-6 rounded-2xl bg-background/50 hover:bg-background hover:shadow-lg transition-all duration-300 hover:scale-110 w-full">
+                <div className="w-20 h-20 flex items-center justify-center text-5xl bg-gradient-to-br from-red-600 to-red-400 rounded-xl shadow-md group-hover:shadow-xl transition-shadow">
+                  🔴
+                </div>
+                <span className="font-semibold text-sm">Oracle</span>
+              </div>
+
+              {/* SQL Server */}
+              <div className="group flex flex-col items-center gap-4 p-6 rounded-2xl bg-background/50 hover:bg-background hover:shadow-lg transition-all duration-300 hover:scale-110 w-full">
+                <div className="w-20 h-20 flex items-center justify-center text-5xl bg-gradient-to-br from-gray-700 to-gray-500 rounded-xl shadow-md group-hover:shadow-xl transition-shadow">
+                  🗄️
+                </div>
+                <span className="font-semibold text-sm">SQL Server</span>
+              </div>
+
+              {/* H2 Database */}
+              <div className="group flex flex-col items-center gap-4 p-6 rounded-2xl bg-background/50 hover:bg-background hover:shadow-lg transition-all duration-300 hover:scale-110 w-full">
+                <div className="w-20 h-20 flex items-center justify-center text-5xl bg-gradient-to-br from-green-600 to-green-400 rounded-xl shadow-md group-hover:shadow-xl transition-shadow">
+                  💾
+                </div>
+                <span className="font-semibold text-sm">H2 Database</span>
+              </div>
+            </div>
+
+            {/* Features below logos */}
+            <div className="mt-16 grid md:grid-cols-3 gap-6">
+              <Card className="text-center">
+                <CardContent className="pt-6">
+                  <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Database className="w-6 h-6 text-primary" />
+                  </div>
+                  <h4 className="font-semibold mb-2">Auto Schema Detection</h4>
+                  <p className="text-sm text-muted-foreground">
+                    Automatically analyzes your database structure and relationships
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card className="text-center">
+                <CardContent className="pt-6">
+                  <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Shield className="w-6 h-6 text-primary" />
+                  </div>
+                  <h4 className="font-semibold mb-2">Secure Connections</h4>
+                  <p className="text-sm text-muted-foreground">
+                    TLS/SSL encryption for all database connections
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card className="text-center">
+                <CardContent className="pt-6">
+                  <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Zap className="w-6 h-6 text-primary" />
+                  </div>
+                  <h4 className="font-semibold mb-2">Real-Time Queries</h4>
+                  <p className="text-sm text-muted-foreground">
+                    Execute queries and get results in real-time with streaming
+                  </p>
+                </CardContent>
+              </Card>
             </div>
           </div>
         </div>
