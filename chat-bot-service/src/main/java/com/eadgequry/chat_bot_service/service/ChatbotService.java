@@ -79,13 +79,15 @@ public class ChatbotService {
 
                     // Save conversation with error
                     String sessionId = getOrCreateSession(userId, databaseConfigId);
-                    saveConversation(userId, databaseConfigId, sessionId, question, sqlQuery, null, friendlyError, errorMsg);
+                    saveConversation(userId, databaseConfigId, sessionId, question, sqlQuery, null, friendlyError,
+                            errorMsg);
 
-                    // Return error response but include the SQL query so user can see what was attempted
+                    // Return error response but include the SQL query so user can see what was
+                    // attempted
                     return ChatResponse.builder()
                             .success(false)
                             .question(question)
-                            .sqlQuery(sqlQuery)  // Show the generated query
+                            .sqlQuery(sqlQuery) // Show the generated query
                             .sqlResult(null)
                             .answer(friendlyError)
                             .error(friendlyError)
@@ -110,7 +112,8 @@ public class ChatbotService {
         } catch (Exception e) {
             log.error("Error processing question", e);
 
-            // If we have a SQL query and it's a forbidden keyword error, handle it gracefully
+            // If we have a SQL query and it's a forbidden keyword error, handle it
+            // gracefully
             if (sqlQuery != null && isForbiddenKeywordError(e.getMessage())) {
                 String friendlyError = buildForbiddenOperationResponse(e.getMessage(), "");
                 return ChatResponse.builder()
@@ -137,13 +140,13 @@ public class ChatbotService {
 
         String lowerError = errorMessage.toLowerCase();
         return lowerError.contains("forbidden") ||
-               lowerError.contains("only select queries are allowed") ||
-               lowerError.contains("insert") && lowerError.contains("not allowed") ||
-               lowerError.contains("update") && lowerError.contains("not allowed") ||
-               lowerError.contains("delete") && lowerError.contains("not allowed") ||
-               lowerError.contains("drop") && lowerError.contains("not allowed") ||
-               lowerError.contains("alter") && lowerError.contains("not allowed") ||
-               lowerError.contains("create") && lowerError.contains("not allowed");
+                lowerError.contains("only select queries are allowed") ||
+                lowerError.contains("insert") && lowerError.contains("not allowed") ||
+                lowerError.contains("update") && lowerError.contains("not allowed") ||
+                lowerError.contains("delete") && lowerError.contains("not allowed") ||
+                lowerError.contains("drop") && lowerError.contains("not allowed") ||
+                lowerError.contains("alter") && lowerError.contains("not allowed") ||
+                lowerError.contains("create") && lowerError.contains("not allowed");
     }
 
     /**
@@ -161,7 +164,8 @@ public class ChatbotService {
             response.append("**Reason:** The query contains a `").append(forbiddenKeyword)
                     .append("` operation, which is not allowed for safety reasons.\n\n");
         } else {
-            response.append("**Reason:** This query contains operations that modify or delete data, which is not allowed for safety reasons.\n\n");
+            response.append(
+                    "**Reason:** This query contains operations that modify or delete data, which is not allowed for safety reasons.\n\n");
         }
 
         response.append("**Security Policy:**\n");
@@ -193,8 +197,8 @@ public class ChatbotService {
             return null;
         }
 
-        String[] forbiddenKeywords = {"INSERT", "UPDATE", "DELETE", "DROP", "ALTER",
-                                       "CREATE", "TRUNCATE", "REPLACE", "MERGE"};
+        String[] forbiddenKeywords = { "INSERT", "UPDATE", "DELETE", "DROP", "ALTER",
+                "CREATE", "TRUNCATE", "REPLACE", "MERGE" };
 
         String upperError = errorMessage.toUpperCase();
         for (String keyword : forbiddenKeywords) {
@@ -229,7 +233,8 @@ public class ChatbotService {
                 final String finalSqlQuery = cleanedQuery;
 
                 // Execute query (datasource will validate for security)
-                QueryExecutionResponse queryResult = dataSourceClient.executeQuery(databaseConfigId, userId, cleanedQuery);
+                QueryExecutionResponse queryResult = dataSourceClient.executeQuery(databaseConfigId, userId,
+                        cleanedQuery);
 
                 if (!queryResult.isSuccess()) {
                     String errorMsg = queryResult.getError();
@@ -241,7 +246,8 @@ public class ChatbotService {
 
                         // Save conversation with error
                         String sessionId = getOrCreateSession(userId, databaseConfigId);
-                        saveConversation(userId, databaseConfigId, sessionId, question, finalSqlQuery, null, friendlyError, errorMsg);
+                        saveConversation(userId, databaseConfigId, sessionId, question, finalSqlQuery, null,
+                                friendlyError, errorMsg);
 
                         // Return error as flux
                         return Flux.just(friendlyError);
@@ -266,7 +272,8 @@ public class ChatbotService {
             } catch (Exception e) {
                 log.error("Error processing streaming question", e);
 
-                // If we have a SQL query and it's a forbidden keyword error, handle it gracefully
+                // If we have a SQL query and it's a forbidden keyword error, handle it
+                // gracefully
                 if (sqlQuery != null && isForbiddenKeywordError(e.getMessage())) {
                     String friendlyError = buildForbiddenOperationResponse(e.getMessage(), "");
                     return Flux.just(friendlyError);
@@ -293,7 +300,8 @@ public class ChatbotService {
                 log.warn("Query generation attempt {} failed: {}", attempt + 1, lastError);
 
                 if (attempt == maxRetries) {
-                    throw new ChatBotException("Failed to generate valid SQL after " + maxRetries + " attempts: " + lastError);
+                    throw new ChatBotException(
+                            "Failed to generate valid SQL after " + maxRetries + " attempts: " + lastError);
                 }
             }
         }
@@ -332,9 +340,9 @@ public class ChatbotService {
      * Save conversation to database
      */
     private void saveConversation(Long userId, Long databaseConfigId, String sessionId,
-                                  String question, String sqlQuery,
-                                  List<Map<String, Object>> sqlResult,
-                                  String answer, String errorMessage) {
+            String question, String sqlQuery,
+            List<Map<String, Object>> sqlResult,
+            String answer, String errorMessage) {
         try {
             Conversation conversation = Conversation.builder()
                     .userId(userId)

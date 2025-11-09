@@ -42,43 +42,46 @@ public class AiService {
         // Detect non-English language (simple detection)
         if (isNonEnglish(question)) {
             return "I can only communicate in English. Could you please ask your question in English? " +
-                   "I'm here to help you query your database!\n\n" +
-                   "Example questions:\n" +
-                   "• Show me all customers\n" +
-                   "• How many orders were placed last month?\n" +
-                   "• Find products with price above $100";
+                    "I'm here to help you query your database!\n\n" +
+                    "Example questions:\n" +
+                    "• Show me all customers\n" +
+                    "• How many orders were placed last month?\n" +
+                    "• Find products with price above $100";
         }
 
         // Handle greetings
-        if (lowerQuestion.matches("^(hi|hello|hey|good morning|good afternoon|good evening|bonjour|hola|salut|ciao).*")) {
+        if (lowerQuestion
+                .matches("^(hi|hello|hey|good morning|good afternoon|good evening|bonjour|hola|salut|ciao).*")) {
             return "Hello! I'm your AI assistant for EadgeQuery. I'm here to help you query and analyze your database using natural language (in English). Just ask me anything about your data!";
         }
 
         // Handle "who are you" type questions
         if (lowerQuestion.matches(".*(who are you|what are you|what can you do|help).*")) {
             return "I'm an AI-powered database assistant for EadgeQuery. I can help you:\n\n" +
-                   "• Query your database using natural language (in English)\n" +
-                   "• Generate and execute complex SQL queries automatically\n" +
-                   "• Handle JOINs, aggregations, subqueries, and calculations\n" +
-                   "• Analyze and present your data in easy-to-read tables\n" +
-                   "• Work with any database: MySQL, PostgreSQL, Oracle, SQL Server, etc.\n\n" +
-                   "Example questions:\n" +
-                   "• Show me all customers from California\n" +
-                   "• For each product, show total revenue and quantity sold\n" +
-                   "• Find customers who haven't ordered in the last 6 months\n" +
-                   "• Which employees report to John Smith?";
+                    "• Query your database using natural language (in English)\n" +
+                    "• Generate and execute complex SQL queries automatically\n" +
+                    "• Handle JOINs, aggregations, subqueries, and calculations\n" +
+                    "• Analyze and present your data in easy-to-read tables\n" +
+                    "• Work with any database: MySQL, PostgreSQL, Oracle, SQL Server, etc.\n\n" +
+                    "Example questions:\n" +
+                    "• Show me all customers from California\n" +
+                    "• For each product, show total revenue and quantity sold\n" +
+                    "• Find customers who haven't ordered in the last 6 months\n" +
+                    "• Which employees report to John Smith?";
         }
 
         // Check if question seems unrelated to database
         if (lowerQuestion.matches(".*(weather|news|joke|game|movie|music|recipe|time|date|politics|sports).*") &&
-            !lowerQuestion.matches(".*(table|database|query|select|data|record|row|column|customer|order|product|employee).*")) {
-            return "I'm specifically designed to help you with your database queries. I can answer questions about your data, tables, and records. " +
-                   "Please ask me something about your database.\n\n" +
-                   "Try questions like:\n" +
-                   "• Show all customers\n" +
-                   "• How many orders were placed this month?\n" +
-                   "• Find products that are out of stock\n" +
-                   "• For each customer, show their total spending";
+                !lowerQuestion.matches(
+                        ".*(table|database|query|select|data|record|row|column|customer|order|product|employee).*")) {
+            return "I'm specifically designed to help you with your database queries. I can answer questions about your data, tables, and records. "
+                    +
+                    "Please ask me something about your database.\n\n" +
+                    "Try questions like:\n" +
+                    "• Show all customers\n" +
+                    "• How many orders were placed this month?\n" +
+                    "• Find products that are out of stock\n" +
+                    "• For each customer, show their total spending";
         }
 
         return null; // It's a database question
@@ -146,7 +149,8 @@ public class AiService {
     /**
      * Generate streaming answer from SQL results
      */
-    public Flux<String> generateStreamingAnswer(Long userId, String question, String sqlQuery, List<Map<String, Object>> result) {
+    public Flux<String> generateStreamingAnswer(Long userId, String question, String sqlQuery,
+            List<Map<String, Object>> result) {
         String prompt = buildAnswerPrompt(question, sqlQuery, result);
 
         return callAiApiStreaming(userId, prompt, aiApiProperties.getTemperatureAnswer())
@@ -165,15 +169,17 @@ public class AiService {
 
         // Get database type
         String databaseType = schema != null && schema.getDatabaseType() != null
-            ? schema.getDatabaseType().toUpperCase()
-            : "UNKNOWN";
+                ? schema.getDatabaseType().toUpperCase()
+                : "UNKNOWN";
 
-        prompt.append("You are an EXPERT SQL query generator with WORLD-CLASS natural language understanding and PERFECT schema analysis skills.\n\n");
+        prompt.append(
+                "You are an EXPERT SQL query generator with WORLD-CLASS natural language understanding and PERFECT schema analysis skills.\n\n");
 
         prompt.append("=== CRITICAL RULE #1: EXACT TABLE AND COLUMN NAMES ===\n");
         prompt.append("🚨 NEVER INVENT, GUESS, OR MODIFY TABLE/COLUMN NAMES! 🚨\n");
         prompt.append("• You MUST use the EXACT names from the schema below (EXACT case, EXACT spelling)\n");
-        prompt.append("• Table names: If schema has 'orderdetails', use 'orderdetails' NOT 'orderDetails' or 'order_details'\n");
+        prompt.append(
+                "• Table names: If schema has 'orderdetails', use 'orderdetails' NOT 'orderDetails' or 'order_details'\n");
         prompt.append("• Column names: If schema has 'buyPrice', use 'buyPrice' NOT 'buy_price' or 'BuyPrice'\n");
         prompt.append("• Names may be: camelCase, snake_case, PascalCase, lowercase, UPPERCASE, or mixed\n");
         prompt.append("• DO NOT convert between formats - copy EXACTLY from schema\n");
@@ -201,7 +207,8 @@ public class AiService {
         prompt.append("STEP 1: ANALYZE the user question and understand intent (be tolerant of typos)\n");
         prompt.append("STEP 2: IDENTIFY which tables are needed by fuzzy matching user's words to table names\n");
         prompt.append("STEP 3: READ the schema and find the EXACT column names in those tables\n");
-        prompt.append("STEP 4: MAP user's intent to exact schema columns (e.g., 'price' → find 'buyPrice' or 'MSRP')\n");
+        prompt.append(
+                "STEP 4: MAP user's intent to exact schema columns (e.g., 'price' → find 'buyPrice' or 'MSRP')\n");
         prompt.append("STEP 5: CONSTRUCT SQL using database-specific syntax and EXACT column names\n");
         prompt.append("STEP 6: VALIDATE that all column names in your query exist in the schema\n\n");
 
@@ -280,7 +287,8 @@ public class AiService {
             prompt.append("=== ⚠️ PREVIOUS ERROR - YOU MUST FIX THIS ===\n");
             prompt.append("Error: ").append(previousError).append("\n\n");
             prompt.append("ANALYSIS REQUIRED:\n");
-            prompt.append("• If error says 'Unknown column': You used wrong column name - check schema for EXACT name\n");
+            prompt.append(
+                    "• If error says 'Unknown column': You used wrong column name - check schema for EXACT name\n");
             prompt.append("• If error says 'Unknown table': You used wrong table name - check schema for EXACT name\n");
             prompt.append("• If error says syntax error: Check ").append(databaseType).append(" syntax rules\n");
             prompt.append("• Review the schema below and use EXACT names, not invented ones\n\n");
@@ -366,14 +374,15 @@ public class AiService {
         return syntax.toString();
     }
 
-
     /**
-     * Build intelligent prompt for answer generation with user-friendly explanations
+     * Build intelligent prompt for answer generation with user-friendly
+     * explanations
      */
     private String buildAnswerPrompt(String question, String sqlQuery, List<Map<String, Object>> result) {
         StringBuilder prompt = new StringBuilder();
 
-        prompt.append("You are Eadge Query AI Assistant - an EXPERT, FRIENDLY, and INTELLIGENT database assistant.\n\n");
+        prompt.append(
+                "You are Eadge Query AI Assistant - an EXPERT, FRIENDLY, and INTELLIGENT database assistant.\n\n");
 
         prompt.append("=== CONTEXT ===\n");
         prompt.append("User Question: \"").append(question).append("\"\n");
@@ -428,7 +437,8 @@ public class AiService {
             prompt.append("5. Handle large results:\n");
             prompt.append("   - MAXIMUM 50 rows displayed (system limit)\n");
             prompt.append("   - If result has more than 50 rows, show first 50 and say:\n");
-            prompt.append("     'Showing 50 of X results (maximum display limit). To see specific data, try refining your search.'\n");
+            prompt.append(
+                    "     'Showing 50 of X results (maximum display limit). To see specific data, try refining your search.'\n");
             prompt.append("   - If 50 or fewer rows, show all\n");
             prompt.append("6. END with helpful summary:\n");
             prompt.append("   - Brief insight about the data (1-2 sentences)\n");
@@ -444,12 +454,14 @@ public class AiService {
             prompt.append("| John  | john@test.com    | Active |\n");
             prompt.append("| Jane  | jane@test.com    | Active |\n");
             prompt.append("| Bob   | bob@test.com     | Active |\n\n");
-            prompt.append("You have 3 active users. Would you like to see inactive users or filter by a specific criteria?\n\n");
+            prompt.append(
+                    "You have 3 active users. Would you like to see inactive users or filter by a specific criteria?\n\n");
         }
 
         prompt.append("=== YOUR TASK ===\n");
         prompt.append("Generate a HELPFUL, FRIENDLY, and WELL-FORMATTED response.\n");
-        prompt.append("Remember: Be understanding and supportive. The user might have asked an unclear question, but you understood it!\n\n");
+        prompt.append(
+                "Remember: Be understanding and supportive. The user might have asked an unclear question, but you understood it!\n\n");
 
         prompt.append("Response:");
 
@@ -470,7 +482,7 @@ public class AiService {
         info.append("Total Tables: ").append(schema.getTables().size()).append("\n\n");
 
         info.append("📊 COMPLETE TABLE AND COLUMN LISTING:\n");
-        info.append("=" .repeat(80)).append("\n\n");
+        info.append("=".repeat(80)).append("\n\n");
 
         for (DatabaseSchemaDTO.TableInfo table : schema.getTables()) {
             info.append("Table: ").append(table.getName()).append("\n");
@@ -480,7 +492,7 @@ public class AiService {
                 info.append("Columns (USE THESE EXACT NAMES):\n");
                 for (DatabaseSchemaDTO.ColumnInfo col : table.getColumns()) {
                     info.append("  • ").append(col.getName())
-                        .append(" (").append(col.getType());
+                            .append(" (").append(col.getType());
                     if (col.getSize() != null && col.getSize() > 0) {
                         info.append("(").append(col.getSize()).append(")");
                     }
@@ -503,15 +515,15 @@ public class AiService {
                 info.append("Foreign Keys (for JOINs):\n");
                 for (DatabaseSchemaDTO.ForeignKeyInfo fk : table.getForeignKeys()) {
                     info.append("  • ").append(fk.getColumn())
-                        .append(" → ").append(fk.getReferencedTable())
-                        .append(".").append(fk.getReferencedColumn()).append("\n");
+                            .append(" → ").append(fk.getReferencedTable())
+                            .append(".").append(fk.getReferencedColumn()).append("\n");
                 }
             }
 
             info.append("\n");
         }
 
-        info.append("=" .repeat(80)).append("\n");
+        info.append("=".repeat(80)).append("\n");
         info.append("⚠️  REMEMBER: Use column names EXACTLY as listed above!\n");
         info.append("⚠️  Do NOT change camelCase to snake_case or vice versa!\n");
 
@@ -519,7 +531,8 @@ public class AiService {
     }
 
     /**
-     * Format schema information for prompt - LEGACY VERSION (for backwards compatibility)
+     * Format schema information for prompt - LEGACY VERSION (for backwards
+     * compatibility)
      */
     private String formatSchemaInfo(DatabaseSchemaDTO schema) {
         return formatSchemaInfoDetailed(schema);
@@ -548,7 +561,8 @@ public class AiService {
         } else if (databaseType.equals("SQLSERVER")) {
             examples.append("SQL: SELECT TOP 100 * FROM ").append(firstTable.getName()).append("\n\n");
         } else if (databaseType.equals("ORACLE")) {
-            examples.append("SQL: SELECT * FROM ").append(firstTable.getName()).append(" FETCH FIRST 100 ROWS ONLY\n\n");
+            examples.append("SQL: SELECT * FROM ").append(firstTable.getName())
+                    .append(" FETCH FIRST 100 ROWS ONLY\n\n");
         }
 
         // Example 2: COUNT
@@ -560,23 +574,25 @@ public class AiService {
         if (firstTable.getColumns() != null && firstTable.getColumns().size() >= 2) {
             DatabaseSchemaDTO.ColumnInfo col1 = firstTable.getColumns().get(0);
             DatabaseSchemaDTO.ColumnInfo col2 = firstTable.getColumns().size() > 1
-                ? firstTable.getColumns().get(1)
-                : col1;
+                    ? firstTable.getColumns().get(1)
+                    : col1;
 
             examples.append("Example 3 - Using EXACT column names from schema:\n");
-            examples.append("User: \"Show me ").append(col2.getName()).append(" from ").append(firstTable.getName()).append("\"\n");
+            examples.append("User: \"Show me ").append(col2.getName()).append(" from ").append(firstTable.getName())
+                    .append("\"\n");
             examples.append("IMPORTANT: Schema has column '").append(col2.getName()).append("'\n");
-            examples.append("✓ CORRECT: SELECT ").append(col2.getName()).append(" FROM ").append(firstTable.getName()).append("\n");
+            examples.append("✓ CORRECT: SELECT ").append(col2.getName()).append(" FROM ").append(firstTable.getName())
+                    .append("\n");
 
             // Show what would be WRONG
             if (col2.getName().matches(".*[A-Z].*")) { // has camelCase
                 String wrongName = col2.getName().replaceAll("([A-Z])", "_$1").toLowerCase();
                 examples.append("✗ WRONG:   SELECT ").append(wrongName).append(" FROM ").append(firstTable.getName())
-                    .append(" (invented name!)\n\n");
+                        .append(" (invented name!)\n\n");
             } else if (col2.getName().contains("_")) { // has snake_case
                 String wrongName = toCamelCase(col2.getName());
                 examples.append("✗ WRONG:   SELECT ").append(wrongName).append(" FROM ").append(firstTable.getName())
-                    .append(" (invented name!)\n\n");
+                        .append(" (invented name!)\n\n");
             } else {
                 examples.append("\n");
             }
@@ -584,14 +600,15 @@ public class AiService {
 
         // Example 4: JOIN if foreign keys exist
         DatabaseSchemaDTO.TableInfo tableWithFK = schema.getTables().stream()
-            .filter(t -> t.getForeignKeys() != null && !t.getForeignKeys().isEmpty())
-            .findFirst()
-            .orElse(null);
+                .filter(t -> t.getForeignKeys() != null && !t.getForeignKeys().isEmpty())
+                .findFirst()
+                .orElse(null);
 
         if (tableWithFK != null && tableWithFK.getForeignKeys() != null && !tableWithFK.getForeignKeys().isEmpty()) {
             DatabaseSchemaDTO.ForeignKeyInfo fk = tableWithFK.getForeignKeys().get(0);
             examples.append("Example 4 - JOIN using foreign keys:\n");
-            examples.append("User: \"Show ").append(tableWithFK.getName()).append(" with ").append(fk.getReferencedTable()).append(" info\"\n");
+            examples.append("User: \"Show ").append(tableWithFK.getName()).append(" with ")
+                    .append(fk.getReferencedTable()).append(" info\"\n");
             examples.append("SQL: SELECT t1.*, t2.* FROM ").append(tableWithFK.getName()).append(" t1 ");
             examples.append("JOIN ").append(fk.getReferencedTable()).append(" t2 ");
             examples.append("ON t1.").append(fk.getColumn()).append(" = t2.").append(fk.getReferencedColumn());
@@ -618,7 +635,7 @@ public class AiService {
         StringBuilder camelCase = new StringBuilder(parts[0]);
         for (int i = 1; i < parts.length; i++) {
             camelCase.append(parts[i].substring(0, 1).toUpperCase())
-                     .append(parts[i].substring(1));
+                    .append(parts[i].substring(1));
         }
         return camelCase.toString();
     }
@@ -672,18 +689,22 @@ public class AiService {
                 "model", config.model,
                 "messages", List.of(
                         Map.of("role", "system", "content",
-                            "You are an EXPERT AI database assistant with ADVANCED natural language understanding. " +
-                            "You excel at understanding unclear questions, handling typos, interpreting user intent, " +
-                            "and providing intelligent, helpful responses. You are patient, friendly, supportive, and " +
-                            "can understand questions even when they have spelling mistakes, grammar errors, or are written " +
-                            "in unclear language. You always try to help the user get the information they need, regardless " +
-                            "of how their question is phrased. You are database-agnostic and can work with MySQL, PostgreSQL, " +
-                            "Oracle, SQL Server, and other databases using their specific syntax."),
-                        Map.of("role", "user", "content", prompt)
-                ),
+                                "You are an EXPERT AI database assistant with ADVANCED natural language understanding. "
+                                        +
+                                        "You excel at understanding unclear questions, handling typos, interpreting user intent, "
+                                        +
+                                        "and providing intelligent, helpful responses. You are patient, friendly, supportive, and "
+                                        +
+                                        "can understand questions even when they have spelling mistakes, grammar errors, or are written "
+                                        +
+                                        "in unclear language. You always try to help the user get the information they need, regardless "
+                                        +
+                                        "of how their question is phrased. You are database-agnostic and can work with MySQL, PostgreSQL, "
+                                        +
+                                        "Oracle, SQL Server, and other databases using their specific syntax."),
+                        Map.of("role", "user", "content", prompt)),
                 "temperature", temperature,
-                "max_tokens", aiApiProperties.getMaxTokens()
-        );
+                "max_tokens", aiApiProperties.getMaxTokens());
 
         try {
             log.debug("Calling AI API: {} with model: {} (provider: {})", config.url, config.model, config.provider);
@@ -701,30 +722,37 @@ public class AiService {
                             clientResponse -> {
                                 return clientResponse.bodyToMono(String.class)
                                         .flatMap(body -> {
-                                            log.error("OpenRouter 4xx error - Status: {}, Body: {}", clientResponse.statusCode(), body);
+                                            log.error("OpenRouter 4xx error - Status: {}, Body: {}",
+                                                    clientResponse.statusCode(), body);
                                             return clientResponse.createException()
                                                     .flatMap(ex -> {
                                                         if (clientResponse.statusCode().value() == 401) {
-                                                            return reactor.core.publisher.Mono.error(new ChatBotException("OpenRouter authentication failed - check API key"));
+                                                            return reactor.core.publisher.Mono
+                                                                    .error(new ChatBotException(
+                                                                            "OpenRouter authentication failed - check API key"));
                                                         } else if (clientResponse.statusCode().value() == 429) {
-                                                            return reactor.core.publisher.Mono.error(new ChatBotException("OpenRouter rate limit exceeded"));
+                                                            return reactor.core.publisher.Mono
+                                                                    .error(new ChatBotException(
+                                                                            "OpenRouter rate limit exceeded"));
                                                         } else {
-                                                            return reactor.core.publisher.Mono.error(new ChatBotException("OpenRouter client error: " + body));
+                                                            return reactor.core.publisher.Mono
+                                                                    .error(new ChatBotException(
+                                                                            "OpenRouter client error: " + body));
                                                         }
                                                     });
                                         });
-                            }
-                    )
+                            })
                     .onStatus(
                             status -> status.is5xxServerError(),
                             clientResponse -> {
                                 return clientResponse.bodyToMono(String.class)
                                         .flatMap(body -> {
-                                            log.error("OpenRouter 5xx error - Status: {}, Body: {}", clientResponse.statusCode(), body);
-                                            return reactor.core.publisher.Mono.error(new ChatBotException("OpenRouter server error: " + body));
+                                            log.error("OpenRouter 5xx error - Status: {}, Body: {}",
+                                                    clientResponse.statusCode(), body);
+                                            return reactor.core.publisher.Mono
+                                                    .error(new ChatBotException("OpenRouter server error: " + body));
                                         });
-                            }
-                    )
+                            })
                     .bodyToMono(String.class)
                     .timeout(Duration.ofMillis(aiApiProperties.getTimeout()))
                     .block();
@@ -738,7 +766,9 @@ public class AiService {
                     aiApiProperties.getUrl(),
                     aiApiProperties.getModel(),
                     e.getMessage(), e);
-            throw new ChatBotException("AI API call failed: " + (e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName()), e);
+            throw new ChatBotException(
+                    "AI API call failed: " + (e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName()),
+                    e);
         }
     }
 
@@ -752,26 +782,30 @@ public class AiService {
                 "model", config.model,
                 "messages", List.of(
                         Map.of("role", "system", "content",
-                            "You are an EXPERT AI database assistant with ADVANCED natural language understanding. " +
-                            "You excel at understanding unclear questions, handling typos, interpreting user intent, " +
-                            "and providing intelligent, helpful responses. You are patient, friendly, supportive, and " +
-                            "can understand questions even when they have spelling mistakes, grammar errors, or are written " +
-                            "in unclear language. You always try to help the user get the information they need, regardless " +
-                            "of how their question is phrased. You are database-agnostic and can work with MySQL, PostgreSQL, " +
-                            "Oracle, SQL Server, and other databases using their specific syntax."),
-                        Map.of("role", "user", "content", prompt)
-                ),
+                                "You are an EXPERT AI database assistant with ADVANCED natural language understanding. "
+                                        +
+                                        "You excel at understanding unclear questions, handling typos, interpreting user intent, "
+                                        +
+                                        "and providing intelligent, helpful responses. You are patient, friendly, supportive, and "
+                                        +
+                                        "can understand questions even when they have spelling mistakes, grammar errors, or are written "
+                                        +
+                                        "in unclear language. You always try to help the user get the information they need, regardless "
+                                        +
+                                        "of how their question is phrased. You are database-agnostic and can work with MySQL, PostgreSQL, "
+                                        +
+                                        "Oracle, SQL Server, and other databases using their specific syntax."),
+                        Map.of("role", "user", "content", prompt)),
                 "temperature", temperature,
                 "max_tokens", aiApiProperties.getMaxTokens(),
-                "stream", true
-        );
+                "stream", true);
 
         return webClient.post()
                 .uri(config.url)
                 .header("Authorization", "Bearer " + config.apiKey)
                 .header("Content-Type", "application/json")
-                .header("HTTP-Referer", "http://localhost:3000")  // OpenRouter recommended header
-                .header("X-Title", "Eadgequry AI Chatbot")        // OpenRouter recommended header
+                .header("HTTP-Referer", "http://localhost:3000") // OpenRouter recommended header
+                .header("X-Title", "Eadgequry AI Chatbot") // OpenRouter recommended header
                 .bodyValue(requestBody)
                 .retrieve()
                 .bodyToFlux(String.class)

@@ -552,9 +552,9 @@ export function ChatbotPage() {
                       <div className="max-w-2xl space-y-3">
                         {/* SQL Query - Terminal Style */}
                         {message.sqlQuery && (
-                          
+
                           <div className="bg-slate-900 border border-slate-700 rounded-lg overflow-hidden">
-                                                                        <img src="logo.png" className="w-12 h-12   mb-3" alt="" />
+                            <img src="logo.png" className="w-12 h-12   mb-3" alt="" />
 
                             <div className="flex items-center justify-between bg-slate-800 px-3 py-2 border-b border-slate-700">
                               <div className="flex items-center gap-2">
@@ -607,7 +607,7 @@ export function ChatbotPage() {
                             </div>
                           </div>
                         )}
-                          <img src="logo.png" className="w-12 h-12   mb-3" alt="" />
+                        <img src="logo.png" className="w-12 h-12   mb-3" alt="" />
                         {/* AI Answer */}
                         <div
                           className={`px-4 py-3 rounded-lg rounded-bl-none ${message.type === "error"
@@ -655,12 +655,12 @@ export function ChatbotPage() {
                 placeholder="Ask a question about your data..."
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                onKeyPress={(e) => e.key === "Enter" && handleSendStreaming()}
+                onKeyPress={(e) => e.key === "Enter" && handleSend()}
                 className="flex-1 bg-input border-border"
                 disabled={isLoading || !selectedDatabaseId}
               />
               <Button
-                onClick={handleSendStreaming}
+                onClick={handleSend}
                 disabled={isLoading || !input.trim() || !selectedDatabaseId}
                 className="bg-primary hover:bg-secondary text-primary-foreground"
               >

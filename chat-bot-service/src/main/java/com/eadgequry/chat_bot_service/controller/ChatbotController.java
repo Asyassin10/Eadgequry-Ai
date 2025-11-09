@@ -20,7 +20,6 @@ import java.time.Duration;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/chatbot")
 @Tag(name = "Chatbot", description = "Natural language database query chatbot API")
 @RequiredArgsConstructor
 public class ChatbotController {
