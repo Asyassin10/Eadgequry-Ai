@@ -113,27 +113,13 @@ export function LandingPage() {
           </div>
           <div className="relative">
             <div className="bg-gradient-to-br from-primary/20 to-blue-600/20 rounded-2xl p-8 backdrop-blur">
-              <div className="bg-background rounded-lg shadow-2xl p-6 space-y-4">
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <MessageSquare className="w-4 h-4" />
-                  <span>Ask anything about your data...</span>
-                </div>
-                <div className="space-y-2">
-                  <div className="bg-primary/10 rounded-lg p-3 text-sm">
-                    "Show me top 10 customers by revenue this month"
-                  </div>
-                  <div className="bg-muted rounded-lg p-4 space-y-2">
-                    <div className="text-xs text-muted-foreground font-mono">
-                      SELECT * FROM customers ORDER BY revenue DESC LIMIT 10
-                    </div>
-                    <div className="grid grid-cols-3 gap-2 text-xs">
-                      <div className="bg-background p-2 rounded">Customer A</div>
-                      <div className="bg-background p-2 rounded">$45,230</div>
-                      <div className="bg-background p-2 rounded">Active</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
+            <video
+              src="/Eadge.mp4"
+              autoPlay
+              loop
+              muted 
+              className="w-full h-auto rounded-xl"
+            />
             </div>
           </div>
         </div>
