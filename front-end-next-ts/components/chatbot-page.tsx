@@ -655,12 +655,12 @@ export function ChatbotPage() {
                 placeholder="Ask a question about your data..."
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                onKeyPress={(e) => e.key === "Enter" && handleSend()}
+                onKeyPress={(e) => e.key === "Enter" && handleSendStreaming()}
                 className="flex-1 bg-input border-border"
                 disabled={isLoading || !selectedDatabaseId}
               />
               <Button
-                onClick={handleSend}
+                onClick={handleSendStreaming}
                 disabled={isLoading || !input.trim() || !selectedDatabaseId}
                 className="bg-primary hover:bg-secondary text-primary-foreground"
               >

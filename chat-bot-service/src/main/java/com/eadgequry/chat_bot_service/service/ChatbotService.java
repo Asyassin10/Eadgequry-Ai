@@ -95,14 +95,17 @@ public class ChatbotService {
                 throw new ChatBotException("Query execution failed: " + errorMsg);
             }
 
-            // Generate answer
-            String answer = aiService.generateAnswer(userId, question, sqlQuery, queryResult.getResult());
+            // Limit results to 50 rows maximum (for display purposes)
+            List<Map<String, Object>> limitedResult = limitResults(queryResult.getResult(), 50);
+
+            // Generate answer (AI will mention if results were limited)
+            String answer = aiService.generateAnswer(userId, question, sqlQuery, limitedResult);
 
             // Save conversation
             String sessionId = getOrCreateSession(userId, databaseConfigId);
-            saveConversation(userId, databaseConfigId, sessionId, question, sqlQuery, queryResult.getResult(), answer, null);
+            saveConversation(userId, databaseConfigId, sessionId, question, sqlQuery, limitedResult, answer, null);
 
-            return ChatResponse.success(question, sqlQuery, queryResult.getResult(), answer);
+            return ChatResponse.success(question, sqlQuery, limitedResult, answer);
 
         } catch (Exception e) {
             log.error("Error processing question", e);
@@ -247,14 +250,17 @@ public class ChatbotService {
                     return Flux.error(new ChatBotException("Query execution failed: " + errorMsg));
                 }
 
+                // Limit results to 50 rows maximum (for display purposes)
+                List<Map<String, Object>> limitedResult = limitResults(queryResult.getResult(), 50);
+
                 // Generate streaming answer
                 String sessionId = getOrCreateSession(userId, databaseConfigId);
 
-                return aiService.generateStreamingAnswer(userId, question, cleanedQuery, queryResult.getResult())
+                return aiService.generateStreamingAnswer(userId, question, cleanedQuery, limitedResult)
                         .doOnComplete(() -> {
                             // Save conversation after streaming completes
                             saveConversation(userId, databaseConfigId, sessionId, question, cleanedQuery,
-                                    queryResult.getResult(), "[Streaming response]", null);
+                                    limitedResult, "[Streaming response]", null);
                         });
 
             } catch (Exception e) {
@@ -362,5 +368,21 @@ public class ChatbotService {
      */
     public List<Conversation> getSessionHistory(String sessionId) {
         return conversationRepository.findBySessionIdOrderByCreatedAtAsc(sessionId);
+    }
+
+    /**
+     * Limit query results to maximum number of rows for display
+     */
+    private List<Map<String, Object>> limitResults(List<Map<String, Object>> results, int maxRows) {
+        if (results == null || results.isEmpty()) {
+            return results;
+        }
+
+        if (results.size() <= maxRows) {
+            return results;
+        }
+
+        log.info("Limiting results from {} rows to {} rows for display", results.size(), maxRows);
+        return results.subList(0, maxRows);
     }
 }

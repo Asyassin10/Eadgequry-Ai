@@ -39,28 +39,76 @@ public class AiService {
     public String handleNonDatabaseQuestion(String question) {
         String lowerQuestion = question.toLowerCase().trim();
 
+        // Detect non-English language (simple detection)
+        if (isNonEnglish(question)) {
+            return "I can only communicate in English. Could you please ask your question in English? " +
+                   "I'm here to help you query your database!\n\n" +
+                   "Example questions:\n" +
+                   "• Show me all customers\n" +
+                   "• How many orders were placed last month?\n" +
+                   "• Find products with price above $100";
+        }
+
         // Handle greetings
-        if (lowerQuestion.matches("^(hi|hello|hey|good morning|good afternoon|good evening).*")) {
-            return "Hello! I'm your AI assistant for Eadge Query. I'm here to help you query and analyze your database using natural language. Just ask me anything about your data!";
+        if (lowerQuestion.matches("^(hi|hello|hey|good morning|good afternoon|good evening|bonjour|hola|salut|ciao).*")) {
+            return "Hello! I'm your AI assistant for EadgeQuery. I'm here to help you query and analyze your database using natural language (in English). Just ask me anything about your data!";
         }
 
         // Handle "who are you" type questions
         if (lowerQuestion.matches(".*(who are you|what are you|what can you do|help).*")) {
-            return "I'm an AI-powered database assistant for Eadge Query. I can help you:\n\n" +
-                   "• Query your database using natural language\n" +
-                   "• Generate and execute SQL queries automatically\n" +
-                   "• Analyze and present your data in easy-to-read tables\n\n" +
-                   "Just ask me questions like 'Show all users' or 'Count total orders' and I'll handle the rest!";
+            return "I'm an AI-powered database assistant for EadgeQuery. I can help you:\n\n" +
+                   "• Query your database using natural language (in English)\n" +
+                   "• Generate and execute complex SQL queries automatically\n" +
+                   "• Handle JOINs, aggregations, subqueries, and calculations\n" +
+                   "• Analyze and present your data in easy-to-read tables\n" +
+                   "• Work with any database: MySQL, PostgreSQL, Oracle, SQL Server, etc.\n\n" +
+                   "Example questions:\n" +
+                   "• Show me all customers from California\n" +
+                   "• For each product, show total revenue and quantity sold\n" +
+                   "• Find customers who haven't ordered in the last 6 months\n" +
+                   "• Which employees report to John Smith?";
         }
 
         // Check if question seems unrelated to database
-        if (lowerQuestion.matches(".*(weather|news|joke|game|movie|music|recipe|time|date).*") &&
-            !lowerQuestion.matches(".*(table|database|query|select|data|record|row|column).*")) {
+        if (lowerQuestion.matches(".*(weather|news|joke|game|movie|music|recipe|time|date|politics|sports).*") &&
+            !lowerQuestion.matches(".*(table|database|query|select|data|record|row|column|customer|order|product|employee).*")) {
             return "I'm specifically designed to help you with your database queries. I can answer questions about your data, tables, and records. " +
-                   "Please ask me something about your database, like 'Show all users' or 'Count records in orders table'.";
+                   "Please ask me something about your database.\n\n" +
+                   "Try questions like:\n" +
+                   "• Show all customers\n" +
+                   "• How many orders were placed this month?\n" +
+                   "• Find products that are out of stock\n" +
+                   "• For each customer, show their total spending";
         }
 
         return null; // It's a database question
+    }
+
+    /**
+     * Simple non-English language detection
+     */
+    private boolean isNonEnglish(String text) {
+        // Check for common non-English characters and patterns
+        // French: é, è, ê, à, ù, ç, etc.
+        // Spanish: ñ, á, é, í, ó, ú, ¿, ¡
+        // German: ä, ö, ü, ß
+        // Arabic, Chinese, Japanese, etc.
+
+        // Count non-ASCII characters
+        long nonAsciiCount = text.chars().filter(c -> c > 127).count();
+
+        // If more than 15% non-ASCII, likely non-English
+        if (text.length() > 0 && (double) nonAsciiCount / text.length() > 0.15) {
+            return true;
+        }
+
+        // Check for common non-English words (simple patterns)
+        String lower = text.toLowerCase();
+        if (lower.matches(".*(bonjour|merci|comment|quelle|donde|cómo|cuál|wie|welche|什么|どう|كيف|как|где).*")) {
+            return true;
+        }
+
+        return false;
     }
 
     /**
@@ -122,16 +170,17 @@ public class AiService {
 
         prompt.append("You are an EXPERT SQL query generator with WORLD-CLASS natural language understanding and PERFECT schema analysis skills.\n\n");
 
-        prompt.append("=== CRITICAL RULE #1: EXACT COLUMN NAMES ===\n");
-        prompt.append("🚨 NEVER INVENT OR GUESS COLUMN NAMES! 🚨\n");
-        prompt.append("• You MUST use the EXACT column names from the schema below\n");
-        prompt.append("• Column names may be camelCase (buyPrice), snake_case (buy_price), PascalCase (BuyPrice), or any format\n");
-        prompt.append("• DO NOT convert between formats - use EXACTLY what's in the schema\n");
-        prompt.append("• If schema has 'buyPrice', use 'buyPrice' NOT 'buy_price'\n");
-        prompt.append("• If schema has 'customerNumber', use 'customerNumber' NOT 'customer_id'\n");
-        prompt.append("• If schema has 'reportsTo', use 'reportsTo' NOT 'reports_to'\n");
+        prompt.append("=== CRITICAL RULE #1: EXACT TABLE AND COLUMN NAMES ===\n");
+        prompt.append("🚨 NEVER INVENT, GUESS, OR MODIFY TABLE/COLUMN NAMES! 🚨\n");
+        prompt.append("• You MUST use the EXACT names from the schema below (EXACT case, EXACT spelling)\n");
+        prompt.append("• Table names: If schema has 'orderdetails', use 'orderdetails' NOT 'orderDetails' or 'order_details'\n");
+        prompt.append("• Column names: If schema has 'buyPrice', use 'buyPrice' NOT 'buy_price' or 'BuyPrice'\n");
+        prompt.append("• Names may be: camelCase, snake_case, PascalCase, lowercase, UPPERCASE, or mixed\n");
+        prompt.append("• DO NOT convert between formats - copy EXACTLY from schema\n");
+        prompt.append("• WRONG: FROM orderDetails  ✗ (if schema has 'orderdetails')\n");
+        prompt.append("• RIGHT:  FROM orderdetails  ✓\n");
         prompt.append("• WRONG: WHERE buy_price > 100  ✗ (if schema has 'buyPrice')\n");
-        prompt.append("• RIGHT: WHERE buyPrice > 100   ✓\n\n");
+        prompt.append("• RIGHT:  WHERE buyPrice > 100  ✓\n\n");
 
         prompt.append("=== TARGET DATABASE ===\n");
         prompt.append("Database Type: ").append(databaseType).append("\n");
@@ -160,16 +209,50 @@ public class AiService {
         prompt.append("Common Phrases (understand these even with typos):\n");
         prompt.append("• 'give me' / 'show me' / 'get me' / 'list' → SELECT\n");
         prompt.append("• 'how many' / 'count' / 'total number' → COUNT(*)\n");
-        prompt.append("• 'latest' / 'newest' / 'recent' → ORDER BY date_column DESC (find date column from schema)\n");
+        prompt.append("• 'latest' / 'newest' / 'recent' → ORDER BY date_column DESC\n");
         prompt.append("• 'oldest' / 'first' → ORDER BY date_column ASC\n");
         prompt.append("• 'top N' / 'first N' → LIMIT N (or TOP N for SQL Server)\n");
-        prompt.append("• 'all' → SELECT *\n");
+        prompt.append("• 'all' → SELECT * LIMIT 100\n");
         prompt.append("• 'find' / 'search' / 'lookup' → WHERE with LIKE or =\n");
-        prompt.append("• 'total' / 'sum' → SUM(column)\n");
+        prompt.append("• 'total' / 'sum' / 'revenue' → SUM(column)\n");
         prompt.append("• 'average' / 'avg' / 'mean' → AVG(column)\n");
-        prompt.append("• 'above average' → subquery with AVG\n");
-        prompt.append("• 'never ordered' / 'not in' → NOT IN subquery\n");
-        prompt.append("• 'who reports to X' → self-join or WHERE reportsTo = (find employee)\n\n");
+        prompt.append("• 'above average' → WHERE column > (SELECT AVG(column) ...)\n");
+        prompt.append("• 'never ordered' / 'not in' / 'haven't' → NOT IN (subquery) or LEFT JOIN WHERE NULL\n");
+        prompt.append("• 'who reports to X' → self-join or WHERE reportsTo = (subquery)\n");
+        prompt.append("• 'for each X' / 'per X' / 'by X' → GROUP BY with aggregations\n");
+        prompt.append("• 'total quantity ordered' → SUM(quantityOrdered)\n");
+        prompt.append("• 'total revenue' / 'total value' → SUM(quantity * price)\n");
+        prompt.append("• 'most recent' / 'last order' → MAX(date_column)\n");
+        prompt.append("• 'lifetime value' → SUM across all related records\n");
+        prompt.append("• 'in the last N months/days' → WHERE date > DATE_SUB(NOW(), INTERVAL N MONTH/DAY)\n\n");
+
+        prompt.append("=== ADVANCED QUERY PATTERNS ===\n");
+        prompt.append("You are EXPERT at complex SQL queries:\n");
+        prompt.append("• JOINS: Use INNER JOIN, LEFT JOIN, RIGHT JOIN when combining tables\n");
+        prompt.append("• GROUP BY: When user says 'for each', 'per', 'by' → use GROUP BY\n");
+        prompt.append("• AGGREGATIONS: COUNT(), SUM(), AVG(), MAX(), MIN(), GROUP_CONCAT()\n");
+        prompt.append("• SUBQUERIES: Use for 'above average', 'never ordered', complex filtering\n");
+        prompt.append("• CALCULATIONS: Can multiply columns (quantity * price for revenue)\n");
+        prompt.append("• ALIASES: Always use meaningful aliases (AS total_revenue, AS order_count)\n");
+        prompt.append("• HAVING: Filter aggregated results with HAVING (not WHERE)\n\n");
+
+        prompt.append("COMPLEX QUERY EXAMPLES:\n");
+        prompt.append("1. \"For each product, total quantity and revenue\"\n");
+        prompt.append("   → SELECT p.productName, SUM(od.quantityOrdered) as total_qty,\n");
+        prompt.append("      SUM(od.quantityOrdered * od.priceEach) as revenue\n");
+        prompt.append("      FROM products p JOIN orderdetails od ON p.productCode = od.productCode\n");
+        prompt.append("      GROUP BY p.productCode, p.productName\n\n");
+
+        prompt.append("2. \"Customers with total orders and lifetime value\"\n");
+        prompt.append("   → SELECT c.customerName, COUNT(o.orderNumber) as order_count,\n");
+        prompt.append("      MAX(o.orderDate) as last_order, SUM(p.amount) as lifetime_value\n");
+        prompt.append("      FROM customers c LEFT JOIN orders o ON c.customerNumber = o.customerNumber\n");
+        prompt.append("      LEFT JOIN payments p ON c.customerNumber = p.customerNumber\n");
+        prompt.append("      GROUP BY c.customerNumber, c.customerName\n\n");
+
+        prompt.append("3. \"Products never ordered\"\n");
+        prompt.append("   → SELECT productName FROM products\n");
+        prompt.append("      WHERE productCode NOT IN (SELECT DISTINCT productCode FROM orderdetails)\n\n");
 
         prompt.append("=== FUZZY TABLE/COLUMN MATCHING ===\n");
         prompt.append("User says fuzzy name → Find closest match in schema:\n");
@@ -343,13 +426,16 @@ public class AiService {
             prompt.append("   - Show user-friendly columns: name, email, status, title, description, etc.\n");
             prompt.append("   - Use meaningful column headers (capitalize first letter)\n");
             prompt.append("5. Handle large results:\n");
-            prompt.append("   - Show ALL rows if 20 or fewer\n");
-            prompt.append("   - If more than 20, show first 15 and say 'Showing 15 of X results. Ask to see more if needed.'\n");
+            prompt.append("   - MAXIMUM 50 rows displayed (system limit)\n");
+            prompt.append("   - If result has more than 50 rows, show first 50 and say:\n");
+            prompt.append("     'Showing 50 of X results (maximum display limit). To see specific data, try refining your search.'\n");
+            prompt.append("   - If 50 or fewer rows, show all\n");
             prompt.append("6. END with helpful summary:\n");
             prompt.append("   - Brief insight about the data (1-2 sentences)\n");
             prompt.append("   - Total count if it's a count query\n");
             prompt.append("   - Suggest related questions they might want to ask\n");
-            prompt.append("7. Be CONVERSATIONAL and FRIENDLY (but professional)\n\n");
+            prompt.append("7. Be CONVERSATIONAL, FRIENDLY, and PROFESSIONAL\n");
+            prompt.append("8. ALWAYS respond in ENGLISH ONLY\n\n");
 
             prompt.append("EXCELLENT EXAMPLE:\n");
             prompt.append("Here's what I found - 3 active users in your database:\n\n");
