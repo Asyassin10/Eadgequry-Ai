@@ -72,6 +72,26 @@ public class ChatbotService {
             if (!queryResult.isSuccess()) {
                 String errorMsg = queryResult.getError();
 
+                // Check if it's a table/column not found error
+                if (isTableOrColumnNotFoundError(errorMsg)) {
+                    log.warn("Table or column not found: {}", errorMsg);
+                    String friendlyError = buildTableNotFoundResponse(errorMsg, question, sqlQuery, schema);
+
+                    // Save conversation with error
+                    String sessionId = getOrCreateSession(userId, databaseConfigId);
+                    saveConversation(userId, databaseConfigId, sessionId, question, sqlQuery, null, friendlyError, errorMsg);
+
+                    // Return error response
+                    return ChatResponse.builder()
+                            .success(false)
+                            .question(question)
+                            .sqlQuery(sqlQuery)
+                            .sqlResult(null)
+                            .answer(friendlyError)
+                            .error(friendlyError)
+                            .build();
+                }
+
                 // Check if it's a forbidden keyword error
                 if (isForbiddenKeywordError(errorMsg)) {
                     log.warn("Forbidden SQL operation attempted: {}", sqlQuery);
@@ -112,6 +132,27 @@ public class ChatbotService {
         } catch (Exception e) {
             log.error("Error processing question", e);
 
+            // Handle timeout errors
+            if (isTimeoutError(e)) {
+                String timeoutMessage = "⏱️ **The AI took too long to process your question.**\n\n" +
+                        "This usually happens with very complex questions or when the AI service is slow.\n\n" +
+                        "**What you can do:**\n" +
+                        "• Try asking a simpler question\n" +
+                        "• Break your question into smaller parts\n" +
+                        "• Try again in a moment\n" +
+                        "• If this keeps happening, please contact support\n\n" +
+                        "**Your question:** \"" + request.getQuestion() + "\"";
+
+                return ChatResponse.builder()
+                        .success(false)
+                        .question(request.getQuestion())
+                        .sqlQuery(sqlQuery)
+                        .sqlResult(null)
+                        .answer(timeoutMessage)
+                        .error("Request timeout")
+                        .build();
+            }
+
             // If we have a SQL query and it's a forbidden keyword error, handle it
             // gracefully
             if (sqlQuery != null && isForbiddenKeywordError(e.getMessage())) {
@@ -131,6 +172,44 @@ public class ChatbotService {
     }
 
     /**
+     * Check if exception is a timeout error
+     */
+    private boolean isTimeoutError(Exception e) {
+        if (e == null) {
+            return false;
+        }
+
+        String message = e.getMessage();
+        if (message == null) {
+            message = e.getClass().getName();
+        }
+
+        String lowerMessage = message.toLowerCase();
+        return lowerMessage.contains("timeout") ||
+                lowerMessage.contains("timeoutexception") ||
+                e.getClass().getSimpleName().toLowerCase().contains("timeout") ||
+                e.getCause() != null && isTimeoutError((Exception) e.getCause());
+    }
+
+    /**
+     * Check if error message indicates table or column doesn't exist
+     */
+    private boolean isTableOrColumnNotFoundError(String errorMessage) {
+        if (errorMessage == null) {
+            return false;
+        }
+
+        String lowerError = errorMessage.toLowerCase();
+        return lowerError.contains("table") && lowerError.contains("doesn't exist") ||
+                lowerError.contains("table") && lowerError.contains("not found") ||
+                lowerError.contains("unknown table") ||
+                lowerError.contains("unknown column") ||
+                lowerError.contains("column") && lowerError.contains("doesn't exist") ||
+                lowerError.contains("no such table") ||
+                lowerError.contains("no such column");
+    }
+
+    /**
      * Check if error message indicates a forbidden SQL keyword was used
      */
     private boolean isForbiddenKeywordError(String errorMessage) {
@@ -147,6 +226,81 @@ public class ChatbotService {
                 lowerError.contains("drop") && lowerError.contains("not allowed") ||
                 lowerError.contains("alter") && lowerError.contains("not allowed") ||
                 lowerError.contains("create") && lowerError.contains("not allowed");
+    }
+
+    /**
+     * Build a friendly response for table/column not found errors
+     */
+    private String buildTableNotFoundResponse(String errorMessage, String question, String sqlQuery, DatabaseSchemaDTO schema) {
+        StringBuilder response = new StringBuilder();
+
+        // Extract table or column name from error
+        String missingItem = extractMissingTableOrColumn(errorMessage);
+
+        response.append("❌ **Sorry, I couldn't find that table or column in your database.**\n\n");
+
+        if (missingItem != null) {
+            response.append("**What I was looking for:** `").append(missingItem).append("`\n\n");
+        }
+
+        response.append("**Your question:** \"").append(question).append("\"\n\n");
+
+        response.append("**Generated SQL:**\n```sql\n").append(sqlQuery).append("\n```\n\n");
+
+        response.append("**Available tables in your database:**\n");
+        if (schema != null && schema.getTables() != null && !schema.getTables().isEmpty()) {
+            for (DatabaseSchemaDTO.TableInfo table : schema.getTables()) {
+                // Skip system tables
+                if (!table.getName().toLowerCase().startsWith("spring_") &&
+                    !table.getName().toLowerCase().equals("flyway_schema_history")) {
+                    response.append("• `").append(table.getName()).append("`\n");
+                }
+            }
+        } else {
+            response.append("• (No tables available)\n");
+        }
+
+        response.append("\n**Suggestions:**\n");
+        response.append("• Check the spelling of table/column names\n");
+        response.append("• Table names are case-sensitive in some databases\n");
+        response.append("• Try asking about one of the available tables listed above\n");
+        response.append("• Example: \"Show me all data from [table_name]\"\n");
+
+        return response.toString();
+    }
+
+    /**
+     * Extract table or column name from error message
+     */
+    private String extractMissingTableOrColumn(String errorMessage) {
+        if (errorMessage == null) {
+            return null;
+        }
+
+        // Try to extract table name: "Table 'database.tablename' doesn't exist"
+        if (errorMessage.contains("Table '") && errorMessage.contains("' doesn't exist")) {
+            int start = errorMessage.indexOf("Table '") + 7;
+            int end = errorMessage.indexOf("' doesn't exist");
+            if (start > 0 && end > start) {
+                String fullName = errorMessage.substring(start, end);
+                // Extract just the table name (after the dot if database.table format)
+                if (fullName.contains(".")) {
+                    return fullName.substring(fullName.lastIndexOf(".") + 1);
+                }
+                return fullName;
+            }
+        }
+
+        // Try to extract column name: "Unknown column 'columnname'"
+        if (errorMessage.contains("Unknown column '")) {
+            int start = errorMessage.indexOf("Unknown column '") + 16;
+            int end = errorMessage.indexOf("'", start);
+            if (start > 0 && end > start) {
+                return errorMessage.substring(start, end);
+            }
+        }
+
+        return null;
     }
 
     /**
@@ -239,6 +393,19 @@ public class ChatbotService {
                 if (!queryResult.isSuccess()) {
                     String errorMsg = queryResult.getError();
 
+                    // Check if it's a table/column not found error
+                    if (isTableOrColumnNotFoundError(errorMsg)) {
+                        log.warn("Table or column not found in streaming: {}", errorMsg);
+                        String friendlyError = buildTableNotFoundResponse(errorMsg, question, finalSqlQuery, schema);
+
+                        // Save conversation with error
+                        String sessionId = getOrCreateSession(userId, databaseConfigId);
+                        saveConversation(userId, databaseConfigId, sessionId, question, finalSqlQuery, null, friendlyError, errorMsg);
+
+                        // Return error as flux
+                        return Flux.just(friendlyError);
+                    }
+
                     // Check if it's a forbidden keyword error
                     if (isForbiddenKeywordError(errorMsg)) {
                         log.warn("Forbidden SQL operation attempted in streaming: {}", finalSqlQuery);
@@ -271,6 +438,19 @@ public class ChatbotService {
 
             } catch (Exception e) {
                 log.error("Error processing streaming question", e);
+
+                // Handle timeout errors
+                if (isTimeoutError(e)) {
+                    String timeoutMessage = "⏱️ **The AI took too long to process your question.**\n\n" +
+                            "This usually happens with very complex questions or when the AI service is slow.\n\n" +
+                            "**What you can do:**\n" +
+                            "• Try asking a simpler question\n" +
+                            "• Break your question into smaller parts\n" +
+                            "• Try again in a moment\n" +
+                            "• If this keeps happening, please contact support\n\n" +
+                            "**Your question:** \"" + request.getQuestion() + "\"";
+                    return Flux.just(timeoutMessage);
+                }
 
                 // If we have a SQL query and it's a forbidden keyword error, handle it
                 // gracefully
