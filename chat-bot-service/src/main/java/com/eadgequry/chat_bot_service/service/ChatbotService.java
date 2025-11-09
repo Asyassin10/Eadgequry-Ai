@@ -34,6 +34,8 @@ public class ChatbotService {
     private final DataSourceClient dataSourceClient;
     private final ConversationRepository conversationRepository;
     private final ConversationSessionRepository conversationSessionRepository;
+    private final UserAiSettingsService userAiSettingsService;
+    private final DemoQueryUsageService demoQueryUsageService;
 
     @Value("${chatbot.max-retries:2}")
     private int maxRetries;
@@ -55,6 +57,22 @@ public class ChatbotService {
             if (nonDbResponse != null) {
                 log.info("Handling non-database question: {}", question);
                 return ChatResponse.success(question, null, null, nonDbResponse);
+            }
+
+            // Check if user is on DEMO mode and has exceeded daily query limit
+            if (userAiSettingsService.isUsingDemoMode(userId)) {
+                if (demoQueryUsageService.hasExceededDailyLimit(userId)) {
+                    String limitMessage = buildDailyLimitExceededMessage(userId);
+                    log.warn("User {} exceeded daily DEMO query limit", userId);
+                    return ChatResponse.builder()
+                            .success(false)
+                            .question(question)
+                            .sqlQuery(null)
+                            .sqlResult(null)
+                            .answer(limitMessage)
+                            .error("Daily query limit exceeded")
+                            .build();
+                }
             }
 
             // Get database schema
@@ -122,6 +140,11 @@ public class ChatbotService {
 
             // Generate answer (AI will mention if results were limited)
             String answer = aiService.generateAnswer(userId, question, sqlQuery, limitedResult);
+
+            // Increment query count for DEMO users
+            if (userAiSettingsService.isUsingDemoMode(userId)) {
+                demoQueryUsageService.incrementQueryCount(userId);
+            }
 
             // Save conversation
             String sessionId = getOrCreateSession(userId, databaseConfigId);
@@ -376,6 +399,15 @@ public class ChatbotService {
                 Long userId = request.getUserId();
                 Long databaseConfigId = request.getDatabaseConfigId();
 
+                // Check if user is on DEMO mode and has exceeded daily query limit
+                if (userAiSettingsService.isUsingDemoMode(userId)) {
+                    if (demoQueryUsageService.hasExceededDailyLimit(userId)) {
+                        String limitMessage = buildDailyLimitExceededMessage(userId);
+                        log.warn("User {} exceeded daily DEMO query limit (streaming)", userId);
+                        return Flux.just(limitMessage);
+                    }
+                }
+
                 // Get database schema
                 DatabaseSchemaDTO schema = dataSourceClient.getSchemaByConfigId(databaseConfigId, userId);
 
@@ -431,6 +463,11 @@ public class ChatbotService {
 
                 return aiService.generateStreamingAnswer(userId, question, cleanedQuery, limitedResult)
                         .doOnComplete(() -> {
+                            // Increment query count for DEMO users
+                            if (userAiSettingsService.isUsingDemoMode(userId)) {
+                                demoQueryUsageService.incrementQueryCount(userId);
+                            }
+
                             // Save conversation after streaming completes
                             saveConversation(userId, databaseConfigId, sessionId, question, cleanedQuery,
                                     limitedResult, "[Streaming response]", null);
@@ -572,5 +609,37 @@ public class ChatbotService {
 
         log.info("Limiting results from {} rows to {} rows for display", results.size(), maxRows);
         return results.subList(0, maxRows);
+    }
+
+    /**
+     * Build friendly message when user exceeds daily query limit in DEMO mode
+     */
+    private String buildDailyLimitExceededMessage(Long userId) {
+        int currentCount = demoQueryUsageService.getCurrentQueryCount(userId);
+        int limit = demoQueryUsageService.getDailyLimit();
+
+        StringBuilder message = new StringBuilder();
+        message.append("🚫 **Daily Query Limit Reached**\n\n");
+        message.append("You're currently using the **DEMO mode** with our platform's free AI service.\n\n");
+        message.append("**Your usage today:** ").append(currentCount).append(" / ").append(limit).append(" queries\n\n");
+        message.append("**Why this limit exists:**\n");
+        message.append("• DEMO mode uses our shared AI resources\n");
+        message.append("• Helps us provide free service to all users\n");
+        message.append("• Prevents abuse and ensures fair access\n\n");
+        message.append("**Want unlimited queries? Upgrade to your own AI:**\n");
+        message.append("1. Go to **Settings → AI Settings**\n");
+        message.append("2. Choose one of these options:\n");
+        message.append("   • **Claude AI** - Use your Anthropic API key (powerful and intelligent)\n");
+        message.append("   • **OpenAI** - Use your OpenAI API key (GPT-4 or GPT-3.5)\n");
+        message.append("3. Add your API key and enjoy unlimited queries!\n\n");
+        message.append("**API key benefits:**\n");
+        message.append("• ✅ No daily limits\n");
+        message.append("• ✅ Faster response times\n");
+        message.append("• ✅ Your choice of AI model\n");
+        message.append("• ✅ You only pay for what you use\n\n");
+        message.append("**Your limit resets:** Tomorrow at midnight\n");
+        message.append("**Queries remaining today:** 0\n");
+
+        return message.toString();
     }
 }
