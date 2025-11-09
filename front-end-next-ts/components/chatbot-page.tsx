@@ -61,12 +61,64 @@ export function ChatbotPage() {
   useEffect(() => {
     if (selectedDatabaseId && user?.userId) {
       loadSchema(selectedDatabaseId, user.userId)
+      loadConversationHistory(user.userId, selectedDatabaseId)
     } else {
       setSchema(null)
     }
   }, [selectedDatabaseId, user])
 
   const [parsedSchema, setParsedSchema] = useState<any>(null)
+
+  const loadConversationHistory = async (userId: number, databaseId: number) => {
+    try {
+      const response = await chatbotApi.getUserHistory(userId)
+
+      if (response.error) {
+        console.error("Failed to load conversation history:", response.error)
+        return
+      }
+
+      if (response.data) {
+        // Filter conversations for this database and convert to Message format
+        const filteredHistory = response.data
+          .filter(conv => conv.databaseConfigId === databaseId)
+          .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
+
+        const conversationMessages: Message[] = []
+
+        filteredHistory.forEach((conv) => {
+          // Add user question
+          conversationMessages.push({
+            id: conv.id * 2 - 1, // Unique ID for question
+            question: conv.question,
+            answer: "",
+            sender: "user",
+            type: "question"
+          })
+
+          // Add AI response
+          conversationMessages.push({
+            id: conv.id * 2, // Unique ID for answer
+            question: conv.question,
+            answer: conv.answer,
+            sqlQuery: conv.sqlQuery,
+            sqlResult: conv.sqlResult,
+            sender: "ai",
+            type: conv.errorMessage ? "error" : "answer"
+          })
+        })
+
+        setMessages(conversationMessages)
+      }
+    } catch (error) {
+      console.error("Error loading conversation history:", error)
+    }
+  }
+
+  const clearConversation = () => {
+    setMessages([])
+    toast.success("Conversation cleared")
+  }
 
   const loadSchema = async (configId: number, userId: number) => {
     try {
@@ -514,12 +566,36 @@ export function ChatbotPage() {
       <div className="flex-1 grid grid-cols-1 lg:grid-cols-3 gap-4 min-h-0">
         {/* Chat Area - Takes 2/3 of width on large screens */}
         <Card className="lg:col-span-2 bg-card border-border flex flex-col">
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <MessageSquare className="w-4 h-4 text-primary" />
+                <CardTitle className="text-sm">Conversation</CardTitle>
+                {messages.length > 0 && (
+                  <Badge variant="outline" className="text-xs">
+                    {Math.floor(messages.length / 2)} messages
+                  </Badge>
+                )}
+              </div>
+              {messages.length > 0 && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={clearConversation}
+                  className="h-7 text-xs"
+                >
+                  <RefreshCw className="w-3 h-3 mr-1" />
+                  Clear
+                </Button>
+              )}
+            </div>
+          </CardHeader>
           <CardContent className="flex-1 flex flex-col gap-4 p-4 min-h-0">
             {/* Messages with fixed height and scroll */}
             <div
               ref={scrollRef}
               className="flex-1 space-y-4 overflow-y-auto bg-muted/20 rounded-lg p-4 min-h-0"
-              style={{ maxHeight: 'calc(100vh - 300px)' }}
+              style={{ maxHeight: 'calc(100vh - 350px)' }}
             >
               {messages.length === 0 && (
                 <div className="flex flex-col items-center justify-center h-full text-center py-8">
@@ -655,12 +731,12 @@ export function ChatbotPage() {
                 placeholder="Ask a question about your data..."
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                onKeyPress={(e) => e.key === "Enter" && handleSend()}
+                onKeyPress={(e) => e.key === "Enter" && handleSendStreaming()}
                 className="flex-1 bg-input border-border"
                 disabled={isLoading || !selectedDatabaseId}
               />
               <Button
-                onClick={handleSend}
+                onClick={handleSendStreaming}
                 disabled={isLoading || !input.trim() || !selectedDatabaseId}
                 className="bg-primary hover:bg-secondary text-primary-foreground"
               >
