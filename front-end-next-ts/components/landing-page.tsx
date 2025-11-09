@@ -49,14 +49,11 @@ export function LandingPage() {
               <a href="#features" className="text-sm font-medium hover:text-primary transition-colors">
                 Features
               </a>
-              <a href="#security" className="text-sm font-medium hover:text-primary transition-colors">
-                Security
-              </a>
+              <Link href="/architecture" className="text-sm font-medium hover:text-primary transition-colors">
+                Architecture
+              </Link>
               <a href="#pricing" className="text-sm font-medium hover:text-primary transition-colors">
                 Pricing
-              </a>
-              <a href="#faq" className="text-sm font-medium hover:text-primary transition-colors">
-                FAQ
               </a>
               <Link href="/docs" className="text-sm font-medium hover:text-primary transition-colors">
                 Docs
