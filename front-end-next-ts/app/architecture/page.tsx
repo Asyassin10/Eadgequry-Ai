@@ -1,621 +1,519 @@
 "use client"
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
-import {
-  Database,
-  Server,
-  Boxes,
-  Shield,
-  MessageSquare,
-  Users,
-  Bell,
-  Search,
-  Network,
-  GitBranch,
-  Container,
-  Activity,
-  Code,
-  ArrowRight,
-  Globe,
-  Lock,
-  Zap,
-  ArrowLeft
-} from "lucide-react"
+import { Card } from "@/components/ui/card"
+import { ArrowLeft } from "lucide-react"
 import Link from "next/link"
 
 export default function ArchitecturePage() {
+  const [activeFlow, setActiveFlow] = useState<string | null>(null)
+  const [hoveredService, setHoveredService] = useState<string | null>(null)
+
+  useEffect(() => {
+    // Auto-cycle through flows
+    const flows = ['auth', 'chatbot', 'notification']
+    let currentIndex = 0
+
+    const interval = setInterval(() => {
+      setActiveFlow(flows[currentIndex])
+      currentIndex = (currentIndex + 1) % flows.length
+    }, 4000)
+
+    return () => clearInterval(interval)
+  }, [])
+
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background to-muted">
+    <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950">
       {/* Navigation */}
-      <nav className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50">
+      <nav className="border-b border-slate-800 bg-slate-950/95 backdrop-blur sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <img src="/logo.png" alt="EadgeQuery Logo" className="w-8 h-8" />
-              <span className="text-2xl font-bold bg-gradient-to-r from-primary to-blue-600 bg-clip-text text-transparent">
+              <span className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">
                 EadgeQuery
               </span>
-              <span className="text-xs text-muted-foreground ml-2">v0.1</span>
+              <span className="text-xs text-slate-500 ml-2">v0.1</span>
             </div>
-            <div className="flex items-center gap-4">
-              <Link href="/">
-                <Button variant="ghost">
-                  <ArrowLeft className="w-4 h-4 mr-2" />
-                  Back to Home
-                </Button>
-              </Link>
-            </div>
+            <Link href="/">
+              <Button variant="ghost" className="text-slate-300 hover:text-white">
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Back to Home
+              </Button>
+            </Link>
           </div>
         </div>
       </nav>
 
-      {/* Hero Section */}
-      <section className="container mx-auto px-4 py-12">
-        <div className="text-center mb-12">
-          <div className="inline-block mb-4">
-            <span className="bg-primary/10 text-primary px-4 py-2 rounded-full text-sm font-semibold">
-              🏗️ System Architecture
-            </span>
-          </div>
-          <h1 className="text-4xl md:text-6xl font-bold mb-4">
-            <span className="bg-gradient-to-r from-primary to-blue-600 bg-clip-text text-transparent">
+      <div className="container mx-auto px-4 py-8">
+        {/* Header */}
+        <div className="text-center mb-8">
+          <h1 className="text-4xl md:text-5xl font-bold mb-4">
+            <span className="bg-gradient-to-r from-blue-400 via-cyan-400 to-purple-400 bg-clip-text text-transparent">
               Microservices Architecture
             </span>
           </h1>
-          <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-            Scalable, resilient, and cloud-native architecture powering EadgeQuery AI platform
+          <p className="text-slate-400 text-lg">
+            Scalable, Event-Driven, Cloud-Native System
           </p>
         </div>
 
-        {/* Architecture Layers */}
-        <div className="space-y-8 mb-12">
+        {/* Architecture Diagram */}
+        <Card className="bg-slate-900/50 border-slate-800 p-8 relative overflow-hidden">
+          {/* Background Grid */}
+          <div className="absolute inset-0 opacity-10">
+            <div className="absolute inset-0" style={{
+              backgroundImage: 'linear-gradient(rgba(59, 130, 246, 0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(59, 130, 246, 0.5) 1px, transparent 1px)',
+              backgroundSize: '50px 50px'
+            }}></div>
+          </div>
 
-          {/* Layer 1: Client Layer */}
           <div className="relative">
-            <div className="absolute left-0 top-0 -translate-y-6">
-              <span className="text-xs font-semibold text-primary bg-primary/10 px-3 py-1 rounded-full">
-                CLIENT LAYER
-              </span>
+            <svg viewBox="0 0 1200 1400" className="w-full h-auto">
+              <defs>
+                {/* Gradients */}
+                <linearGradient id="blueGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" style={{ stopColor: '#3b82f6', stopOpacity: 1 }} />
+                  <stop offset="100%" style={{ stopColor: '#06b6d4', stopOpacity: 1 }} />
+                </linearGradient>
+                <linearGradient id="purpleGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" style={{ stopColor: '#8b5cf6', stopOpacity: 1 }} />
+                  <stop offset="100%" style={{ stopColor: '#ec4899', stopOpacity: 1 }} />
+                </linearGradient>
+                <linearGradient id="greenGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" style={{ stopColor: '#10b981', stopOpacity: 1 }} />
+                  <stop offset="100%" style={{ stopColor: '#06b6d4', stopOpacity: 1 }} />
+                </linearGradient>
+
+                {/* Glow Filters */}
+                <filter id="glow">
+                  <feGaussianBlur stdDeviation="4" result="coloredBlur"/>
+                  <feMerge>
+                    <feMergeNode in="coloredBlur"/>
+                    <feMergeNode in="SourceGraphic"/>
+                  </feMerge>
+                </filter>
+
+                {/* Arrow Marker */}
+                <marker id="arrowhead" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+                  <polygon points="0 0, 10 3, 0 6" fill="#3b82f6" />
+                </marker>
+              </defs>
+
+              {/* Layer Labels */}
+              <text x="20" y="40" fill="#94a3b8" fontSize="14" fontWeight="bold">CLIENT LAYER</text>
+              <text x="20" y="180" fill="#94a3b8" fontSize="14" fontWeight="bold">GATEWAY LAYER</text>
+              <text x="20" y="320" fill="#94a3b8" fontSize="14" fontWeight="bold">DISCOVERY LAYER</text>
+              <text x="20" y="460" fill="#94a3b8" fontSize="14" fontWeight="bold">MICROSERVICES LAYER</text>
+              <text x="20" y="900" fill="#94a3b8" fontSize="14" fontWeight="bold">DATA LAYER</text>
+              <text x="20" y="1100" fill="#94a3b8" fontSize="14" fontWeight="bold">INFRASTRUCTURE LAYER</text>
+
+              {/* CLIENT LAYER - Frontend */}
+              <g className="cursor-pointer" onMouseEnter={() => setHoveredService('frontend')}>
+                <rect x="450" y="60" width="300" height="80" rx="10"
+                  fill="url(#blueGradient)" opacity="0.2" stroke="#3b82f6" strokeWidth="2">
+                  <animate attributeName="opacity" values="0.2;0.4;0.2" dur="3s" repeatCount="indefinite" />
+                </rect>
+                <text x="600" y="95" fill="#60a5fa" fontSize="18" fontWeight="bold" textAnchor="middle">
+                  Next.js Frontend
+                </text>
+                <text x="600" y="115" fill="#94a3b8" fontSize="12" textAnchor="middle">
+                  React 18 • TypeScript
+                </text>
+                <text x="600" y="130" fill="#3b82f6" fontSize="11" fontWeight="bold" textAnchor="middle">
+                  Port: 3000
+                </text>
+              </g>
+
+              {/* Connection: Frontend -> API Gateway */}
+              <line x1="600" y1="140" x2="600" y2="190" stroke="#3b82f6" strokeWidth="2" markerEnd="url(#arrowhead)">
+                <animate attributeName="stroke-dasharray" values="0,1000;1000,0" dur="2s" repeatCount="indefinite" />
+                <animate attributeName="opacity" values="0.3;1;0.3" dur="2s" repeatCount="indefinite" />
+              </line>
+
+              {/* GATEWAY LAYER - API Gateway */}
+              <g className="cursor-pointer" onMouseEnter={() => setHoveredService('gateway')}>
+                <rect x="450" y="200" width="300" height="80" rx="10"
+                  fill="url(#blueGradient)" opacity="0.2" stroke="#3b82f6" strokeWidth="2">
+                  <animate attributeName="opacity" values="0.2;0.5;0.2" dur="3s" repeatCount="indefinite" />
+                </rect>
+                <text x="600" y="235" fill="#60a5fa" fontSize="18" fontWeight="bold" textAnchor="middle">
+                  API Gateway
+                </text>
+                <text x="600" y="255" fill="#94a3b8" fontSize="12" textAnchor="middle">
+                  Spring Cloud Gateway
+                </text>
+                <text x="600" y="270" fill="#3b82f6" fontSize="11" fontWeight="bold" textAnchor="middle">
+                  Port: 8765
+                </text>
+              </g>
+
+              {/* Connection: API Gateway -> Eureka */}
+              <line x1="600" y1="280" x2="600" y2="330" stroke="#8b5cf6" strokeWidth="2" markerEnd="url(#arrowhead)">
+                <animate attributeName="stroke-dasharray" values="0,1000;1000,0" dur="2s" repeatCount="indefinite" />
+              </line>
+
+              {/* DISCOVERY LAYER - Eureka */}
+              <g className="cursor-pointer" onMouseEnter={() => setHoveredService('eureka')}>
+                <rect x="450" y="340" width="300" height="80" rx="10"
+                  fill="url(#purpleGradient)" opacity="0.2" stroke="#8b5cf6" strokeWidth="2">
+                  <animate attributeName="opacity" values="0.2;0.5;0.2" dur="3s" repeatCount="indefinite" />
+                </rect>
+                <text x="600" y="375" fill="#a78bfa" fontSize="18" fontWeight="bold" textAnchor="middle">
+                  Eureka Discovery
+                </text>
+                <text x="600" y="395" fill="#94a3b8" fontSize="12" textAnchor="middle">
+                  Service Registry
+                </text>
+                <text x="600" y="410" fill="#8b5cf6" fontSize="11" fontWeight="bold" textAnchor="middle">
+                  Port: 8761
+                </text>
+              </g>
+
+              {/* MICROSERVICES LAYER */}
+
+              {/* Auth Service */}
+              <g className="cursor-pointer" onMouseEnter={() => setHoveredService('auth')}>
+                <rect x="50" y="480" width="180" height="100" rx="8"
+                  fill="url(#greenGradient)" opacity={activeFlow === 'auth' ? 0.5 : 0.2}
+                  stroke="#10b981" strokeWidth="2" filter="url(#glow)">
+                  {activeFlow === 'auth' && (
+                    <animate attributeName="opacity" values="0.3;0.7;0.3" dur="1s" repeatCount="indefinite" />
+                  )}
+                </rect>
+                <text x="140" y="510" fill="#34d399" fontSize="16" fontWeight="bold" textAnchor="middle">
+                  🔐 Auth
+                </text>
+                <text x="140" y="530" fill="#94a3b8" fontSize="10" textAnchor="middle">
+                  JWT • OAuth2
+                </text>
+                <text x="140" y="545" fill="#94a3b8" fontSize="10" textAnchor="middle">
+                  User Management
+                </text>
+                <text x="140" y="565" fill="#10b981" fontSize="10" fontWeight="bold" textAnchor="middle">
+                  Port: 8081
+                </text>
+              </g>
+
+              {/* Chatbot Service */}
+              <g className="cursor-pointer" onMouseEnter={() => setHoveredService('chatbot')}>
+                <rect x="260" y="480" width="180" height="100" rx="8"
+                  fill="url(#blueGradient)" opacity={activeFlow === 'chatbot' ? 0.5 : 0.2}
+                  stroke="#3b82f6" strokeWidth="2" filter="url(#glow)">
+                  {activeFlow === 'chatbot' && (
+                    <animate attributeName="opacity" values="0.3;0.7;0.3" dur="1s" repeatCount="indefinite" />
+                  )}
+                </rect>
+                <text x="350" y="510" fill="#60a5fa" fontSize="16" fontWeight="bold" textAnchor="middle">
+                  💬 Chatbot
+                </text>
+                <text x="350" y="530" fill="#94a3b8" fontSize="10" textAnchor="middle">
+                  NL to SQL • AI
+                </text>
+                <text x="350" y="545" fill="#94a3b8" fontSize="10" textAnchor="middle">
+                  Claude • GPT-4
+                </text>
+                <text x="350" y="565" fill="#3b82f6" fontSize="10" fontWeight="bold" textAnchor="middle">
+                  Port: 8086
+                </text>
+              </g>
+
+              {/* DataSource Service */}
+              <g className="cursor-pointer" onMouseEnter={() => setHoveredService('datasource')}>
+                <rect x="470" y="480" width="180" height="100" rx="8"
+                  fill="url(#purpleGradient)" opacity="0.2" stroke="#f97316" strokeWidth="2">
+                  <animate attributeName="opacity" values="0.2;0.4;0.2" dur="4s" repeatCount="indefinite" />
+                </rect>
+                <text x="560" y="510" fill="#fb923c" fontSize="16" fontWeight="bold" textAnchor="middle">
+                  🗄️ DataSource
+                </text>
+                <text x="560" y="530" fill="#94a3b8" fontSize="10" textAnchor="middle">
+                  Multi-DB Support
+                </text>
+                <text x="560" y="545" fill="#94a3b8" fontSize="10" textAnchor="middle">
+                  Schema Analysis
+                </text>
+                <text x="560" y="565" fill="#f97316" fontSize="10" fontWeight="bold" textAnchor="middle">
+                  Port: 8087
+                </text>
+              </g>
+
+              {/* User Profile Service */}
+              <g className="cursor-pointer" onMouseEnter={() => setHoveredService('profile')}>
+                <rect x="50" y="610" width="180" height="100" rx="8"
+                  fill="url(#purpleGradient)" opacity="0.2" stroke="#8b5cf6" strokeWidth="2">
+                  <animate attributeName="opacity" values="0.2;0.4;0.2" dur="4s" repeatCount="indefinite" />
+                </rect>
+                <text x="140" y="640" fill="#a78bfa" fontSize="16" fontWeight="bold" textAnchor="middle">
+                  👤 Profile
+                </text>
+                <text x="140" y="660" fill="#94a3b8" fontSize="10" textAnchor="middle">
+                  User Settings
+                </text>
+                <text x="140" y="675" fill="#94a3b8" fontSize="10" textAnchor="middle">
+                  API Keys
+                </text>
+                <text x="140" y="695" fill="#8b5cf6" fontSize="10" fontWeight="bold" textAnchor="middle">
+                  Port: 8088
+                </text>
+              </g>
+
+              {/* Notification Service */}
+              <g className="cursor-pointer" onMouseEnter={() => setHoveredService('notification')}>
+                <rect x="260" y="610" width="180" height="100" rx="8"
+                  fill="url(#purpleGradient)" opacity={activeFlow === 'notification' ? 0.5 : 0.2}
+                  stroke="#ec4899" strokeWidth="2" filter="url(#glow)">
+                  {activeFlow === 'notification' && (
+                    <animate attributeName="opacity" values="0.3;0.7;0.3" dur="1s" repeatCount="indefinite" />
+                  )}
+                </rect>
+                <text x="350" y="640" fill="#f472b6" fontSize="16" fontWeight="bold" textAnchor="middle">
+                  🔔 Notification
+                </text>
+                <text x="350" y="660" fill="#94a3b8" fontSize="10" textAnchor="middle">
+                  Email Service
+                </text>
+                <text x="350" y="675" fill="#94a3b8" fontSize="10" textAnchor="middle">
+                  Kafka Consumer
+                </text>
+                <text x="350" y="695" fill="#ec4899" fontSize="10" fontWeight="bold" textAnchor="middle">
+                  Port: 8089
+                </text>
+              </g>
+
+              {/* Connections from Eureka to Services */}
+              <line x1="550" y1="420" x2="140" y2="480" stroke="#8b5cf6" strokeWidth="1" strokeDasharray="5,5" opacity="0.3">
+                <animate attributeName="stroke-dashoffset" from="0" to="10" dur="1s" repeatCount="indefinite" />
+              </line>
+              <line x1="600" y1="420" x2="350" y2="480" stroke="#8b5cf6" strokeWidth="1" strokeDasharray="5,5" opacity="0.3">
+                <animate attributeName="stroke-dashoffset" from="0" to="10" dur="1s" repeatCount="indefinite" />
+              </line>
+              <line x1="620" y1="420" x2="560" y2="480" stroke="#8b5cf6" strokeWidth="1" strokeDasharray="5,5" opacity="0.3">
+                <animate attributeName="stroke-dashoffset" from="0" to="10" dur="1s" repeatCount="indefinite" />
+              </line>
+              <line x1="550" y1="420" x2="140" y2="610" stroke="#8b5cf6" strokeWidth="1" strokeDasharray="5,5" opacity="0.3">
+                <animate attributeName="stroke-dashoffset" from="0" to="10" dur="1s" repeatCount="indefinite" />
+              </line>
+              <line x1="580" y1="420" x2="350" y2="610" stroke="#8b5cf6" strokeWidth="1" strokeDasharray="5,5" opacity="0.3">
+                <animate attributeName="stroke-dashoffset" from="0" to="10" dur="1s" repeatCount="indefinite" />
+              </line>
+
+              {/* Kafka */}
+              <g className="cursor-pointer" onMouseEnter={() => setHoveredService('kafka')}>
+                <rect x="680" y="480" width="160" height="80" rx="8"
+                  fill="#1e293b" stroke="#eab308" strokeWidth="2" opacity="0.8">
+                  <animate attributeName="opacity" values="0.6;1;0.6" dur="3s" repeatCount="indefinite" />
+                </rect>
+                <text x="760" y="510" fill="#fbbf24" fontSize="14" fontWeight="bold" textAnchor="middle">
+                  📨 Kafka
+                </text>
+                <text x="760" y="530" fill="#94a3b8" fontSize="10" textAnchor="middle">
+                  Event Streaming
+                </text>
+                <text x="760" y="545" fill="#eab308" fontSize="10" fontWeight="bold" textAnchor="middle">
+                  Port: 9092
+                </text>
+              </g>
+
+              {/* Kafka connections */}
+              <line x1="440" y1="530" x2="680" y2="520" stroke="#eab308" strokeWidth="2" strokeDasharray="5,5" opacity="0.5">
+                <animate attributeName="stroke-dashoffset" from="0" to="10" dur="1s" repeatCount="indefinite" />
+              </line>
+              <line x1="440" y1="660" x2="680" y2="540" stroke="#eab308" strokeWidth="2" strokeDasharray="5,5" opacity="0.5">
+                <animate attributeName="stroke-dashoffset" from="0" to="10" dur="1s" repeatCount="indefinite" />
+              </line>
+
+              {/* DATA LAYER */}
+
+              {/* Databases */}
+              <g>
+                <rect x="150" y="780" width="200" height="60" rx="6" fill="#1e293b" stroke="#eab308" strokeWidth="2" opacity="0.6" />
+                <text x="250" y="805" fill="#fbbf24" fontSize="14" fontWeight="bold" textAnchor="middle">
+                  💾 Auth DB
+                </text>
+                <text x="250" y="825" fill="#94a3b8" fontSize="10" textAnchor="middle">
+                  MySQL 8.0 • Port: 3306
+                </text>
+              </g>
+
+              <g>
+                <rect x="380" y="780" width="200" height="60" rx="6" fill="#1e293b" stroke="#eab308" strokeWidth="2" opacity="0.6" />
+                <text x="480" y="805" fill="#fbbf24" fontSize="14" fontWeight="bold" textAnchor="middle">
+                  💾 Chatbot DB
+                </text>
+                <text x="480" y="825" fill="#94a3b8" fontSize="10" textAnchor="middle">
+                  MySQL 8.0 • Port: 3311
+                </text>
+              </g>
+
+              <g>
+                <rect x="610" y="780" width="200" height="60" rx="6" fill="#1e293b" stroke="#eab308" strokeWidth="2" opacity="0.6" />
+                <text x="710" y="805" fill="#fbbf24" fontSize="14" fontWeight="bold" textAnchor="middle">
+                  💾 DataSource DB
+                </text>
+                <text x="710" y="825" fill="#94a3b8" fontSize="10" textAnchor="middle">
+                  MySQL 8.0 • Port: 3308
+                </text>
+              </g>
+
+              {/* Connections to Databases */}
+              <line x1="140" y1="580" x2="250" y2="780" stroke="#eab308" strokeWidth="2" strokeDasharray="3,3" opacity="0.4" />
+              <line x1="350" y1="580" x2="480" y2="780" stroke="#eab308" strokeWidth="2" strokeDasharray="3,3" opacity="0.4" />
+              <line x1="560" y1="580" x2="710" y2="780" stroke="#eab308" strokeWidth="2" strokeDasharray="3,3" opacity="0.4" />
+
+              {/* INFRASTRUCTURE LAYER */}
+
+              {/* Jenkins */}
+              <g className="cursor-pointer" onMouseEnter={() => setHoveredService('jenkins')}>
+                <rect x="100" y="950" width="200" height="70" rx="6" fill="#1e293b" stroke="#3b82f6" strokeWidth="2" opacity="0.7">
+                  <animate attributeName="opacity" values="0.5;0.9;0.5" dur="4s" repeatCount="indefinite" />
+                </rect>
+                <text x="200" y="980" fill="#60a5fa" fontSize="14" fontWeight="bold" textAnchor="middle">
+                  ⚙️ Jenkins CI/CD
+                </text>
+                <text x="200" y="1000" fill="#94a3b8" fontSize="10" textAnchor="middle">
+                  Build Automation
+                </text>
+                <text x="200" y="1015" fill="#3b82f6" fontSize="10" fontWeight="bold" textAnchor="middle">
+                  Port: 8082
+                </text>
+              </g>
+
+              {/* SonarQube */}
+              <g className="cursor-pointer" onMouseEnter={() => setHoveredService('sonar')}>
+                <rect x="330" y="950" width="200" height="70" rx="6" fill="#1e293b" stroke="#6366f1" strokeWidth="2" opacity="0.7">
+                  <animate attributeName="opacity" values="0.5;0.9;0.5" dur="4s" repeatCount="indefinite" />
+                </rect>
+                <text x="430" y="980" fill="#818cf8" fontSize="14" fontWeight="bold" textAnchor="middle">
+                  📊 SonarQube
+                </text>
+                <text x="430" y="1000" fill="#94a3b8" fontSize="10" textAnchor="middle">
+                  Code Quality
+                </text>
+                <text x="430" y="1015" fill="#6366f1" fontSize="10" fontWeight="bold" textAnchor="middle">
+                  Port: 9000
+                </text>
+              </g>
+
+              {/* Zipkin */}
+              <g className="cursor-pointer" onMouseEnter={() => setHoveredService('zipkin')}>
+                <rect x="560" y="950" width="200" height="70" rx="6" fill="#1e293b" stroke="#8b5cf6" strokeWidth="2" opacity="0.7">
+                  <animate attributeName="opacity" values="0.5;0.9;0.5" dur="4s" repeatCount="indefinite" />
+                </rect>
+                <text x="660" y="980" fill="#a78bfa" fontSize="14" fontWeight="bold" textAnchor="middle">
+                  📈 Zipkin
+                </text>
+                <text x="660" y="1000" fill="#94a3b8" fontSize="10" textAnchor="middle">
+                  Distributed Tracing
+                </text>
+                <text x="660" y="1015" fill="#8b5cf6" fontSize="10" fontWeight="bold" textAnchor="middle">
+                  Port: 9411
+                </text>
+              </g>
+
+              {/* Data Flow Indicator */}
+              <g opacity={activeFlow ? 1 : 0}>
+                <text x="900" y="600" fill="#3b82f6" fontSize="16" fontWeight="bold">
+                  Active Flow:
+                </text>
+                <text x="900" y="630" fill="#60a5fa" fontSize="14">
+                  {activeFlow === 'auth' && '🔐 Authentication'}
+                  {activeFlow === 'chatbot' && '💬 AI Query Processing'}
+                  {activeFlow === 'notification' && '🔔 Event Notification'}
+                </text>
+              </g>
+
+              {/* Legend */}
+              <g>
+                <text x="900" y="100" fill="#94a3b8" fontSize="12" fontWeight="bold">Legend:</text>
+                <line x1="900" y1="120" x2="950" y2="120" stroke="#3b82f6" strokeWidth="2" />
+                <text x="960" y="125" fill="#94a3b8" fontSize="11">HTTP/REST</text>
+
+                <line x1="900" y1="145" x2="950" y2="145" stroke="#8b5cf6" strokeWidth="1" strokeDasharray="5,5" />
+                <text x="960" y="150" fill="#94a3b8" fontSize="11">Service Discovery</text>
+
+                <line x1="900" y1="170" x2="950" y2="170" stroke="#eab308" strokeWidth="2" strokeDasharray="5,5" />
+                <text x="960" y="175" fill="#94a3b8" fontSize="11">Kafka Events</text>
+
+                <line x1="900" y1="195" x2="950" y2="195" stroke="#eab308" strokeWidth="2" strokeDasharray="3,3" />
+                <text x="960" y="200" fill="#94a3b8" fontSize="11">Database</text>
+              </g>
+
+            </svg>
+          </div>
+        </Card>
+
+        {/* Service Info Panel */}
+        {hoveredService && (
+          <Card className="mt-6 bg-slate-900/80 border-slate-700 p-6 animate-in slide-in-from-bottom-4">
+            <div className="text-center">
+              <h3 className="text-xl font-bold text-blue-400 mb-2">
+                {hoveredService === 'frontend' && 'Next.js Frontend'}
+                {hoveredService === 'gateway' && 'API Gateway'}
+                {hoveredService === 'eureka' && 'Eureka Discovery Server'}
+                {hoveredService === 'auth' && 'Authentication Service'}
+                {hoveredService === 'chatbot' && 'Chatbot Service'}
+                {hoveredService === 'datasource' && 'DataSource Service'}
+                {hoveredService === 'profile' && 'User Profile Service'}
+                {hoveredService === 'notification' && 'Notification Service'}
+                {hoveredService === 'kafka' && 'Apache Kafka'}
+                {hoveredService === 'jenkins' && 'Jenkins CI/CD'}
+                {hoveredService === 'sonar' && 'SonarQube'}
+                {hoveredService === 'zipkin' && 'Zipkin Tracing'}
+              </h3>
+              <p className="text-slate-400">
+                {hoveredService === 'frontend' && 'React-based user interface with real-time updates and responsive design'}
+                {hoveredService === 'gateway' && 'Single entry point for all client requests with routing and load balancing'}
+                {hoveredService === 'eureka' && 'Service registry and discovery server for dynamic service location'}
+                {hoveredService === 'auth' && 'Handles authentication, authorization, and user management with JWT'}
+                {hoveredService === 'chatbot' && 'Converts natural language to SQL using AI (Claude/GPT-4)'}
+                {hoveredService === 'datasource' && 'Manages database connections and schema analysis'}
+                {hoveredService === 'profile' && 'Stores user preferences and encrypted API keys'}
+                {hoveredService === 'notification' && 'Sends email notifications via event-driven architecture'}
+                {hoveredService === 'kafka' && 'Event streaming platform for asynchronous communication'}
+                {hoveredService === 'jenkins' && 'Automated CI/CD pipelines for all microservices'}
+                {hoveredService === 'sonar' && 'Code quality and security analysis platform'}
+                {hoveredService === 'zipkin' && 'Distributed tracing for monitoring request flows'}
+              </p>
             </div>
-            <Card className="border-2 border-primary/20 bg-gradient-to-r from-primary/5 to-blue-500/5">
-              <CardContent className="pt-6">
-                <div className="flex justify-center">
-                  <div className="relative group">
-                    <div className="absolute -inset-1 bg-gradient-to-r from-primary to-blue-600 rounded-lg blur opacity-25 group-hover:opacity-50 transition duration-200"></div>
-                    <Card className="relative border-2 border-primary/30 w-64 hover:border-primary transition-all">
-                      <CardHeader className="text-center">
-                        <Globe className="w-12 h-12 mx-auto mb-2 text-primary" />
-                        <CardTitle>Next.js Frontend</CardTitle>
-                      </CardHeader>
-                      <CardContent className="text-center">
-                        <div className="space-y-1 text-sm text-muted-foreground">
-                          <p>React 18 + TypeScript</p>
-                          <p>Tailwind CSS</p>
-                          <p>shadcn/ui Components</p>
-                          <p className="text-xs text-primary font-semibold mt-2">Port: 3000</p>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Connection Arrow */}
-          <div className="flex justify-center">
-            <ArrowRight className="w-8 h-8 text-primary rotate-90" />
-          </div>
-
-          {/* Layer 2: API Gateway Layer */}
-          <div className="relative">
-            <div className="absolute left-0 top-0 -translate-y-6">
-              <span className="text-xs font-semibold text-primary bg-primary/10 px-3 py-1 rounded-full">
-                GATEWAY LAYER
-              </span>
-            </div>
-            <Card className="border-2 border-blue-500/20 bg-gradient-to-r from-blue-500/5 to-purple-500/5">
-              <CardContent className="pt-6">
-                <div className="grid md:grid-cols-3 gap-4">
-                  <div className="md:col-span-1"></div>
-                  <Card className="border-2 border-blue-500/30 hover:border-blue-500 transition-all">
-                    <CardHeader className="text-center">
-                      <Network className="w-10 h-10 mx-auto mb-2 text-blue-500" />
-                      <CardTitle className="text-lg">API Gateway</CardTitle>
-                    </CardHeader>
-                    <CardContent className="text-center text-sm text-muted-foreground">
-                      <p>Spring Cloud Gateway</p>
-                      <p>Routing & Load Balancing</p>
-                      <p>Rate Limiting</p>
-                      <p className="text-xs text-blue-500 font-semibold mt-2">Port: 8765</p>
-                    </CardContent>
-                  </Card>
-                  <div className="md:col-span-1"></div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Connection Arrow */}
-          <div className="flex justify-center">
-            <ArrowRight className="w-8 h-8 text-primary rotate-90" />
-          </div>
-
-          {/* Layer 3: Service Discovery */}
-          <div className="relative">
-            <div className="absolute left-0 top-0 -translate-y-6">
-              <span className="text-xs font-semibold text-primary bg-primary/10 px-3 py-1 rounded-full">
-                DISCOVERY LAYER
-              </span>
-            </div>
-            <Card className="border-2 border-purple-500/20 bg-gradient-to-r from-purple-500/5 to-pink-500/5">
-              <CardContent className="pt-6">
-                <div className="grid md:grid-cols-3 gap-4">
-                  <div className="md:col-span-1"></div>
-                  <Card className="border-2 border-purple-500/30 hover:border-purple-500 transition-all">
-                    <CardHeader className="text-center">
-                      <Search className="w-10 h-10 mx-auto mb-2 text-purple-500" />
-                      <CardTitle className="text-lg">Naming Server</CardTitle>
-                    </CardHeader>
-                    <CardContent className="text-center text-sm text-muted-foreground">
-                      <p>Netflix Eureka</p>
-                      <p>Service Registry</p>
-                      <p>Health Monitoring</p>
-                      <p className="text-xs text-purple-500 font-semibold mt-2">Port: 8761</p>
-                    </CardContent>
-                  </Card>
-                  <div className="md:col-span-1"></div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Connection Arrow */}
-          <div className="flex justify-center">
-            <ArrowRight className="w-8 h-8 text-primary rotate-90" />
-          </div>
-
-          {/* Layer 4: Microservices Layer */}
-          <div className="relative">
-            <div className="absolute left-0 top-0 -translate-y-6">
-              <span className="text-xs font-semibold text-primary bg-primary/10 px-3 py-1 rounded-full">
-                MICROSERVICES LAYER
-              </span>
-            </div>
-            <Card className="border-2 border-green-500/20 bg-gradient-to-r from-green-500/5 to-emerald-500/5">
-              <CardContent className="pt-6">
-                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-
-                  {/* Auth Service */}
-                  <Card className="border-2 border-green-500/30 hover:border-green-500 transition-all hover:shadow-lg">
-                    <CardHeader>
-                      <Lock className="w-8 h-8 mb-2 text-green-500" />
-                      <CardTitle className="text-base">Auth Service</CardTitle>
-                    </CardHeader>
-                    <CardContent className="text-sm text-muted-foreground space-y-1">
-                      <p>• JWT Authentication</p>
-                      <p>• User Management</p>
-                      <p>• OAuth2 Integration</p>
-                      <p className="text-xs text-green-500 font-semibold mt-2">Port: 8081</p>
-                      <p className="text-xs">DB: MySQL (3306)</p>
-                    </CardContent>
-                  </Card>
-
-                  {/* Chatbot Service */}
-                  <Card className="border-2 border-blue-500/30 hover:border-blue-500 transition-all hover:shadow-lg">
-                    <CardHeader>
-                      <MessageSquare className="w-8 h-8 mb-2 text-blue-500" />
-                      <CardTitle className="text-base">Chatbot Service</CardTitle>
-                    </CardHeader>
-                    <CardContent className="text-sm text-muted-foreground space-y-1">
-                      <p>• NL to SQL Conversion</p>
-                      <p>• AI Integration (Claude/GPT)</p>
-                      <p>• Query Execution</p>
-                      <p className="text-xs text-blue-500 font-semibold mt-2">Port: 8086</p>
-                      <p className="text-xs">DB: MySQL (3311)</p>
-                    </CardContent>
-                  </Card>
-
-                  {/* DataSource Service */}
-                  <Card className="border-2 border-orange-500/30 hover:border-orange-500 transition-all hover:shadow-lg">
-                    <CardHeader>
-                      <Database className="w-8 h-8 mb-2 text-orange-500" />
-                      <CardTitle className="text-base">DataSource Service</CardTitle>
-                    </CardHeader>
-                    <CardContent className="text-sm text-muted-foreground space-y-1">
-                      <p>• Database Connections</p>
-                      <p>• Schema Analysis</p>
-                      <p>• Multi-DB Support</p>
-                      <p className="text-xs text-orange-500 font-semibold mt-2">Port: 8087</p>
-                      <p className="text-xs">DB: MySQL (3308)</p>
-                    </CardContent>
-                  </Card>
-
-                  {/* User Profile Service */}
-                  <Card className="border-2 border-purple-500/30 hover:border-purple-500 transition-all hover:shadow-lg">
-                    <CardHeader>
-                      <Users className="w-8 h-8 mb-2 text-purple-500" />
-                      <CardTitle className="text-base">User Profile Service</CardTitle>
-                    </CardHeader>
-                    <CardContent className="text-sm text-muted-foreground space-y-1">
-                      <p>• Profile Management</p>
-                      <p>• API Key Storage</p>
-                      <p>• Settings & Preferences</p>
-                      <p className="text-xs text-purple-500 font-semibold mt-2">Port: 8088</p>
-                      <p className="text-xs">DB: MySQL (3307)</p>
-                    </CardContent>
-                  </Card>
-
-                  {/* Notification Service */}
-                  <Card className="border-2 border-pink-500/30 hover:border-pink-500 transition-all hover:shadow-lg">
-                    <CardHeader>
-                      <Bell className="w-8 h-8 mb-2 text-pink-500" />
-                      <CardTitle className="text-base">Notification Service</CardTitle>
-                    </CardHeader>
-                    <CardContent className="text-sm text-muted-foreground space-y-1">
-                      <p>• Email Notifications</p>
-                      <p>• Event Processing</p>
-                      <p>• Kafka Consumer</p>
-                      <p className="text-xs text-pink-500 font-semibold mt-2">Port: 8089</p>
-                      <p className="text-xs">Message: Kafka</p>
-                    </CardContent>
-                  </Card>
-
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Layer 5: Data Layer */}
-          <div className="relative">
-            <div className="absolute left-0 top-0 -translate-y-6">
-              <span className="text-xs font-semibold text-primary bg-primary/10 px-3 py-1 rounded-full">
-                DATA LAYER
-              </span>
-            </div>
-            <Card className="border-2 border-yellow-500/20 bg-gradient-to-r from-yellow-500/5 to-orange-500/5">
-              <CardContent className="pt-6">
-                <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
-
-                  <Card className="border-2 border-yellow-500/30 hover:border-yellow-500 transition-all text-center">
-                    <CardHeader>
-                      <Database className="w-8 h-8 mx-auto mb-2 text-yellow-500" />
-                      <CardTitle className="text-sm">Auth DB</CardTitle>
-                    </CardHeader>
-                    <CardContent className="text-xs text-muted-foreground">
-                      <p>MySQL 8.0</p>
-                      <p className="text-yellow-600 font-semibold">Port: 3306</p>
-                    </CardContent>
-                  </Card>
-
-                  <Card className="border-2 border-yellow-500/30 hover:border-yellow-500 transition-all text-center">
-                    <CardHeader>
-                      <Database className="w-8 h-8 mx-auto mb-2 text-yellow-500" />
-                      <CardTitle className="text-sm">User Profile DB</CardTitle>
-                    </CardHeader>
-                    <CardContent className="text-xs text-muted-foreground">
-                      <p>MySQL 8.0</p>
-                      <p className="text-yellow-600 font-semibold">Port: 3307</p>
-                    </CardContent>
-                  </Card>
-
-                  <Card className="border-2 border-yellow-500/30 hover:border-yellow-500 transition-all text-center">
-                    <CardHeader>
-                      <Database className="w-8 h-8 mx-auto mb-2 text-yellow-500" />
-                      <CardTitle className="text-sm">DataSource DB</CardTitle>
-                    </CardHeader>
-                    <CardContent className="text-xs text-muted-foreground">
-                      <p>MySQL 8.0</p>
-                      <p className="text-yellow-600 font-semibold">Port: 3308</p>
-                    </CardContent>
-                  </Card>
-
-                  <Card className="border-2 border-yellow-500/30 hover:border-yellow-500 transition-all text-center">
-                    <CardHeader>
-                      <Database className="w-8 h-8 mx-auto mb-2 text-yellow-500" />
-                      <CardTitle className="text-sm">Chatbot DB</CardTitle>
-                    </CardHeader>
-                    <CardContent className="text-xs text-muted-foreground">
-                      <p>MySQL 8.0</p>
-                      <p className="text-yellow-600 font-semibold">Port: 3311</p>
-                    </CardContent>
-                  </Card>
-
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Layer 6: Infrastructure & DevOps */}
-          <div className="relative">
-            <div className="absolute left-0 top-0 -translate-y-6">
-              <span className="text-xs font-semibold text-primary bg-primary/10 px-3 py-1 rounded-full">
-                INFRASTRUCTURE & DEVOPS LAYER
-              </span>
-            </div>
-            <Card className="border-2 border-red-500/20 bg-gradient-to-r from-red-500/5 to-rose-500/5">
-              <CardContent className="pt-6">
-                <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
-
-                  {/* Jenkins */}
-                  <Card className="border-2 border-blue-600/30 hover:border-blue-600 transition-all">
-                    <CardHeader className="text-center">
-                      <Container className="w-8 h-8 mx-auto mb-2 text-blue-600" />
-                      <CardTitle className="text-sm">Jenkins CI/CD</CardTitle>
-                    </CardHeader>
-                    <CardContent className="text-xs text-muted-foreground text-center">
-                      <p>Build Automation</p>
-                      <p>Pipeline Management</p>
-                      <p className="text-blue-600 font-semibold mt-1">Port: 8082</p>
-                    </CardContent>
-                  </Card>
-
-                  {/* SonarQube */}
-                  <Card className="border-2 border-indigo-600/30 hover:border-indigo-600 transition-all">
-                    <CardHeader className="text-center">
-                      <Code className="w-8 h-8 mx-auto mb-2 text-indigo-600" />
-                      <CardTitle className="text-sm">SonarQube</CardTitle>
-                    </CardHeader>
-                    <CardContent className="text-xs text-muted-foreground text-center">
-                      <p>Code Quality</p>
-                      <p>Security Analysis</p>
-                      <p className="text-indigo-600 font-semibold mt-1">Port: 9000</p>
-                    </CardContent>
-                  </Card>
-
-                  {/* Zipkin */}
-                  <Card className="border-2 border-violet-600/30 hover:border-violet-600 transition-all">
-                    <CardHeader className="text-center">
-                      <Activity className="w-8 h-8 mx-auto mb-2 text-violet-600" />
-                      <CardTitle className="text-sm">Zipkin</CardTitle>
-                    </CardHeader>
-                    <CardContent className="text-xs text-muted-foreground text-center">
-                      <p>Distributed Tracing</p>
-                      <p>Performance Monitoring</p>
-                      <p className="text-violet-600 font-semibold mt-1">Port: 9411</p>
-                    </CardContent>
-                  </Card>
-
-                  {/* Kafka */}
-                  <Card className="border-2 border-purple-600/30 hover:border-purple-600 transition-all">
-                    <CardHeader className="text-center">
-                      <GitBranch className="w-8 h-8 mx-auto mb-2 text-purple-600" />
-                      <CardTitle className="text-sm">Kafka + Zookeeper</CardTitle>
-                    </CardHeader>
-                    <CardContent className="text-xs text-muted-foreground text-center">
-                      <p>Message Streaming</p>
-                      <p>Event-Driven Architecture</p>
-                      <p className="text-purple-600 font-semibold mt-1">Port: 9092, 2181</p>
-                    </CardContent>
-                  </Card>
-
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-        </div>
+          </Card>
+        )}
 
         {/* Technology Stack */}
-        <Card className="mb-12 border-2 border-primary/20">
-          <CardHeader className="text-center">
-            <CardTitle className="text-2xl">Technology Stack</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid md:grid-cols-3 gap-6">
-
-              <div>
-                <h3 className="font-semibold mb-3 text-lg flex items-center gap-2">
-                  <Server className="w-5 h-5 text-primary" />
-                  Backend
-                </h3>
-                <ul className="space-y-2 text-sm text-muted-foreground">
-                  <li>• Java 17 + Spring Boot 3.x</li>
-                  <li>• Spring Cloud (Gateway, Eureka, Config)</li>
-                  <li>• Spring Data JPA</li>
-                  <li>• Maven Build Tool</li>
-                  <li>• RESTful APIs</li>
-                  <li>• Microservices Architecture</li>
-                </ul>
-              </div>
-
-              <div>
-                <h3 className="font-semibold mb-3 text-lg flex items-center gap-2">
-                  <Globe className="w-5 h-5 text-primary" />
-                  Frontend
-                </h3>
-                <ul className="space-y-2 text-sm text-muted-foreground">
-                  <li>• Next.js 14 + React 18</li>
-                  <li>• TypeScript</li>
-                  <li>• Tailwind CSS</li>
-                  <li>• shadcn/ui Components</li>
-                  <li>• Server-Side Rendering</li>
-                  <li>• Real-time Streaming</li>
-                </ul>
-              </div>
-
-              <div>
-                <h3 className="font-semibold mb-3 text-lg flex items-center gap-2">
-                  <Database className="w-5 h-5 text-primary" />
-                  Data & Infrastructure
-                </h3>
-                <ul className="space-y-2 text-sm text-muted-foreground">
-                  <li>• MySQL 8.0 Databases</li>
-                  <li>• PostgreSQL (SonarQube)</li>
-                  <li>• Apache Kafka</li>
-                  <li>• Docker & Docker Compose</li>
-                  <li>• Jenkins CI/CD</li>
-                  <li>• SonarQube Quality Gates</li>
-                </ul>
-              </div>
-
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Key Features */}
-        <div className="grid md:grid-cols-2 gap-6 mb-12">
-
-          <Card className="border-2 border-primary/20 hover:border-primary transition-all">
-            <CardHeader>
-              <Zap className="w-10 h-10 mb-2 text-primary" />
-              <CardTitle>Scalability & Performance</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2 text-sm text-muted-foreground">
-              <p>• <strong>Horizontal Scaling:</strong> Each service scales independently</p>
-              <p>• <strong>Load Balancing:</strong> API Gateway distributes traffic</p>
-              <p>• <strong>Caching:</strong> Reduced database load with smart caching</p>
-              <p>• <strong>Async Processing:</strong> Kafka for event-driven workflows</p>
-              <p>• <strong>Database Per Service:</strong> Isolated data stores</p>
-            </CardContent>
+        <div className="grid md:grid-cols-3 gap-6 mt-8">
+          <Card className="bg-slate-900/50 border-slate-800 p-6">
+            <h3 className="text-lg font-bold text-blue-400 mb-3">Backend Stack</h3>
+            <ul className="space-y-2 text-slate-400 text-sm">
+              <li>• Java 17 + Spring Boot 3.x</li>
+              <li>• Spring Cloud (Gateway, Eureka)</li>
+              <li>• Maven Build Tool</li>
+              <li>• MySQL 8.0 Databases</li>
+            </ul>
           </Card>
 
-          <Card className="border-2 border-primary/20 hover:border-primary transition-all">
-            <CardHeader>
-              <Shield className="w-10 h-10 mb-2 text-primary" />
-              <CardTitle>Security & Reliability</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2 text-sm text-muted-foreground">
-              <p>• <strong>JWT Authentication:</strong> Secure token-based auth</p>
-              <p>• <strong>AES-256 Encryption:</strong> API keys encrypted at rest</p>
-              <p>• <strong>Read-Only Queries:</strong> Database safety guaranteed</p>
-              <p>• <strong>Service Discovery:</strong> Automatic failover with Eureka</p>
-              <p>• <strong>Distributed Tracing:</strong> Monitor with Zipkin</p>
-            </CardContent>
+          <Card className="bg-slate-900/50 border-slate-800 p-6">
+            <h3 className="text-lg font-bold text-cyan-400 mb-3">Frontend Stack</h3>
+            <ul className="space-y-2 text-slate-400 text-sm">
+              <li>• Next.js 14 + React 18</li>
+              <li>• TypeScript</li>
+              <li>• Tailwind CSS + shadcn/ui</li>
+              <li>• Server-Side Rendering</li>
+            </ul>
           </Card>
 
-          <Card className="border-2 border-primary/20 hover:border-primary transition-all">
-            <CardHeader>
-              <Container className="w-10 h-10 mb-2 text-primary" />
-              <CardTitle>DevOps & CI/CD</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2 text-sm text-muted-foreground">
-              <p>• <strong>Jenkins Pipelines:</strong> Automated build & deploy</p>
-              <p>• <strong>Docker Containers:</strong> Consistent environments</p>
-              <p>• <strong>SonarQube Integration:</strong> Code quality gates</p>
-              <p>• <strong>Automated Testing:</strong> Unit & integration tests</p>
-              <p>• <strong>Blue-Green Deployment:</strong> Zero-downtime updates</p>
-            </CardContent>
+          <Card className="bg-slate-900/50 border-slate-800 p-6">
+            <h3 className="text-lg font-bold text-purple-400 mb-3">DevOps Stack</h3>
+            <ul className="space-y-2 text-slate-400 text-sm">
+              <li>• Docker + Docker Compose</li>
+              <li>• Jenkins CI/CD</li>
+              <li>• SonarQube Quality Gates</li>
+              <li>• Zipkin Distributed Tracing</li>
+            </ul>
           </Card>
-
-          <Card className="border-2 border-primary/20 hover:border-primary transition-all">
-            <CardHeader>
-              <Boxes className="w-10 h-10 mb-2 text-primary" />
-              <CardTitle>Microservices Benefits</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2 text-sm text-muted-foreground">
-              <p>• <strong>Independent Deployment:</strong> Update services separately</p>
-              <p>• <strong>Technology Diversity:</strong> Use best tool for each service</p>
-              <p>• <strong>Fault Isolation:</strong> Failures don't cascade</p>
-              <p>• <strong>Team Autonomy:</strong> Teams own their services</p>
-              <p>• <strong>Easier Scaling:</strong> Scale only what needs it</p>
-            </CardContent>
-          </Card>
-
         </div>
 
-        {/* Architecture Principles */}
-        <Card className="border-2 border-primary/20 mb-12">
-          <CardHeader className="text-center">
-            <CardTitle className="text-2xl">Architecture Principles</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid md:grid-cols-3 gap-6">
-              <div className="text-center">
-                <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-3">
-                  <span className="text-2xl font-bold text-primary">01</span>
-                </div>
-                <h4 className="font-semibold mb-2">Single Responsibility</h4>
-                <p className="text-sm text-muted-foreground">
-                  Each microservice focuses on one business capability
-                </p>
-              </div>
-
-              <div className="text-center">
-                <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-3">
-                  <span className="text-2xl font-bold text-primary">02</span>
-                </div>
-                <h4 className="font-semibold mb-2">Decentralized Data</h4>
-                <p className="text-sm text-muted-foreground">
-                  Each service manages its own database independently
-                </p>
-              </div>
-
-              <div className="text-center">
-                <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-3">
-                  <span className="text-2xl font-bold text-primary">03</span>
-                </div>
-                <h4 className="font-semibold mb-2">Event-Driven</h4>
-                <p className="text-sm text-muted-foreground">
-                  Services communicate via Kafka for loose coupling
-                </p>
-              </div>
-
-              <div className="text-center">
-                <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-3">
-                  <span className="text-2xl font-bold text-primary">04</span>
-                </div>
-                <h4 className="font-semibold mb-2">API Gateway Pattern</h4>
-                <p className="text-sm text-muted-foreground">
-                  Single entry point for all client requests
-                </p>
-              </div>
-
-              <div className="text-center">
-                <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-3">
-                  <span className="text-2xl font-bold text-primary">05</span>
-                </div>
-                <h4 className="font-semibold mb-2">Service Discovery</h4>
-                <p className="text-sm text-muted-foreground">
-                  Dynamic service registration with Eureka
-                </p>
-              </div>
-
-              <div className="text-center">
-                <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-3">
-                  <span className="text-2xl font-bold text-primary">06</span>
-                </div>
-                <h4 className="font-semibold mb-2">Containerization</h4>
-                <p className="text-sm text-muted-foreground">
-                  Docker ensures consistency across environments
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* CTA */}
-        <Card className="border-2 border-primary text-center">
-          <CardContent className="pt-8 pb-8">
-            <h3 className="text-2xl font-bold mb-4">Ready to Get Started?</h3>
-            <p className="text-muted-foreground mb-6 max-w-2xl mx-auto">
-              Experience the power of our microservices architecture with AI-driven database querying
-            </p>
-            <div className="flex gap-4 justify-center">
-              <Link href="/register">
-                <Button size="lg">Start Free Trial</Button>
-              </Link>
-              <Link href="/docs">
-                <Button size="lg" variant="outline">View Documentation</Button>
-              </Link>
-            </div>
-          </CardContent>
-        </Card>
-
-      </section>
-
-      {/* Footer */}
-      <footer className="bg-muted/50 border-t mt-20">
-        <div className="container mx-auto px-4 py-8 text-center text-sm text-muted-foreground">
-          <div className="flex items-center justify-center gap-2 mb-2">
-            <img src="/logo.png" alt="EadgeQuery Logo" className="w-5 h-5" />
-            <span className="font-semibold">EadgeQuery</span>
-            <span className="text-xs">v0.1</span>
-          </div>
-          <p>© 2024 EadgeQuery. All rights reserved.</p>
-        </div>
-      </footer>
+      </div>
     </div>
   )
 }
