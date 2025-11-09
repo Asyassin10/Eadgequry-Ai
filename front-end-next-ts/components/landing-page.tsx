@@ -39,10 +39,11 @@ export function LandingPage() {
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Database className="w-8 h-8 text-primary" />
+              <img src="/logo.png" alt="EadgeQuery Logo" className="w-8 h-8" />
               <span className="text-2xl font-bold bg-gradient-to-r from-primary to-blue-600 bg-clip-text text-transparent">
                 EadgeQuery
               </span>
+              <span className="text-xs text-muted-foreground ml-2">v0.1</span>
             </div>
             <div className="hidden md:flex items-center gap-8">
               <a href="#features" className="text-sm font-medium hover:text-primary transition-colors">
@@ -57,6 +58,9 @@ export function LandingPage() {
               <a href="#faq" className="text-sm font-medium hover:text-primary transition-colors">
                 FAQ
               </a>
+              <Link href="/docs" className="text-sm font-medium hover:text-primary transition-colors">
+                Docs
+              </Link>
             </div>
             <div className="flex items-center gap-4">
               <Link href="/login">
@@ -96,9 +100,11 @@ export function LandingPage() {
                   <ChevronRight className="ml-2 w-5 h-5" />
                 </Button>
               </Link>
-              <Button size="lg" variant="outline" className="text-lg px-8">
-                Watch Demo
-              </Button>
+              <Link href="/docs">
+                <Button size="lg" variant="outline" className="text-lg px-8">
+                  View Documentation
+                </Button>
+              </Link>
             </div>
             <div className="flex items-center gap-6 text-sm text-muted-foreground">
               <div className="flex items-center gap-2">
@@ -430,7 +436,7 @@ export function LandingPage() {
             {/* Free Plan */}
             <Card className="border-2">
               <CardHeader>
-                <CardTitle className="text-2xl">Starter</CardTitle>
+                <CardTitle className="text-2xl">Free</CardTitle>
                 <div className="mt-4">
                   <span className="text-4xl font-bold">$0</span>
                   <span className="text-muted-foreground">/month</span>
@@ -438,15 +444,21 @@ export function LandingPage() {
                 <CardDescription>Perfect for trying out EadgeQuery</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <Button className="w-full" variant="outline">Get Started</Button>
+                <Link href="/register" className="w-full">
+                  <Button className="w-full">Get Started</Button>
+                </Link>
                 <ul className="space-y-3">
                   <li className="flex items-center gap-2">
                     <CheckCircle className="w-5 h-5 text-green-500" />
-                    <span className="text-sm">1 database connection</span>
+                    <span className="text-sm"><strong>30 queries/day</strong> with Demo AI</span>
                   </li>
                   <li className="flex items-center gap-2">
                     <CheckCircle className="w-5 h-5 text-green-500" />
-                    <span className="text-sm">100 queries/month</span>
+                    <span className="text-sm"><strong>100 queries/day</strong> with your own API key</span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <CheckCircle className="w-5 h-5 text-green-500" />
+                    <span className="text-sm">Conversation history</span>
                   </li>
                   <li className="flex items-center gap-2">
                     <CheckCircle className="w-5 h-5 text-green-500" />
@@ -454,7 +466,15 @@ export function LandingPage() {
                   </li>
                   <li className="flex items-center gap-2">
                     <CheckCircle className="w-5 h-5 text-green-500" />
-                    <span className="text-sm">Basic support</span>
+                    <span className="text-sm">Bring your own API key</span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <CheckCircle className="w-5 h-5 text-green-500" />
+                    <span className="text-sm">1 database connection</span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <CheckCircle className="w-5 h-5 text-green-500" />
+                    <span className="text-sm">Community support</span>
                   </li>
                 </ul>
               </CardContent>
@@ -470,27 +490,31 @@ export function LandingPage() {
               <CardHeader>
                 <CardTitle className="text-2xl">Professional</CardTitle>
                 <div className="mt-4">
-                  <span className="text-4xl font-bold">
-                    ${billingPeriod === "monthly" ? "29" : "24"}
-                  </span>
+                  <span className="text-4xl font-bold">$30</span>
                   <span className="text-muted-foreground">/month</span>
                 </div>
-                <CardDescription>For professional data analysts</CardDescription>
+                <CardDescription>For professional data analysts and teams</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <Button className="w-full">Start Free Trial</Button>
+                <Link href="/docs" className="w-full">
+                  <Button className="w-full">Get Started</Button>
+                </Link>
                 <ul className="space-y-3">
                   <li className="flex items-center gap-2">
                     <CheckCircle className="w-5 h-5 text-green-500" />
-                    <span className="text-sm">10 database connections</span>
+                    <span className="text-sm"><strong>Claude-4-sonnet</strong> Unlimited</span>
                   </li>
                   <li className="flex items-center gap-2">
                     <CheckCircle className="w-5 h-5 text-green-500" />
-                    <span className="text-sm">Unlimited queries</span>
+                    <span className="text-sm"><strong>GPT-4.1-mini</strong> Unlimited</span>
                   </li>
                   <li className="flex items-center gap-2">
                     <CheckCircle className="w-5 h-5 text-green-500" />
-                    <span className="text-sm">Bring your own AI key</span>
+                    <span className="text-sm"><strong>GPT-4.1</strong> Unlimited</span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <CheckCircle className="w-5 h-5 text-green-500" />
+                    <span className="text-sm">10+ database connections</span>
                   </li>
                   <li className="flex items-center gap-2">
                     <CheckCircle className="w-5 h-5 text-green-500" />
@@ -498,11 +522,14 @@ export function LandingPage() {
                   </li>
                   <li className="flex items-center gap-2">
                     <CheckCircle className="w-5 h-5 text-green-500" />
-                    <span className="text-sm">Query history</span>
+                    <span className="text-sm">Conversation history</span>
                   </li>
                   <li className="flex items-center gap-2">
                     <CheckCircle className="w-5 h-5 text-green-500" />
                     <span className="text-sm">Export to CSV</span>
+                  </li>
+                  <li className="flex items-center gap-2 text-muted-foreground">
+                    <span className="text-xs italic">Coming in v1: We manage API keys for you</span>
                   </li>
                 </ul>
               </CardContent>
@@ -515,22 +542,30 @@ export function LandingPage() {
                 <div className="mt-4">
                   <span className="text-4xl font-bold">Custom</span>
                 </div>
-                <CardDescription>For large teams and organizations</CardDescription>
+                <CardDescription>Works great for large teams and enterprises</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <Button className="w-full" variant="outline">Contact Sales</Button>
+                <Button className="w-full" variant="outline">Let's Talk</Button>
                 <ul className="space-y-3">
                   <li className="flex items-center gap-2">
                     <CheckCircle className="w-5 h-5 text-green-500" />
+                    <span className="text-sm"><strong>Claude-4-sonnet</strong></span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <CheckCircle className="w-5 h-5 text-green-500" />
+                    <span className="text-sm"><strong>GPT-4</strong></span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <CheckCircle className="w-5 h-5 text-green-500" />
+                    <span className="text-sm">Unlimited active users</span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <CheckCircle className="w-5 h-5 text-green-500" />
+                    <span className="text-sm">Hosted on premise (custom)</span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <CheckCircle className="w-5 h-5 text-green-500" />
                     <span className="text-sm">Unlimited databases</span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircle className="w-5 h-5 text-green-500" />
-                    <span className="text-sm">Unlimited queries</span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircle className="w-5 h-5 text-green-500" />
-                    <span className="text-sm">Dedicated AI instance</span>
                   </li>
                   <li className="flex items-center gap-2">
                     <CheckCircle className="w-5 h-5 text-green-500" />
@@ -538,11 +573,7 @@ export function LandingPage() {
                   </li>
                   <li className="flex items-center gap-2">
                     <CheckCircle className="w-5 h-5 text-green-500" />
-                    <span className="text-sm">Team collaboration</span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircle className="w-5 h-5 text-green-500" />
-                    <span className="text-sm">Custom integrations</span>
+                    <span className="text-sm">Dedicated account manager</span>
                   </li>
                   <li className="flex items-center gap-2">
                     <CheckCircle className="w-5 h-5 text-green-500" />
@@ -685,8 +716,9 @@ export function LandingPage() {
           <div className="grid md:grid-cols-4 gap-8">
             <div className="space-y-4">
               <div className="flex items-center gap-2">
-                <Database className="w-6 h-6 text-primary" />
+                <img src="/logo.png" alt="EadgeQuery Logo" className="w-6 h-6" />
                 <span className="text-xl font-bold">EadgeQuery</span>
+                <span className="text-xs text-muted-foreground ml-1">v0.1</span>
               </div>
               <p className="text-sm text-muted-foreground">
                 Chat with your database in plain English. Powered by advanced AI.
@@ -726,13 +758,11 @@ export function LandingPage() {
               <ul className="space-y-2 text-sm text-muted-foreground">
                 <li><a href="/privacy" className="hover:text-primary">Privacy Policy</a></li>
                 <li><a href="/terms" className="hover:text-primary">Terms of Service</a></li>
-                <li><a href="/security" className="hover:text-primary">Security</a></li>
-                <li><a href="/compliance" className="hover:text-primary">Compliance</a></li>
               </ul>
             </div>
           </div>
           <div className="border-t mt-12 pt-8 text-center text-sm text-muted-foreground">
-            <p>© 2024 EadgeQuery. All rights reserved.</p>
+            <p>© 2024 EadgeQuery. All rights reserved. v0.1</p>
           </div>
         </div>
       </footer>
