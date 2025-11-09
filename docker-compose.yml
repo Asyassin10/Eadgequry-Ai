@@ -212,7 +212,7 @@ services:
       MYSQL_USER: datasourceuser
       MYSQL_PASSWORD: datasourcepassword
     ports:
-      - "3307:3306"
+      - "3308:3306"
     volumes:
       - mysql-datasource-data:/var/lib/mysql
     networks:
@@ -276,6 +276,31 @@ services:
     networks:
       - edagequry-net
 
+  # Jenkins CI/CD Server
+  jenkins:
+    image: jenkins/jenkins:lts-jdk17
+    container_name: jenkins-cicd
+    user: root
+    privileged: true
+    ports:
+      - "8082:8080"
+      - "50000:50000"
+    volumes:
+      - jenkins-data:/var/jenkins_home
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./jenkins-jobs:/var/jenkins_jobs
+    environment:
+      - JENKINS_OPTS=--prefix=/jenkins
+      - JAVA_OPTS=-Djenkins.install.runSetupWizard=false
+    networks:
+      - edagequry-net
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/jenkins/login || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+
 
 networks:
   edagequry-net:
@@ -290,3 +315,4 @@ volumes:
   sonarqube-data:
   sonarqube-extensions:
   sonarqube-logs:
+  jenkins-data:

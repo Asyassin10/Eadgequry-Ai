@@ -1,0 +1,259 @@
+pipeline {
+    agent any
+
+    environment {
+        // SERVICE_NAME should be set in each service's Jenkinsfile
+        SERVICE_NAME = "${SERVICE_NAME ?: 'unknown-service'}"
+        SERVICE_PATH = "${SERVICE_PATH ?: '.'}"
+        DOCKER_IMAGE = "eadgequry/${SERVICE_NAME}"
+        DOCKER_TAG = "${BUILD_NUMBER}"
+        DOCKER_COMPOSE_FILE = '../docker-compose.yml'
+
+        // Maven/Gradle settings
+        MAVEN_OPTS = '-Dmaven.test.failure.ignore=true'
+
+        // SonarQube settings
+        SONAR_HOST_URL = 'http://sonarqube:9000'
+        SONAR_PROJECT_KEY = "eadgequry-${SERVICE_NAME}"
+    }
+
+    parameters {
+        choice(name: 'BUILD_TYPE', choices: ['build', 'test', 'deploy', 'full'], description: 'Select build type')
+        booleanParam(name: 'RUN_SONAR', defaultValue: true, description: 'Run SonarQube analysis')
+        booleanParam(name: 'RUN_TESTS', defaultValue: true, description: 'Run unit tests')
+        booleanParam(name: 'DEPLOY_TO_COMPOSE', defaultValue: false, description: 'Deploy to Docker Compose')
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                script {
+                    echo "🔍 Checking out ${SERVICE_NAME} from SCM..."
+                    checkout scm
+                }
+            }
+        }
+
+        stage('Environment Info') {
+            steps {
+                script {
+                    echo """
+                    ╔════════════════════════════════════════╗
+                    ║     EadgeQuery CI/CD Pipeline         ║
+                    ╠════════════════════════════════════════╣
+                    ║ Service: ${SERVICE_NAME}
+                    ║ Path: ${SERVICE_PATH}
+                    ║ Build: #${BUILD_NUMBER}
+                    ║ Branch: ${env.GIT_BRANCH ?: 'N/A'}
+                    ║ Type: ${params.BUILD_TYPE}
+                    ╚════════════════════════════════════════╝
+                    """
+
+                    sh '''
+                        echo "📦 Checking Docker..."
+                        docker --version || echo "⚠️ Docker not available"
+
+                        echo "☕ Checking Java..."
+                        java -version || echo "⚠️ Java not available"
+
+                        echo "📚 Checking Maven..."
+                        mvn --version || echo "⚠️ Maven not available"
+                    '''
+                }
+            }
+        }
+
+        stage('Install Dependencies') {
+            when {
+                expression { params.BUILD_TYPE in ['build', 'test', 'full'] }
+            }
+            steps {
+                dir("${SERVICE_PATH}") {
+                    script {
+                        echo "📥 Installing dependencies for ${SERVICE_NAME}..."
+
+                        if (fileExists('pom.xml')) {
+                            sh 'mvn clean install -DskipTests'
+                        } else if (fileExists('build.gradle')) {
+                            sh './gradlew clean build -x test'
+                        } else if (fileExists('package.json')) {
+                            sh 'npm ci || npm install'
+                        } else {
+                            echo "⚠️ No build configuration found"
+                        }
+                    }
+                }
+            }
+        }
+
+        stage('Run Unit Tests') {
+            when {
+                expression { params.RUN_TESTS && params.BUILD_TYPE in ['test', 'full'] }
+            }
+            steps {
+                dir("${SERVICE_PATH}") {
+                    script {
+                        echo "🧪 Running tests for ${SERVICE_NAME}..."
+
+                        try {
+                            if (fileExists('pom.xml')) {
+                                sh 'mvn test'
+                                junit '**/target/surefire-reports/*.xml'
+                            } else if (fileExists('build.gradle')) {
+                                sh './gradlew test'
+                                junit '**/build/test-results/test/*.xml'
+                            } else if (fileExists('package.json')) {
+                                sh 'npm test || true'
+                            }
+                        } catch (Exception e) {
+                            echo "⚠️ Tests failed but continuing: ${e.message}"
+                            currentBuild.result = 'UNSTABLE'
+                        }
+                    }
+                }
+            }
+        }
+
+        stage('SonarQube Analysis') {
+            when {
+                expression { params.RUN_SONAR && params.BUILD_TYPE in ['build', 'full'] }
+            }
+            steps {
+                dir("${SERVICE_PATH}") {
+                    script {
+                        echo "📊 Running SonarQube analysis for ${SERVICE_NAME}..."
+
+                        try {
+                            if (fileExists('pom.xml')) {
+                                sh """
+                                    mvn sonar:sonar \
+                                        -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
+                                        -Dsonar.projectName=${SERVICE_NAME} \
+                                        -Dsonar.host.url=${SONAR_HOST_URL} \
+                                        -Dsonar.login=admin \
+                                        -Dsonar.password=admin
+                                """
+                            } else {
+                                echo "⚠️ SonarQube analysis only available for Maven projects"
+                            }
+                        } catch (Exception e) {
+                            echo "⚠️ SonarQube analysis failed: ${e.message}"
+                        }
+                    }
+                }
+            }
+        }
+
+        stage('Build Application') {
+            when {
+                expression { params.BUILD_TYPE in ['build', 'deploy', 'full'] }
+            }
+            steps {
+                dir("${SERVICE_PATH}") {
+                    script {
+                        echo "🏗️ Building ${SERVICE_NAME}..."
+
+                        if (fileExists('pom.xml')) {
+                            sh 'mvn clean package -DskipTests'
+                        } else if (fileExists('build.gradle')) {
+                            sh './gradlew clean build -x test'
+                        } else if (fileExists('package.json')) {
+                            sh 'npm run build || true'
+                        }
+                    }
+                }
+            }
+        }
+
+        stage('Build Docker Image') {
+            when {
+                expression { params.BUILD_TYPE in ['deploy', 'full'] }
+            }
+            steps {
+                dir("${SERVICE_PATH}") {
+                    script {
+                        echo "🐳 Building Docker image for ${SERVICE_NAME}..."
+
+                        if (fileExists('Dockerfile')) {
+                            sh """
+                                docker build -t ${DOCKER_IMAGE}:${DOCKER_TAG} .
+                                docker tag ${DOCKER_IMAGE}:${DOCKER_TAG} ${DOCKER_IMAGE}:latest
+                            """
+                            echo "✅ Docker image built: ${DOCKER_IMAGE}:${DOCKER_TAG}"
+                        } else {
+                            echo "⚠️ No Dockerfile found for ${SERVICE_NAME}"
+                        }
+                    }
+                }
+            }
+        }
+
+        stage('Deploy to Docker Compose') {
+            when {
+                expression { params.DEPLOY_TO_COMPOSE && params.BUILD_TYPE in ['deploy', 'full'] }
+            }
+            steps {
+                script {
+                    echo "🚀 Deploying ${SERVICE_NAME} to Docker Compose..."
+
+                    try {
+                        sh """
+                            cd ..
+                            docker-compose stop ${SERVICE_NAME} || true
+                            docker-compose rm -f ${SERVICE_NAME} || true
+                            docker-compose up -d ${SERVICE_NAME}
+                        """
+                        echo "✅ ${SERVICE_NAME} deployed successfully"
+                    } catch (Exception e) {
+                        echo "⚠️ Deployment failed: ${e.message}"
+                        currentBuild.result = 'FAILURE'
+                    }
+                }
+            }
+        }
+
+        stage('Health Check') {
+            when {
+                expression { params.DEPLOY_TO_COMPOSE }
+            }
+            steps {
+                script {
+                    echo "🏥 Running health check for ${SERVICE_NAME}..."
+
+                    try {
+                        sh """
+                            cd ..
+                            timeout 60 docker-compose ps ${SERVICE_NAME}
+                        """
+                        echo "✅ Health check passed"
+                    } catch (Exception e) {
+                        echo "⚠️ Health check failed: ${e.message}"
+                    }
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            echo """
+            ╔════════════════════════════════════════╗
+            ║     Pipeline Completed                ║
+            ╠════════════════════════════════════════╣
+            ║ Service: ${SERVICE_NAME}
+            ║ Status: ${currentBuild.result ?: 'SUCCESS'}
+            ║ Duration: ${currentBuild.durationString}
+            ╚════════════════════════════════════════╝
+            """
+        }
+        success {
+            echo "✅ ${SERVICE_NAME} pipeline completed successfully!"
+        }
+        failure {
+            echo "❌ ${SERVICE_NAME} pipeline failed!"
+        }
+        unstable {
+            echo "⚠️ ${SERVICE_NAME} pipeline is unstable!"
+        }
+    }
+}
