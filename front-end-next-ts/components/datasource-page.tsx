@@ -16,7 +16,7 @@ const DATABASE_TYPES = [
   { value: "postgresql", label: "PostgreSQL", defaultPort: "5432", available: true },
 ]
 
-const MAX_DATABASES = 3
+const MAX_DATABASES = 1
 
 export function DatasourcePage() {
   const [dbType, setDbType] = useState("mysql")

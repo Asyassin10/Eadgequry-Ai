@@ -52,9 +52,7 @@ public class UserAiSettingsController {
 
         // DEMO provider
         response.addProvider("DEMO", "Platform Demo (Free)", new String[] {
-                "anthropic/claude-3.5-sonnet",
-                "anthropic/claude-3-opus",
-                "openai/gpt-4-turbo"
+                "openai/gpt-4o-mini"
         });
 
         // Claude provider
