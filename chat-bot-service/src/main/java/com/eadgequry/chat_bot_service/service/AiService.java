@@ -399,7 +399,7 @@ public class AiService {
                         info.append("(").append(col.getSize()).append(")");
                     }
                     info.append(")");
-                    if (!col.isNullable()) {
+                    if (col.getNullable() != null && !col.getNullable()) {
                         info.append(" NOT NULL");
                     }
                     if (col.getDefaultValue() != null) {
