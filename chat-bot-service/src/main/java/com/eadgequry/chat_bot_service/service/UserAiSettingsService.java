@@ -96,6 +96,16 @@ public class UserAiSettingsService {
     }
 
     /**
+     * Check if user is using DEMO mode
+     */
+    public boolean isUsingDemoMode(Long userId) {
+        UserAiSettings settings = repository.findByUserId(userId)
+                .orElseGet(() -> createDefaultSettings(userId));
+
+        return settings.getProvider() == UserAiSettings.AiProvider.DEMO;
+    }
+
+    /**
      * Delete user's AI settings
      */
     @Transactional
