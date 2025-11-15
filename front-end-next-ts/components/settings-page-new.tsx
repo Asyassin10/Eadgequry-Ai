@@ -391,15 +391,16 @@ export function SettingsPageNew() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="avatarUrl">Avatar URL</Label>
-                    <Input
-                      id="avatarUrl"
-                      type="url"
-                      placeholder="https://example.com/avatar.jpg"
-                      {...registerProfile('avatarUrl')}
-                      disabled={isSubmittingProfile}
-                      className="bg-input border-border"
-                    />
+<Label htmlFor="avatar">Avatar</Label>
+<Input
+  id="avatar"
+  type="file"
+  accept="image/*"
+  {...registerProfile('avatar')}
+  disabled={isSubmittingProfile}
+  className="bg-input border-border"
+/>
+
                     {profileErrors.avatarUrl && (
                       <p className="text-sm text-red-600 dark:text-red-400">{profileErrors.avatarUrl.message}</p>
                     )}
@@ -691,7 +692,7 @@ export function SettingsPageNew() {
                     <h4 className="font-semibold text-sm">Provider Options:</h4>
                     <div className="space-y-2 text-xs text-muted-foreground">
                       <div>
-                        <strong>🎁 DEMO:</strong> Free platform key, no setup required
+                        <strong>🎁 Free:</strong> Free platform key, no setup required
                       </div>
                       <div>
                         <strong>🤖 Claude:</strong> Your own Anthropic API key for direct access

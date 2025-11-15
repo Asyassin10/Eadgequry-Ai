@@ -31,7 +31,7 @@ export function DashboardPage() {
               />
               <div className="flex flex-col">
                 <p className="text-2xl font-bold text-foreground">GPT-4</p>
-                <Badge className="mt-1 bg-primary text-primary-foreground">Connected</Badge>
+                <Badge className="mt-1 bg-primary text-primary-foreground">disconnected </Badge>
               </div>
             </div>
           </CardContent>
@@ -52,7 +52,7 @@ export function DashboardPage() {
               />
               <div className="flex flex-col">
                 <p className="text-2xl font-bold text-foreground">Cloud Ai</p>
-                <Badge className="mt-1 bg-blue-500 text-white">Connected</Badge>
+                <Badge className="mt-1 bg-blue-500 text-white">disconnected </Badge>
               </div>
             </div>
           </CardContent>
@@ -75,7 +75,7 @@ export function DashboardPage() {
               />
               <div className="flex flex-col">
                 <p className="text-2xl font-bold text-foreground">PostgreSQL</p>
-                <Badge className="mt-1 bg-secondary text-secondary-foreground">Connected</Badge>
+                <Badge className="mt-1 bg-secondary text-secondary-foreground">disconnected   </Badge>
               </div>
             </div>
           </CardContent>

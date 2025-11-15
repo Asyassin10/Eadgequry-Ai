@@ -9,7 +9,7 @@ import { useParams } from "next/navigation"
 const blogPosts: Record<string, any> = {
   "ai-transforming-database-querying": {
     title: "How AI is Transforming Database Querying: From SQL to Natural Language",
-    author: "Sarah Chen",
+    author: "Yassine ait sidi brahim",
     date: "November 5, 2024",
     readTime: "8 min read",
     category: "AI & Innovation",

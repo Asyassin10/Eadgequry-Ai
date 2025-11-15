@@ -135,7 +135,7 @@ export function AiSettingsPage() {
         <CardHeader>
           <CardTitle>AI Configuration</CardTitle>
           <CardDescription>
-            Choose between platform demo (free) or use your own API keys from Claude or OpenAI
+            Choose between free or use your own API keys from Claude or OpenAI
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">

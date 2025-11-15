@@ -526,7 +526,7 @@ export function ChatbotPage() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <img src="/logo.png" alt="EadgeQuery Logo" className="w-10 h-10" />
-              <CardTitle>EadgeQuery AI Chatbot</CardTitle>
+              <CardTitle>EadgeQuery Chatbot</CardTitle>
               <Badge className="bg-primary text-primary-foreground">
                 AI Assistant
               </Badge>
@@ -601,7 +601,7 @@ export function ChatbotPage() {
                 <div className="flex flex-col items-center justify-center h-full text-center py-8">
                   <img src="/logo.png" alt="EadgeQuery Logo" className="w-32 h-32 mb-4" />
                   <h3 className="text-lg font-semibold mb-2">
-                    Welcome to EadgeQuery AI Chatbot
+                    Welcome to EadgeQuery Chatbot
                   </h3>
                   <p className="text-sm text-muted-foreground max-w-md">
                     Ask questions about your database in natural language. I'll
@@ -812,7 +812,7 @@ export function ChatbotPage() {
                   </div>
                 </div>
 
-                <div className="space-y-2 max-h-96 overflow-y-auto">
+                <div className="space-y-2 max-h-200">
                   {JSON.parse(schema.schemaJson).tables.map((table: any) => (
                     <div
                       key={table.name}

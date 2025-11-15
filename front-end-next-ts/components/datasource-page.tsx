@@ -14,6 +14,10 @@ import { datasourceApi, type DatabaseConfigDTO, type CreateDatabaseConfigRequest
 const DATABASE_TYPES = [
   { value: "mysql", label: "MySQL", defaultPort: "3306", available: true },
   { value: "postgresql", label: "PostgreSQL", defaultPort: "5432", available: true },
+ 
+      { value: "oracle", label: "Oracle", defaultPort: "5432", available: true },
+  { value: "sql server", label: "Sql Server", defaultPort: "5432", available: true },
+
 ]
 
 const MAX_DATABASES = 1

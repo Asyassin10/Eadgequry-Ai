@@ -51,7 +51,7 @@ public class UserAiSettingsController {
         ProvidersResponse response = new ProvidersResponse();
 
         // DEMO provider
-        response.addProvider("DEMO", "Platform Demo (Free)", new String[] {
+        response.addProvider("DEMO", "Free", new String[] {
                 "openai/gpt-4o-mini"
         });
 

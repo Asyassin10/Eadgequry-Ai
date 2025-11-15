@@ -10,8 +10,8 @@ const blogPosts = [
     slug: "ai-transforming-database-querying",
     title: "How AI is Transforming Database Querying: From SQL to Natural Language",
     description: "Discover how AI-powered natural language processing is revolutionizing the way teams interact with their databases, making data accessible to everyone.",
-    author: "Sarah Chen",
-    date: "November 5, 2024",
+    author: "Yassine ait sidi brahim",
+    date: "November 5, 2025",
     readTime: "8 min read",
     category: "AI & Innovation",
     image: "/blog/ai-database.jpg"
@@ -20,8 +20,8 @@ const blogPosts = [
     slug: "security-best-practices-database-ai",
     title: "Security Best Practices for Database AI Chatbots: Protecting Your Data",
     description: "Learn essential security measures for implementing AI chatbots that access your databases, including encryption, access control, and compliance.",
-    author: "Michael Rodriguez",
-    date: "November 1, 2024",
+    author: "Yassine ait sidi brahim",
+    date: "November 1, 2025",
     readTime: "10 min read",
     category: "Security",
     image: "/blog/security.jpg"
@@ -30,8 +30,8 @@ const blogPosts = [
     slug: "natural-language-to-sql-how-it-works",
     title: "Natural Language to SQL: How AI Understands Your Questions",
     description: "A deep dive into the technology behind natural language to SQL conversion, exploring how AI models interpret questions and generate accurate queries.",
-    author: "Dr. Emily Watson",
-    date: "October 28, 2024",
+    author: "Yassine ait sidi brahim",
+    date: "October 28, 2025",
     readTime: "12 min read",
     category: "Technology",
     image: "/blog/nlp-sql.jpg"
@@ -137,28 +137,7 @@ export default function BlogPage() {
           ))}
         </div>
 
-        {/* Newsletter Section */}
-        <Card className="max-w-4xl mx-auto mt-20 border-2 border-primary">
-          <CardHeader className="text-center">
-            <CardTitle className="text-2xl mb-2">Subscribe to Our Newsletter</CardTitle>
-            <CardDescription>
-              Get the latest insights on AI, databases, and data analytics delivered to your inbox
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-col sm:flex-row gap-4 max-w-md mx-auto">
-              <input
-                type="email"
-                placeholder="Enter your email"
-                className="flex-1 px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-              />
-              <Button>Subscribe</Button>
-            </div>
-            <p className="text-xs text-center text-muted-foreground mt-4">
-              We respect your privacy. Unsubscribe at any time.
-            </p>
-          </CardContent>
-        </Card>
+
       </section>
 
       {/* Footer */}
@@ -169,7 +148,7 @@ export default function BlogPage() {
             <span className="font-semibold">EadgeQuery</span>
             <span className="text-xs">v0.1</span>
           </div>
-          <p>© 2024 EadgeQuery. All rights reserved.</p>
+          <p>© 2025 EadgeQuery. All rights reserved.</p>
         </div>
       </footer>
     </div>

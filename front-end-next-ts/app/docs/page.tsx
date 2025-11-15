@@ -3,20 +3,7 @@
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import {
-  ArrowLeft,
-  BookOpen,
-  Database,
-  MessageSquare,
-  Settings,
-  Shield,
-  Zap,
-  CheckCircle,
-  ChevronRight,
-  Search,
-  Menu,
-  X
-} from "lucide-react"
+import { ArrowLeft, BookOpen, Database, MessageSquare, Settings, Shield, Zap, CheckCircle, ChevronRight, Search, Menu, X } from 'lucide-react'
 import Link from "next/link"
 
 export default function DocsPage() {
@@ -66,13 +53,11 @@ export default function DocsPage() {
       ]
     },
     {
-      title: "API Reference",
+      title: "Roadmap",
       items: [
-        { id: "rest-api", label: "REST API", href: "#rest-api" },
-        { id: "authentication", label: "Authentication", href: "#authentication" },
-        { id: "endpoints", label: "Endpoints", href: "#endpoints" },
+        { id: "v1-features", label: "Coming in v1", href: "#v1-features" },
       ]
-    }
+    },
   ]
 
   const onThisPage = [
@@ -82,6 +67,7 @@ export default function DocsPage() {
     { label: "Getting Started", href: "#quick-start" },
     { label: "Database Setup", href: "#database-setup" },
     { label: "Security", href: "#security-overview" },
+    { label: "Coming in v1", href: "#v1-features" },
   ]
 
   return (
@@ -101,23 +87,15 @@ export default function DocsPage() {
               <span className="text-sm text-muted-foreground hidden md:block">/ Documentation</span>
             </div>
             <div className="flex items-center gap-4">
-              <div className="hidden md:flex items-center gap-2 px-3 py-2 bg-muted rounded-lg">
-                <Search className="w-4 h-4 text-muted-foreground" />
-                <input
-                  type="text"
-                  placeholder="Search docs..."
-                  className="bg-transparent border-none outline-none text-sm w-48"
-                />
-              </div>
               <Link href="/">
                 <Button variant="ghost" size="sm">
                   <ArrowLeft className="w-4 h-4 mr-2" />
                   Home
                 </Button>
               </Link>
-              <Link href="/register">
-                <Button size="sm">Get Started</Button>
-              </Link>
+              <a href="https://discord.gg/g8zyEDKTAj" target="_blank" rel="noreferrer" className="nx-p-2 nx-text-current"><svg width="24" height="24" fill="currentColor" xmlns="http://www.w3.org/2000/svg" viewBox="0 5 30.67 23.25"><title>Discord</title><path d="M26.0015 6.9529C24.0021 6.03845 21.8787 5.37198 19.6623 5C19.3833 5.48048 19.0733 6.13144 18.8563 6.64292C16.4989 6.30193 14.1585 6.30193 11.8336 6.64292C11.6166 6.13144 11.2911 5.48048 11.0276 5C8.79575 5.37198 6.67235 6.03845 4.6869 6.9529C0.672601 12.8736 -0.41235 18.6548 0.130124 24.3585C2.79599 26.2959 5.36889 27.4739 7.89682 28.2489C8.51679 27.4119 9.07477 26.5129 9.55525 25.5675C8.64079 25.2265 7.77283 24.808 6.93587 24.312C7.15286 24.1571 7.36986 23.9866 7.57135 23.8161C12.6241 26.1255 18.0969 26.1255 23.0876 23.8161C23.3046 23.9866 23.5061 24.1571 23.7231 24.312C22.8861 24.808 22.0182 25.2265 21.1037 25.5675C21.5842 26.5129 22.1422 27.4119 22.7621 28.2489C25.2885 27.4739 27.8769 26.2959 30.5288 24.3585C31.1952 17.7559 29.4733 12.0212 26.0015 6.9529ZM10.2527 20.8402C8.73376 20.8402 7.49382 19.4608 7.49382 17.7714C7.49382 16.082 8.70276 14.7025 10.2527 14.7025C11.7871 14.7025 13.0425 16.082 13.0115 17.7714C13.0115 19.4608 11.7871 20.8402 10.2527 20.8402ZM20.4373 20.8402C18.9183 20.8402 17.6768 19.4608 17.6768 17.7714C17.6768 16.082 18.8873 14.7025 20.4373 14.7025C21.9717 14.7025 23.2271 16.082 23.1961 17.7714C23.1961 19.4608 21.9872 20.8402 20.4373 20.8402Z"></path></svg><span className="nx-sr-only"></span></a>
+
+
               <button
                 onClick={() => setSidebarOpen(!sidebarOpen)}
                 className="md:hidden"
@@ -143,11 +121,10 @@ export default function DocsPage() {
                         <a
                           href={item.href}
                           onClick={() => setActiveSection(item.id)}
-                          className={`block px-3 py-2 text-sm rounded-md transition-colors ${
-                            activeSection === item.id
+                          className={`block px-3 py-2 text-sm rounded-md transition-colors ${activeSection === item.id
                               ? 'bg-primary text-primary-foreground'
                               : 'text-muted-foreground hover:text-foreground hover:bg-muted'
-                          }`}
+                            }`}
                         >
                           {item.label}
                         </a>
@@ -461,8 +438,7 @@ ORDER BY total_sales DESC;`}</pre>
                       <span className="px-3 py-1 bg-primary/10 text-primary rounded-full text-sm font-medium">PostgreSQL</span>
                       <span className="px-3 py-1 bg-primary/10 text-primary rounded-full text-sm font-medium">Oracle</span>
                       <span className="px-3 py-1 bg-primary/10 text-primary rounded-full text-sm font-medium">SQL Server</span>
-                      <span className="px-3 py-1 bg-primary/10 text-primary rounded-full text-sm font-medium">H2</span>
-                    </div>
+                     </div>
                   </CardContent>
                 </Card>
 
@@ -477,7 +453,7 @@ ORDER BY total_sales DESC;`}</pre>
                     <ul className="space-y-2 text-sm text-muted-foreground">
                       <li className="flex items-center gap-2">
                         <CheckCircle className="w-4 h-4 text-green-500" />
-                        <strong>Demo AI:</strong> Free tier with 30 queries/day
+                        <strong>Free :</strong> Free tier with 30 queries/day
                       </li>
                       <li className="flex items-center gap-2">
                         <CheckCircle className="w-4 h-4 text-green-500" />
@@ -529,39 +505,61 @@ FLUSH PRIVILEGES;`}</pre>
                 </CardContent>
               </Card>
 
-              <Card>
-                <CardHeader>
-                  <CardTitle>Connection String Format</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    <div>
-                      <h4 className="font-semibold text-sm mb-2">MySQL / MariaDB</h4>
-                      <code className="block bg-muted p-2 rounded text-sm">
-                        jdbc:mysql://hostname:3306/database_name
-                      </code>
-                    </div>
-                    <div>
-                      <h4 className="font-semibold text-sm mb-2">PostgreSQL</h4>
-                      <code className="block bg-muted p-2 rounded text-sm">
-                        jdbc:postgresql://hostname:5432/database_name
-                      </code>
-                    </div>
-                    <div>
-                      <h4 className="font-semibold text-sm mb-2">Oracle</h4>
-                      <code className="block bg-muted p-2 rounded text-sm">
-                        jdbc:oracle:thin:@hostname:1521:SID
-                      </code>
-                    </div>
-                    <div>
-                      <h4 className="font-semibold text-sm mb-2">SQL Server</h4>
-                      <code className="block bg-muted p-2 rounded text-sm">
-                        jdbc:sqlserver://hostname:1433;databaseName=database_name
-                      </code>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+<Card>
+  <CardHeader>
+    <CardTitle>Database Connection Details</CardTitle>
+  </CardHeader>
+  <CardContent>
+    <div className="space-y-3">
+      <div>
+        <label className="font-semibold text-sm mb-1 block">Host</label>
+        <input
+          type="text"
+          value="localhost"
+          readOnly
+          className="w-full bg-muted p-2 rounded text-sm border border-gray-300"
+        />
+      </div>
+      <div>
+        <label className="font-semibold text-sm mb-1 block">Port</label>
+        <input
+          type="text"
+          value="3306"
+          readOnly
+          className="w-full bg-muted p-2 rounded text-sm border border-gray-300"
+        />
+      </div>
+      <div>
+        <label className="font-semibold text-sm mb-1 block">Database Name</label>
+        <input
+          type="text"
+          value="sample_db"
+          readOnly
+          className="w-full bg-muted p-2 rounded text-sm border border-gray-300"
+        />
+      </div>
+      <div>
+        <label className="font-semibold text-sm mb-1 block">Username</label>
+        <input
+          type="text"
+          value="root"
+          readOnly
+          className="w-full bg-muted p-2 rounded text-sm border border-gray-300"
+        />
+      </div>
+      <div>
+        <label className="font-semibold text-sm mb-1 block">Password</label>
+        <input
+          type="password"
+          value="password123"
+          readOnly
+          className="w-full bg-muted p-2 rounded text-sm border border-gray-300"
+        />
+      </div>
+    </div>
+  </CardContent>
+</Card>
+
             </section>
 
             {/* AI Providers */}
@@ -574,7 +572,7 @@ FLUSH PRIVILEGES;`}</pre>
               <div className="space-y-4">
                 <Card>
                   <CardHeader>
-                    <CardTitle className="text-lg">Demo AI (OpenRouter)</CardTitle>
+                    <CardTitle className="text-lg">Free</CardTitle>
                     <CardDescription>Free tier - 30 queries per day</CardDescription>
                   </CardHeader>
                   <CardContent>
@@ -693,58 +691,119 @@ FLUSH PRIVILEGES;`}</pre>
               </div>
             </section>
 
-            {/* API Reference */}
-            <section id="rest-api" className="mb-16">
-              <h2 className="text-3xl font-bold mb-6">REST API Reference</h2>
+            <section id="v1-features" className="mb-16">
+              <h2 className="text-3xl font-bold mb-6">Coming in v1</h2>
               <p className="text-muted-foreground mb-6">
-                Integrate EadgeQuery into your applications using our REST API.
+                We're working on exciting new features to make EadgeQuery even more powerful. Here's what's coming in our next major release.
               </p>
 
-              <Card className="border-l-4 border-l-yellow-500 mb-6">
+              <div className="grid md:grid-cols-2 gap-4 mb-8">
+                <Card className="border-l-4 border-l-primary">
+                  <CardHeader>
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <Zap className="w-5 h-5 text-primary" />
+                      Advanced AI Models
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <ul className="space-y-2 text-sm text-muted-foreground">
+                      <li className="flex items-center gap-2">
+                        <CheckCircle className="w-4 h-4 text-green-500" />
+                        <strong>Claude 4 Sonnet</strong> - Unlimited queries
+                      </li>
+                      <li className="flex items-center gap-2">
+                        <CheckCircle className="w-4 h-4 text-green-500" />
+                        <strong>GPT-4.1 Mini</strong> - Unlimited queries
+                      </li>
+                      <li className="flex items-center gap-2">
+                        <CheckCircle className="w-4 h-4 text-green-500" />
+                        <strong>GPT-4.1</strong> - Unlimited queries
+                      </li>
+                    </ul>
+                  </CardContent>
+                </Card>
+
+                <Card className="border-l-4 border-l-primary">
+                  <CardHeader>
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <Database className="w-5 h-5 text-primary" />
+                      Enhanced Connectivity
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <ul className="space-y-2 text-sm text-muted-foreground">
+                      <li className="flex items-center gap-2">
+                        <CheckCircle className="w-4 h-4 text-green-500" />
+                        Support for <strong>10+ database connections</strong>
+                      </li>
+                      <li className="flex items-center gap-2">
+                        <CheckCircle className="w-4 h-4 text-green-500" />
+                        Connect multiple data sources simultaneously
+                      </li>
+                      <li className="flex items-center gap-2">
+                        <CheckCircle className="w-4 h-4 text-green-500" />
+                        Cross-database queries and joins
+                      </li>
+                    </ul>
+                  </CardContent>
+                </Card>
+
+                <Card className="border-l-4 border-l-primary">
+                  <CardHeader>
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <MessageSquare className="w-5 h-5 text-primary" />
+                      Conversation & History
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <ul className="space-y-2 text-sm text-muted-foreground">
+                      <li className="flex items-center gap-2">
+                        <CheckCircle className="w-4 h-4 text-green-500" />
+                        <strong>Full conversation history</strong> for all queries
+                      </li>
+                      <li className="flex items-center gap-2">
+                        <CheckCircle className="w-4 h-4 text-green-500" />
+                        Context-aware follow-up questions
+                      </li>
+                      <li className="flex items-center gap-2">
+                        <CheckCircle className="w-4 h-4 text-green-500" />
+                        Save and share conversations
+                      </li>
+                    </ul>
+                  </CardContent>
+                </Card>
+
+                <Card className="border-l-4 border-l-primary">
+                  <CardHeader>
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <Settings className="w-5 h-5 text-primary" />
+                      Export & Support
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <ul className="space-y-2 text-sm text-muted-foreground">
+                      <li className="flex items-center gap-2">
+                        <CheckCircle className="w-4 h-4 text-green-500" />
+                        <strong>Export to CSV</strong> for all query results
+                      </li>
+                      <li className="flex items-center gap-2">
+                        <CheckCircle className="w-4 h-4 text-green-500" />
+                        <strong>Priority support</strong> for all users
+                      </li>
+                      <li className="flex items-center gap-2">
+                        <CheckCircle className="w-4 h-4 text-green-500" />
+                        Enhanced reporting tools
+                      </li>
+                    </ul>
+                  </CardContent>
+                </Card>
+              </div>
+
+              <Card className="bg-primary/5 border-primary/20">
                 <CardContent className="pt-6">
-                  <div className="flex items-start gap-3">
-                    <span className="text-2xl">⚠️</span>
-                    <div>
-                      <h4 className="font-semibold mb-1">Coming in v1.0</h4>
-                      <p className="text-sm text-muted-foreground">
-                        The REST API is currently in development and will be available in version 1.0.
-                        Check back soon for complete API documentation.
-                      </p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle>Endpoint Preview</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <div>
-                      <div className="flex items-center gap-2 mb-2">
-                        <span className="px-2 py-1 bg-green-100 text-green-700 text-xs font-semibold rounded">POST</span>
-                        <code className="text-sm">/api/v1/query</code>
-                      </div>
-                      <p className="text-sm text-muted-foreground">Execute a natural language query</p>
-                    </div>
-
-                    <div>
-                      <div className="flex items-center gap-2 mb-2">
-                        <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs font-semibold rounded">GET</span>
-                        <code className="text-sm">/api/v1/history</code>
-                      </div>
-                      <p className="text-sm text-muted-foreground">Retrieve query history</p>
-                    </div>
-
-                    <div>
-                      <div className="flex items-center gap-2 mb-2">
-                        <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs font-semibold rounded">GET</span>
-                        <code className="text-sm">/api/v1/databases</code>
-                      </div>
-                      <p className="text-sm text-muted-foreground">List connected databases</p>
-                    </div>
-                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    <strong>Stay tuned!</strong> We're actively developing these features and will announce the v1 release date soon. Follow our blog and subscribe to updates to be notified when v1 launches.
+                  </p>
                 </CardContent>
               </Card>
             </section>

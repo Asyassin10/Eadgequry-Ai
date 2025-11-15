@@ -47,14 +47,13 @@ export function Layout({ children, isDark, onToggleTheme }: LayoutProps) {
     <div className="flex h-screen bg-background">
       {/* Sidebar */}
       <aside
-        className={`${
-          sidebarOpen ? "w-64" : "w-20"
-        } bg-sidebar border-r border-sidebar-border transition-all duration-300 flex flex-col`}
+        className={`${sidebarOpen ? "w-64" : "w-20"
+          } bg-sidebar border-r border-sidebar-border transition-all duration-300 flex flex-col`}
       >
         {/* Logo */}
         <div className="p-6 border-b border-sidebar-border">
           <Link href="/" className="flex items-center gap-3">
-            <img src="/logo.png" alt="EadgeQuery AI" className="w-10 h-10" />
+            <img src="/logo.png" alt="EadgeQuery" className="w-10 h-10" />
             {sidebarOpen && <span className="font-bold text-lg text-sidebar-foreground truncate">EadgeQuery</span>}
           </Link>
         </div>
@@ -67,11 +66,10 @@ export function Layout({ children, isDark, onToggleTheme }: LayoutProps) {
               <Link
                 key={item.href}
                 href={item.href}
-                className={`flex items-center gap-3 px-4 py-2 rounded-lg transition-colors ${
-                  isActive(item.href)
+                className={`flex items-center gap-3 px-4 py-2 rounded-lg transition-colors ${isActive(item.href)
                     ? "bg-sidebar-primary text-sidebar-primary-foreground"
                     : "text-sidebar-foreground hover:bg-sidebar-accent"
-                }`}
+                  }`}
               >
                 <IconComponent className="w-5 h-5 flex-shrink-0" />
                 {sidebarOpen && <span className="text-sm">{item.label}</span>}
@@ -93,7 +91,7 @@ export function Layout({ children, isDark, onToggleTheme }: LayoutProps) {
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Navbar */}
         <header className="bg-card border-b border-border px-6 py-4 flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-foreground">EadgeQuery AI</h1>
+          <h1 className="text-2xl font-bold text-foreground">EadgeQuery</h1>
 
           <div className="flex items-center gap-4">
             {/* Notifications */}
