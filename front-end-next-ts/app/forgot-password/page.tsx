@@ -102,67 +102,110 @@ export default function ForgotPasswordPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="space-y-1">
-          <div className="flex items-center justify-center mb-4">
-            <div className="w-12 h-12 bg-primary rounded-full flex items-center justify-center">
-              <Mail className="w-6 h-6 text-primary-foreground" />
+    <div className="min-h-screen bg-gradient-to-b from-background to-muted">
+
+      <nav className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50">
+        <div className="container mx-auto px-4 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+
+
+              <img src="/logo.png" alt="EadgeQuery Logo" className="w-8 h-8" />
+              <span className="text-2xl font-bold bg-gradient-to-r from-primary to-blue-600 bg-clip-text text-transparent">
+                EadgeQuery
+              </span>
+              <span className="text-xs text-muted-foreground ml-2">v0.1</span>
+            </div>
+            <div className="hidden md:flex items-center gap-8">
+              <a href="/#features" className="text-sm font-medium hover:text-primary transition-colors">
+                Features
+              </a>
+
+              <a href="/#pricing" className="text-sm font-medium hover:text-primary transition-colors">
+                Pricing
+              </a>
+              <Link href="/#faq" className="text-sm font-medium hover:text-primary transition-colors">
+                FAQ
+              </Link>
+              <Link href="/docs" className="text-sm font-medium hover:text-primary transition-colors">
+                Docs
+              </Link>
+              <Link href="/blog" className="text-sm font-medium hover:text-primary transition-colors">
+                Blog
+              </Link>
+            </div>
+            <div className="flex items-center gap-4">
+
+         
             </div>
           </div>
-          <CardTitle className="text-2xl font-bold text-center">Forgot password?</CardTitle>
-          <CardDescription className="text-center">
-            Enter your email address and we'll send you a link to reset your password
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email">Email address</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="john@example.com"
-                {...register('email')}
-                disabled={isSubmitting}
-              />
-              {errors.email && (
-                <p className="text-sm text-red-600 dark:text-red-400">{errors.email.message}</p>
-              )}
+        </div>
+      </nav>
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 p-4">
+        <Card className="w-full max-w-md">
+          <CardHeader className="space-y-1">
+            <div className="flex items-center justify-center mb-4">
+            <div className="flex items-center justify-center mb-4">
+              <div className=" w-20
+                 rounded-full flex items-center justify-center">
+                <img src="logo.png" className=" text-primary-foreground" />
+              </div>
             </div>
+            </div>
+            <CardTitle className="text-2xl font-bold text-center">Forgot password?</CardTitle>
+            <CardDescription className="text-center">
+              Enter your email address and we'll send you a link to reset your password
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="email">Email address</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="john@example.com"
+                  {...register('email')}
+                  disabled={isSubmitting}
+                />
+                {errors.email && (
+                  <p className="text-sm text-red-600 dark:text-red-400">{errors.email.message}</p>
+                )}
+              </div>
 
-            <Button type="submit" className="w-full" disabled={isSubmitting}>
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Sending...
-                </>
-              ) : (
-                <>
-                  <Mail className="mr-2 h-4 w-4" />
-                  Send reset link
-                </>
-              )}
-            </Button>
-          </form>
-
-          <div className="mt-6">
-            <Link href="/login">
-              <Button variant="ghost" className="w-full">
-                <ArrowLeft className="mr-2 h-4 w-4" />
-                Back to login
+              <Button type="submit" className="w-full" disabled={isSubmitting}>
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Sending...
+                  </>
+                ) : (
+                  <>
+                    <Mail className="mr-2 h-4 w-4" />
+                    Send reset link
+                  </>
+                )}
               </Button>
-            </Link>
-          </div>
+            </form>
 
-          <div className="mt-6 text-center text-sm">
-            <span className="text-gray-600 dark:text-gray-400">Don't have an account? </span>
-            <Link href="/register" className="text-primary hover:underline font-medium">
-              Sign up
-            </Link>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
-  );
+            <div className="mt-6">
+              <Link href="/login">
+                <Button variant="ghost" className="w-full">
+                  <ArrowLeft className="mr-2 h-4 w-4" />
+                  Back to login
+                </Button>
+              </Link>
+            </div>
+
+            <div className="mt-6 text-center text-sm">
+              <span className="text-gray-600 dark:text-gray-400">Don't have an account? </span>
+              <Link href="/register" className="text-primary hover:underline font-medium">
+                Sign up
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+       </div>
+      );
 }

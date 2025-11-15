@@ -30,7 +30,7 @@ export function LandingPage() {
       <nav className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
+            <a href="/" className="flex items-center gap-2">
 
 
               <img src="/logo.png" alt="EadgeQuery Logo" className="w-8 h-8" />
@@ -38,7 +38,7 @@ export function LandingPage() {
                 EadgeQuery
               </span>
               <span className="text-xs text-muted-foreground ml-2">v0.1</span>
-            </div>
+            </a>
             <div className="hidden md:flex items-center gap-8">
               <a href="#features" className="text-sm font-medium hover:text-primary transition-colors">
                 Features
