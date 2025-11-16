@@ -1,0 +1,124 @@
+# Prometheus Configuration for EadgeQuery Microservices
+
+global:
+  scrape_interval: 15s # Scrape metrics every 15 seconds
+  evaluation_interval: 15s # Evaluate rules every 15 seconds
+  external_labels:
+    monitor: 'eadgequry-monitor'
+    environment: 'development'
+
+# Alerting configuration (optional)
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: []
+
+# Load rules once and periodically evaluate them
+rule_files:
+  # - "alerts.yml"
+
+# Scrape configurations
+scrape_configs:
+  # Prometheus itself
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+        labels:
+          service: 'prometheus'
+
+  # Auth Service
+  - job_name: 'auth-service'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['auth:8081']
+        labels:
+          application: 'auth'
+          service: 'authentication'
+          environment: 'dev'
+
+  # API Gateway
+  - job_name: 'api-gateway'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['api-gatway:8765']
+        labels:
+          application: 'api-gateway'
+          service: 'gateway'
+          environment: 'dev'
+
+  # Naming Server (Eureka)
+  - job_name: 'naming-server'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['naming-server:8761']
+        labels:
+          application: 'naming-server'
+          service: 'discovery'
+          environment: 'dev'
+
+  # Chat Bot Service
+  - job_name: 'chat-bot-service'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['chat-bot-service:8086']
+        labels:
+          application: 'chat-bot'
+          service: 'chatbot'
+          environment: 'dev'
+
+  # Data Source Service
+  - job_name: 'data-source'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['data-source:8087']
+        labels:
+          application: 'data-source'
+          service: 'datasource'
+          environment: 'dev'
+
+  # User Profile Service
+  - job_name: 'user-profile'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['user-profile:8088']
+        labels:
+          application: 'user-profile'
+          service: 'profile'
+          environment: 'dev'
+
+  # Notification Service
+  - job_name: 'notification'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['notification:8089']
+        labels:
+          application: 'notification'
+          service: 'notifications'
+          environment: 'dev'
+
+  # MySQL Databases (optional - requires mysql exporter)
+  # - job_name: 'mysql'
+  #   static_configs:
+  #     - targets: ['mysql-exporter:9104']
+
+  # Zipkin (optional)
+  - job_name: 'zipkin'
+    static_configs:
+      - targets: ['zipkin:9411']
+        labels:
+          service: 'tracing'
+
+  # SonarQube (optional)
+  - job_name: 'sonarqube'
+    static_configs:
+      - targets: ['sonarqube:9000']
+        labels:
+          service: 'code-quality'
+
+  # Jenkins (optional)
+  - job_name: 'jenkins'
+    metrics_path: '/jenkins/prometheus'
+    static_configs:
+      - targets: ['jenkins:8080']
+        labels:
+          service: 'ci-cd'
