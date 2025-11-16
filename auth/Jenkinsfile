@@ -1,32 +1,34 @@
-@Library('eadgequry-shared') _
-
-// Service-specific configuration
-def SERVICE_NAME = 'auth'
-def SERVICE_PATH = 'auth'
+// Auth Service Jenkins Pipeline - Separate Repository Version
+// This Jenkinsfile is designed for a standalone microservice repository
 
 pipeline {
     agent any
 
     environment {
-        SERVICE_NAME = "${SERVICE_NAME}"
-        SERVICE_PATH = "${SERVICE_PATH}"
+        // Service configuration
+        SERVICE_NAME = 'auth'
         DOCKER_IMAGE = "eadgequry/${SERVICE_NAME}"
         DOCKER_TAG = "${BUILD_NUMBER}"
 
-        // Service-specific ports
+        // Service-specific configuration
         SERVICE_PORT = '8081'
-
-        // Database configuration
         DB_HOST = 'mysql'
         DB_PORT = '3306'
         DB_NAME = 'eadgequry-auth'
+
+        // Maven settings
+        MAVEN_OPTS = '-Dmaven.test.failure.ignore=false'
+
+        // SonarQube settings (optional - configure in Jenkins)
+        SONAR_HOST_URL = 'http://localhost:9000'
+        SONAR_PROJECT_KEY = "eadgequry-${SERVICE_NAME}"
     }
 
     parameters {
         choice(name: 'BUILD_TYPE', choices: ['build', 'test', 'deploy', 'full'], description: 'Select build type')
-        booleanParam(name: 'RUN_SONAR', defaultValue: true, description: 'Run SonarQube analysis')
+        booleanParam(name: 'RUN_SONAR', defaultValue: false, description: 'Run SonarQube analysis')
         booleanParam(name: 'RUN_TESTS', defaultValue: true, description: 'Run unit tests')
-        booleanParam(name: 'DEPLOY_TO_COMPOSE', defaultValue: false, description: 'Deploy to Docker Compose')
+        booleanParam(name: 'BUILD_DOCKER', defaultValue: true, description: 'Build Docker image')
     }
 
     stages {
@@ -37,35 +39,72 @@ pipeline {
             }
         }
 
-        stage('Build & Test') {
+        stage('Environment Info') {
             steps {
-                dir("${SERVICE_PATH}") {
-                    script {
-                        echo "🏗️ Building ${SERVICE_NAME}..."
+                script {
+                    echo """
+                    ╔════════════════════════════════════════╗
+                    ║   ${SERVICE_NAME.toUpperCase()} Service Pipeline
+                    ╠════════════════════════════════════════╣
+                    ║ Build: #${BUILD_NUMBER}
+                    ║ Branch: ${env.GIT_BRANCH ?: 'N/A'}
+                    ║ Type: ${params.BUILD_TYPE}
+                    ╚════════════════════════════════════════╝
+                    """
 
-                        if (params.RUN_TESTS) {
-                            sh 'mvn clean test'
-                        }
+                    sh '''
+                        echo "☕ Java Version:"
+                        java -version
+                        echo "📦 Maven Version:"
+                        mvn --version
+                        echo "🐳 Docker Version:"
+                        docker --version
+                    '''
+                }
+            }
+        }
 
-                        sh 'mvn clean package -DskipTests'
-                    }
+        stage('Run Tests') {
+            when {
+                expression { params.RUN_TESTS && params.BUILD_TYPE in ['test', 'full'] }
+            }
+            steps {
+                script {
+                    echo "🧪 Running tests for ${SERVICE_NAME}..."
+                    sh 'mvn clean test'
+                }
+            }
+            post {
+                always {
+                    junit '**/target/surefire-reports/*.xml'
+                }
+            }
+        }
+
+        stage('Build Application') {
+            when {
+                expression { params.BUILD_TYPE in ['build', 'deploy', 'full'] }
+            }
+            steps {
+                script {
+                    echo "🏗️ Building ${SERVICE_NAME}..."
+                    sh 'mvn clean package -DskipTests'
                 }
             }
         }
 
         stage('SonarQube Analysis') {
             when {
-                expression { params.RUN_SONAR }
+                expression { params.RUN_SONAR && params.BUILD_TYPE in ['build', 'full'] }
             }
             steps {
-                dir("${SERVICE_PATH}") {
+                script {
+                    echo "📊 Running SonarQube analysis..."
                     sh """
                         mvn sonar:sonar \
-                            -Dsonar.projectKey=eadgequry-${SERVICE_NAME} \
+                            -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
                             -Dsonar.projectName=${SERVICE_NAME} \
-                            -Dsonar.host.url=http://sonarqube:9000 \
-                            -Dsonar.login=admin \
-                            -Dsonar.password=admin
+                            -Dsonar.host.url=${SONAR_HOST_URL}
                     """
                 }
             }
@@ -73,42 +112,61 @@ pipeline {
 
         stage('Build Docker Image') {
             when {
-                expression { params.BUILD_TYPE in ['deploy', 'full'] }
+                expression { params.BUILD_DOCKER && params.BUILD_TYPE in ['deploy', 'full'] }
             }
             steps {
-                dir("${SERVICE_PATH}") {
+                script {
+                    echo "🐳 Building Docker image for ${SERVICE_NAME}..."
                     sh """
                         docker build -t ${DOCKER_IMAGE}:${DOCKER_TAG} .
                         docker tag ${DOCKER_IMAGE}:${DOCKER_TAG} ${DOCKER_IMAGE}:latest
                     """
+                    echo "✅ Docker image built: ${DOCKER_IMAGE}:${DOCKER_TAG}"
                 }
             }
         }
 
-        stage('Deploy') {
+        stage('Push Docker Image') {
             when {
-                expression { params.DEPLOY_TO_COMPOSE }
+                expression {
+                    params.BUILD_DOCKER &&
+                    params.BUILD_TYPE in ['deploy', 'full'] &&
+                    env.DOCKER_REGISTRY_CREDENTIALS != null
+                }
             }
             steps {
-                sh """
-                    docker-compose stop ${SERVICE_NAME} || true
-                    docker-compose rm -f ${SERVICE_NAME} || true
-                    docker-compose up -d ${SERVICE_NAME}
-                    echo '✅ ${SERVICE_NAME} deployed on port ${SERVICE_PORT}'
-                """
+                script {
+                    echo "📤 Pushing Docker image to registry..."
+                    // Uncomment when you have a registry configured
+                    // docker.withRegistry('https://your-registry', 'docker-credentials') {
+                    //     sh "docker push ${DOCKER_IMAGE}:${DOCKER_TAG}"
+                    //     sh "docker push ${DOCKER_IMAGE}:latest"
+                    // }
+                }
             }
         }
     }
 
     post {
         always {
-            echo "Pipeline for ${SERVICE_NAME} completed with status: ${currentBuild.result ?: 'SUCCESS'}"
+            echo """
+            ╔════════════════════════════════════════╗
+            ║   Pipeline Completed
+            ╠════════════════════════════════════════╣
+            ║ Service: ${SERVICE_NAME}
+            ║ Status: ${currentBuild.result ?: 'SUCCESS'}
+            ║ Duration: ${currentBuild.durationString}
+            ╚════════════════════════════════════════╝
+            """
         }
         success {
             echo "✅ ${SERVICE_NAME} pipeline succeeded!"
         }
         failure {
             echo "❌ ${SERVICE_NAME} pipeline failed!"
+        }
+        unstable {
+            echo "⚠️ ${SERVICE_NAME} pipeline is unstable!"
         }
     }
 }
