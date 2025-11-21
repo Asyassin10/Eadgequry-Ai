@@ -1,5 +1,7 @@
 # Podman Compose Configuration
-# Use 'podman-compose' instead of 'docker-compose' to run this file
+# This file uses Containerfile (OCI standard) instead of Dockerfile
+# All services use Containerfile for building images
+# Usage: podman-compose -f podman-compose.yml up -d
 # Install: pip install podman-compose
 version: "3.9"
 

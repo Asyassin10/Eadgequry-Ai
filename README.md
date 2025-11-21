@@ -40,23 +40,21 @@ podman run -d -p 9411:9411 openzipkin/zipkin
 
 ### Production Mode (Podman)
 
-**📖 First time with Podman?** See [PODMAN_SETUP_GUIDE.md](PODMAN_SETUP_GUIDE.md) for detailed configuration guide.
-
 ```bash
 # Build and run all services
-podman-compose up --build
+podman-compose -f podman-compose.yml up --build
 
 # Run in background
-podman-compose up -d
+podman-compose -f podman-compose.yml up -d
 
 # Stop services
-podman-compose down
+podman-compose -f podman-compose.yml down
 ```
 
-**⚙️ Podman Configuration:**
-- **Rootless Podman** (recommended): Update `docker-compose.yml` line 297 socket path
-- **Rootful Podman**: Use `sudo podman-compose up -d`
-- Complete setup instructions in [PODMAN_SETUP_GUIDE.md](PODMAN_SETUP_GUIDE.md)
+**Notes:**
+- All services use **Containerfile** (OCI standard) instead of Dockerfile
+- For rootless Podman: Update socket path in `podman-compose.yml` line 297
+- For rootful Podman: Run with `sudo podman-compose -f podman-compose.yml up -d`
 
 ## 🔗 Access URLs
 

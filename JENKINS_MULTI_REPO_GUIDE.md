@@ -6,15 +6,15 @@ This guide shows you how to set up Jenkins for a **microservices architecture** 
 
 ## ✅ What's Been Fixed
 
-### 1. **Created Missing Dockerfiles**
-All services now have Dockerfiles:
-- ✓ `auth/Dockerfile`
-- ✓ `api-gatway/Dockerfile`
-- ✓ `naming-server/Dockerfile`
-- ✓ `chat-bot-service/Dockerfile` (NEW)
-- ✓ `data-source/Dockerfile` (NEW)
-- ✓ `user-profile/Dockerfile` (NEW)
-- ✓ `notification/Dockerfile` (NEW)
+### 1. **Created Missing Containerfiles**
+All services now have Containerfiles:
+- ✓ `auth/Containerfile`
+- ✓ `api-gatway/Containerfile`
+- ✓ `naming-server/Containerfile`
+- ✓ `chat-bot-service/Containerfile` (NEW)
+- ✓ `data-source/Containerfile` (NEW)
+- ✓ `user-profile/Containerfile` (NEW)
+- ✓ `notification/Containerfile` (NEW)
 
 ### 2. **Updated Jenkinsfiles for Separate Repos**
 - ✓ Removed `@Library('eadgequry-shared')` dependency
@@ -47,14 +47,14 @@ GitHub/
 ├── eadgequry-auth/
 │   ├── src/
 │   ├── pom.xml
-│   ├── Dockerfile
+│   ├── Containerfile
 │   ├── Jenkinsfile
 │   └── README.md
 │
 ├── eadgequry-api-gateway/
 │   ├── src/
 │   ├── pom.xml
-│   ├── Dockerfile
+│   ├── Containerfile
 │   ├── Jenkinsfile
 │   └── README.md
 │
@@ -62,7 +62,7 @@ GitHub/
 │   └── ...
 │
 └── eadgequry-infrastructure/
-    ├── docker-compose.yml
+    ├── podman-compose.yml
     ├── jenkins/
     └── scripts/
 ```
@@ -86,7 +86,7 @@ Eadgequry-Ai/
 ├── user-profile/
 ├── notification/
 ├── naming-server/
-└── docker-compose.yml
+└── podman-compose.yml
 ```
 
 **Benefits:**
@@ -467,7 +467,7 @@ done
 ## 🎯 Summary
 
 **What's Fixed:**
-- ✅ All services have Dockerfiles
+- ✅ All services have Containerfiles
 - ✅ All Jenkinsfiles work for separate repos (no SERVICE_PATH)
 - ✅ Removed dependency on shared library
 - ✅ Proper test reporting and SonarQube integration
