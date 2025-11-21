@@ -37,7 +37,7 @@ print_warning() {
 check_sonarqube() {
     print_info "Checking if SonarQube is running..."
 
-    if docker ps | grep -q "sonarqube"; then
+    if podman ps | grep -q "sonarqube"; then
         print_success "SonarQube is running"
 
         # Wait for SonarQube to be ready
@@ -58,7 +58,7 @@ check_sonarqube() {
         print_success "SonarQube is ready!"
     else
         print_error "SonarQube is not running!"
-        print_info "Please start SonarQube using: docker-compose up -d sonarqube sonarqube-db"
+        print_info "Please start SonarQube using: podman-compose up -d sonarqube sonarqube-db"
         exit 1
     fi
 }

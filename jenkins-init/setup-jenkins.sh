@@ -43,8 +43,8 @@ echo "🔑 Jenkins Initial Admin Password:"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
 # Try to get initial admin password from container
-if docker ps --filter "name=jenkins-cicd" --format "{{.Names}}" | grep -q jenkins; then
-    INITIAL_PASSWORD=$(docker exec jenkins-cicd cat /var/jenkins_home/secrets/initialAdminPassword 2>/dev/null || echo "")
+if podman ps --filter "name=jenkins-cicd" --format "{{.Names}}" | grep -q jenkins; then
+    INITIAL_PASSWORD=$(podman exec jenkins-cicd cat /var/jenkins_home/secrets/initialAdminPassword 2>/dev/null || echo "")
 
     if [ -n "$INITIAL_PASSWORD" ]; then
         echo ""
@@ -199,16 +199,16 @@ echo "🚀 Quick Start Commands:"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo ""
 echo "# Start Jenkins"
-echo "docker-compose up -d jenkins"
+echo "podman-compose up -d jenkins"
 echo ""
 echo "# View logs"
-echo "docker-compose logs -f jenkins"
+echo "podman-compose logs -f jenkins"
 echo ""
 echo "# Get initial admin password"
-echo "docker exec jenkins-cicd cat /var/jenkins_home/secrets/initialAdminPassword"
+echo "podman exec jenkins-cicd cat /var/jenkins_home/secrets/initialAdminPassword"
 echo ""
 echo "# Restart Jenkins"
-echo "docker-compose restart jenkins"
+echo "podman-compose restart jenkins"
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo ""

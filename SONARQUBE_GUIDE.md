@@ -46,7 +46,7 @@ Complete guide for running SonarQube code quality analysis on Eadgequry microser
 
 ## Prerequisites
 
-- Docker and Docker Compose installed
+- Podman and Podman Compose installed
 - Java 21+ installed
 - Maven installed
 - Auth service with tests completed
@@ -59,10 +59,10 @@ Complete guide for running SonarQube code quality analysis on Eadgequry microser
 
 ```bash
 # Start only SonarQube and its database
-docker-compose up -d sonarqube-db sonarqube
+podman-compose up -d sonarqube-db sonarqube
 
 # Or start all services including MySQL, Zipkin, etc.
-docker-compose up -d
+podman-compose up -d
 ```
 
 **Wait time:** SonarQube takes ~60-90 seconds to start completely
@@ -71,7 +71,7 @@ docker-compose up -d
 
 ```bash
 # View logs
-docker logs -f sonarqube
+podman logs -f sonarqube
 
 # Wait for this message:
 # "SonarQube is operational"
@@ -193,22 +193,22 @@ cd auth
 
 ```bash
 # Start SonarQube only
-docker-compose up -d sonarqube-db sonarqube
+podman-compose up -d sonarqube-db sonarqube
 
 # Start all services
-docker-compose up -d
+podman-compose up -d
 
 # Stop SonarQube
-docker-compose stop sonarqube sonarqube-db
+podman-compose stop sonarqube sonarqube-db
 
 # Restart SonarQube
-docker-compose restart sonarqube
+podman-compose restart sonarqube
 
 # View logs
-docker logs -f sonarqube
+podman logs -f sonarqube
 
 # Check status
-docker ps | grep sonarqube
+podman ps | grep sonarqube
 ```
 
 ### Maven Commands
@@ -257,9 +257,9 @@ curl -u admin:your_password \
 
 ## Configuration Files
 
-### 1. docker-compose.yml
+### 1. podman-compose.yml
 
-SonarQube configuration in docker-compose:
+SonarQube configuration in podman-compose:
 
 ```yaml
 services:
@@ -479,14 +479,14 @@ Based on our unit tests, expected coverage for **included code only**:
 
 **Check logs:**
 ```bash
-docker logs sonarqube
+podman logs sonarqube
 ```
 
 **Common causes:**
 1. Insufficient memory
    ```bash
-   # Increase Docker memory to 4GB minimum
-   # Docker Desktop: Settings → Resources → Memory → 4GB
+   # Increase Podman memory to 4GB minimum
+   # For Podman Machine: podman machine set --memory 4096
    ```
 
 2. Port 9000 already in use
@@ -494,7 +494,7 @@ docker logs sonarqube
    # Check what's using port 9000
    sudo lsof -i :9000
 
-   # Change port in docker-compose.yml
+   # Change port in podman-compose.yml
    ports:
      - "9001:9000"  # Use 9001 instead
    ```
@@ -502,9 +502,9 @@ docker logs sonarqube
 3. Database not ready
    ```bash
    # Restart database first
-   docker-compose restart sonarqube-db
+   podman-compose restart sonarqube-db
    sleep 10
-   docker-compose restart sonarqube
+   podman-compose restart sonarqube
    ```
 
 ---
@@ -516,13 +516,13 @@ docker logs sonarqube
 **Solution:**
 ```bash
 # Check SonarQube is running
-docker ps | grep sonarqube
+podman ps | grep sonarqube
 
 # Check SonarQube status
 curl http://localhost:9000/api/system/status
 
 # If not UP, wait and retry
-docker logs -f sonarqube
+podman logs -f sonarqube
 
 # Verify host URL in pom.xml
 <sonar.host.url>http://localhost:9000</sonar.host.url>
@@ -760,7 +760,7 @@ Set up quality gates in SonarQube:
 
 ```bash
 # Start SonarQube
-docker-compose up -d sonarqube
+podman-compose up -d sonarqube
 
 # Run full analysis (auth service)
 cd auth && ./mvnw clean verify sonar:sonar -Dsonar.login=$SONAR_TOKEN
@@ -769,11 +769,11 @@ cd auth && ./mvnw clean verify sonar:sonar -Dsonar.login=$SONAR_TOKEN
 open http://localhost:9000/dashboard?id=eadgequry-auth
 
 # Stop SonarQube
-docker-compose stop sonarqube sonarqube-db
+podman-compose stop sonarqube sonarqube-db
 
 # Clean everything and restart
-docker-compose down -v
-docker-compose up -d sonarqube
+podman-compose down -v
+podman-compose up -d sonarqube
 ```
 
 ### URLs
@@ -792,7 +792,7 @@ docker-compose up -d sonarqube
 
 ## Summary
 
-✅ SonarQube running in Docker on port 9000
+✅ SonarQube running in Podman on port 9000
 ✅ PostgreSQL database for SonarQube data
 ✅ Auth service configured with sonar-project.properties
 ✅ Maven plugin for SonarQube Scanner
@@ -801,7 +801,7 @@ docker-compose up -d sonarqube
 ✅ Ready to analyze other services
 
 **Next Steps:**
-1. Start SonarQube: `docker-compose up -d sonarqube`
+1. Start SonarQube: `podman-compose up -d sonarqube`
 2. Login and create token: http://localhost:9000
 3. Run analysis: `cd auth && ./mvnw clean verify sonar:sonar -Dsonar.login=$SONAR_TOKEN`
 4. View results: http://localhost:9000/dashboard?id=eadgequry-auth

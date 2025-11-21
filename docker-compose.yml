@@ -1,3 +1,6 @@
+# Podman Compose Configuration
+# Use 'podman-compose' instead of 'docker-compose' to run this file
+# Install: pip install podman-compose
 version: "3.9"
 
 services:
@@ -287,7 +290,7 @@ services:
       - "50000:50000"
     volumes:
       - jenkins-data:/var/jenkins_home
-      - /var/run/docker.sock:/var/run/docker.sock
+      - /run/podman/podman.sock:/var/run/docker.sock
       - ./jenkins-jobs:/var/jenkins_jobs
     environment:
       - JENKINS_OPTS=--prefix=/jenkins

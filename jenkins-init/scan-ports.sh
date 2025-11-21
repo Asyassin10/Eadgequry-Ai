@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Port Scanner for Docker Compose
+# Port Scanner for Podman Compose
 # Scans docker-compose.yml and finds used/available ports
 
 set -e

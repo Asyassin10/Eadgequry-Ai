@@ -15,19 +15,19 @@ Jenkins runs on port 8080 INSIDE container, not 8980
 cd /path/to/Eadgequry-Ai
 
 # Stop Jenkins
-docker-compose stop jenkins
+podman-compose stop jenkins
 
 # Remove the container
-docker-compose rm -f jenkins
+podman-compose rm -f jenkins
 
-# Or use docker compose v2:
-docker compose stop jenkins
-docker compose rm -f jenkins
+# Or use podman compose v2:
+podman compose stop jenkins
+podman compose rm -f jenkins
 ```
 
-### STEP 2: Fix docker-compose.yml
+### STEP 2: Fix podman-compose.yml
 
-Open `docker-compose.yml` and find the Jenkins section (around line 280).
+Open `podman-compose.yml` and find the Jenkins section (around line 280).
 
 **CHANGE THIS:**
 ```yaml
@@ -59,7 +59,7 @@ ports:
       - "50000:50000"
     volumes:
       - jenkins-data:/var/jenkins_home
-      - /var/run/docker.sock:/var/run/docker.sock
+      - /run/podman/podman.sock:/var/run/docker.sock
       - ./jenkins-jobs:/var/jenkins_jobs
     environment:
       - JENKINS_OPTS=--prefix=/jenkins
@@ -77,19 +77,19 @@ ports:
 ### STEP 3: Start Jenkins
 ```bash
 # Start Jenkins
-docker-compose up -d jenkins
+podman-compose up -d jenkins
 
-# Or with docker compose v2:
-docker compose up -d jenkins
+# Or with podman compose v2:
+podman compose up -d jenkins
 ```
 
 ### STEP 4: Watch the Logs
 ```bash
 # Watch Jenkins startup
-docker-compose logs -f jenkins
+podman-compose logs -f jenkins
 
 # Or:
-docker compose logs -f jenkins
+podman compose logs -f jenkins
 
 # Wait until you see:
 # "Jenkins is fully up and running"
@@ -98,7 +98,7 @@ docker compose logs -f jenkins
 ### STEP 5: Get Admin Password
 **Open a NEW terminal** and run:
 ```bash
-docker exec jenkins-cicd cat /var/jenkins_home/secrets/initialAdminPassword
+podman exec jenkins-cicd cat /var/jenkins_home/secrets/initialAdminPassword
 ```
 
 **Copy the password** - you'll need it!
@@ -125,7 +125,7 @@ http://localhost:8082/jenkins
 ### TEST 1: Check Jenkins is Running
 ```bash
 # Check container status
-docker ps | grep jenkins
+podman ps | grep jenkins
 
 # You should see:
 # jenkins-cicd ... Up ... 0.0.0.0:8082->8080/tcp
@@ -134,7 +134,7 @@ docker ps | grep jenkins
 ### TEST 2: Check Jenkins Health
 ```bash
 # Check health status
-docker inspect jenkins-cicd | grep -A 5 Health
+podman inspect jenkins-cicd | grep -A 5 Health
 
 # Should show "healthy"
 ```
@@ -234,13 +234,13 @@ docker inspect jenkins-cicd | grep -A 5 Health
 **Fix:**
 ```bash
 # Stop everything
-docker-compose down
+podman-compose down
 
 # Start Jenkins only
-docker-compose up -d jenkins
+podman-compose up -d jenkins
 
 # Wait and watch logs
-docker-compose logs -f jenkins
+podman-compose logs -f jenkins
 ```
 
 ### Error: "500 Internal Server Error"
@@ -259,19 +259,19 @@ docker-compose logs -f jenkins
 
 **Check logs:**
 ```bash
-docker-compose logs jenkins | tail -50
+podman-compose logs jenkins | tail -50
 ```
 
 **Common causes:**
 - Port already in use → Change `8082` to `8083` or another free port
-- Docker socket permission denied → Run: `sudo chmod 666 /var/run/docker.sock`
+- Podman socket permission denied → Run: `sudo chmod 666 /run/podman/podman.sock`
 
 ### Error: "Maven not found" during build
 
 **Fix:**
 ```bash
 # Enter Jenkins container
-docker exec -it jenkins-cicd bash
+podman exec -it jenkins-cicd bash
 
 # Install Maven
 apt-get update
@@ -289,27 +289,27 @@ exit
 
 ### Start Jenkins
 ```bash
-docker-compose up -d jenkins
+podman-compose up -d jenkins
 ```
 
 ### Stop Jenkins
 ```bash
-docker-compose stop jenkins
+podman-compose stop jenkins
 ```
 
 ### Restart Jenkins
 ```bash
-docker-compose restart jenkins
+podman-compose restart jenkins
 ```
 
 ### View Logs
 ```bash
-docker-compose logs -f jenkins
+podman-compose logs -f jenkins
 ```
 
 ### Get Admin Password
 ```bash
-docker exec jenkins-cicd cat /var/jenkins_home/secrets/initialAdminPassword
+podman exec jenkins-cicd cat /var/jenkins_home/secrets/initialAdminPassword
 ```
 
 ### Access Jenkins
@@ -319,14 +319,14 @@ http://localhost:8082/jenkins
 
 ### Check Status
 ```bash
-docker ps | grep jenkins
+podman ps | grep jenkins
 ```
 
 ### Completely Reset Jenkins
 ```bash
-docker-compose down
-docker volume rm eadgequry-ai_jenkins-data
-docker-compose up -d jenkins
+podman-compose down
+podman volume rm eadgequry-ai_jenkins-data
+podman-compose up -d jenkins
 ```
 
 ---
@@ -368,5 +368,5 @@ After following all steps, you should have:
 
 **Need help?** Check the logs:
 ```bash
-docker-compose logs jenkins | grep -i error
+podman-compose logs jenkins | grep -i error
 ```
