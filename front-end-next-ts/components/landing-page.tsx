@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/accordion"
 import { Database, MessageSquare, Shield, Zap, CheckCircle, ChevronRight, Lock, Server, TrendingUp, Users, BarChart3, Brain, Github, Twitter, Linkedin, Mail } from 'lucide-react'
 import Link from "next/link"
-import { YouTubePlayer } from './youtube-player'
+import { BackgroundVideo } from './youtube-player'
 import {
   Dialog,
   DialogContent,
@@ -19,6 +19,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import { Demo } from "./demo"
 
 export function LandingPage() {
   const [billingPeriod, setBillingPeriod] = useState<"monthly" | "yearly">("monthly")
@@ -103,9 +104,13 @@ export function LandingPage() {
             </div>
 
           </div>
-          <div className="relative">
-            <YouTubePlayer videoId="2JkAb0boY8g" title="EadgeQuery Product Demo" />
+          <div className="relative w-full  "> {/* set height as needed */}
+            <BackgroundVideo
+              title=""
+              videoSrc="/loop.mp4"
+            />
           </div>
+
         </div>
       </section>
 
@@ -292,6 +297,8 @@ export function LandingPage() {
               </p>
             </div>
           </div>
+          <Demo videoId="iSPLAIAIoPI" />
+
         </div>
       </section>
 
@@ -705,28 +712,7 @@ export function LandingPage() {
         </div>
       </section >
 
-      {/* CTA Section */}
-      < section className="py-20" >
-        <div className="container mx-auto px-4">
-          <div className="bg-gradient-to-r from-primary to-blue-600 rounded-3xl p-12 text-center text-white">
-            <h2 className="text-3xl md:text-5xl font-bold mb-4">
-              Ready to Transform Your Data Analysis?
-            </h2>
-
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link href="/register">
-                <Button size="lg" variant="secondary" className="text-lg px-8">
-                  Start Free Trial
-                  <ChevronRight className="ml-2 w-5 h-5" />
-                </Button>
-              </Link>
-              <Button size="lg" variant="outline" className="text-lg px-8 bg-transparent text-white border-white hover:bg-white/10">
-                Schedule Demo
-              </Button>
-            </div>
-          </div>
-        </div>
-      </section >
+ 
 
       {/* Footer */}
       < footer className="bg-muted/50 border-t" >

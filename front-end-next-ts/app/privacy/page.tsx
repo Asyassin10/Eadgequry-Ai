@@ -13,10 +13,12 @@ export default function PrivacyPage() {
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
+              <a href="/">
               <img src="/logo.png" alt="EadgeQuery Logo" className="w-8 h-8" />
               <span className="text-2xl font-bold bg-gradient-to-r from-primary to-blue-600 bg-clip-text text-transparent">
                 EadgeQuery
               </span>
+              </a>
               <span className="text-xs text-muted-foreground ml-2">v0.1</span>
             </div>
             <div className="flex items-center gap-4">

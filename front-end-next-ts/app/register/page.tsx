@@ -54,11 +54,11 @@ export default function RegisterPage() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
 
-
-              <img src="/logo.png" alt="EadgeQuery Logo" className="w-8 h-8" />
+              <a href="/">
               <span className="text-2xl font-bold bg-gradient-to-r from-primary to-blue-600 bg-clip-text text-transparent">
                 EadgeQuery
               </span>
+              </a>
               <span className="text-xs text-muted-foreground ml-2">v0.1</span>
             </div>
             <div className="hidden md:flex items-center gap-8">
