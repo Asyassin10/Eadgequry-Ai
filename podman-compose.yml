@@ -1,5 +1,7 @@
 # Podman Compose Configuration
-# Use 'podman-compose' instead of 'docker-compose' to run this file
+# This file uses Containerfile (OCI standard) instead of Dockerfile
+# All services use Containerfile for building images
+# Usage: podman-compose -f podman-compose.yml up -d
 # Install: pip install podman-compose
 version: "3.9"
 
@@ -19,6 +21,8 @@ services:
     container_name: auth
     ports:
       - "8081:8081"
+    # NOTE: podman-compose has limited support for healthcheck conditions
+    # If services fail to start in correct order, add restart: unless-stopped
     depends_on:
       mysql:
         condition: service_healthy
@@ -30,6 +34,7 @@ services:
       - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/eadgequry-auth?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
       - SPRING_DATASOURCE_USERNAME=authuser
       - SPRING_DATASOURCE_PASSWORD=authpassword
+    restart: unless-stopped
 
   api-gatway:
     build:
@@ -148,13 +153,14 @@ services:
       SONAR_JDBC_USERNAME: sonar
       SONAR_JDBC_PASSWORD: sonar
     volumes:
-      - sonarqube-data:/opt/sonarqube/data
-      - sonarqube-extensions:/opt/sonarqube/extensions
-      - sonarqube-logs:/opt/sonarqube/logs
+      - sonarqube-data:/opt/sonarqube/data:Z
+      - sonarqube-extensions:/opt/sonarqube/extensions:Z
+      - sonarqube-logs:/opt/sonarqube/logs:Z
     ports:
       - "9000:9000"
     networks:
       - edagequry-net
+    restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost:9000/api/system/status | grep -q '\"status\":\"UP\"' || exit 1"]
       interval: 30s
@@ -199,6 +205,7 @@ services:
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'true'
+    restart: unless-stopped
     healthcheck:
       test: ["CMD", "kafka-topics", "--bootstrap-server", "localhost:9092", "--list"]
       interval: 10s
@@ -280,18 +287,25 @@ services:
       - edagequry-net
 
   # Jenkins CI/CD Server
+  # NOTE: For rootless Podman, socket path is: ${XDG_RUNTIME_DIR}/podman/podman.sock (e.g., /run/user/1000/podman/podman.sock)
+  # For rootful Podman, socket path is: /run/podman/podman.sock
   jenkins:
     image: jenkins/jenkins:lts-jdk17
     container_name: jenkins-cicd
     user: root
-    privileged: true
+    # Removed 'privileged: true' - not needed in Podman and can cause issues
+    # Podman handles capabilities and security differently than Docker
     ports:
       - "8982:8080"
       - "50000:50000"
     volumes:
       - jenkins-data:/var/jenkins_home
-      - /run/podman/podman.sock:/var/run/docker.sock
-      - ./jenkins-jobs:/var/jenkins_jobs
+      # For rootful Podman (running as root):
+      - /run/podman/podman.sock:/var/run/docker.sock:Z
+      # For rootless Podman (running as regular user), replace above line with:
+      # - ${XDG_RUNTIME_DIR}/podman/podman.sock:/var/run/docker.sock:Z
+      # Or typically: /run/user/1000/podman/podman.sock:/var/run/docker.sock:Z
+      - ./jenkins-jobs:/var/jenkins_jobs:Z
     environment:
       - JENKINS_OPTS=--prefix=/jenkins
       - JAVA_OPTS=-Djenkins.install.runSetupWizard=false
@@ -307,7 +321,11 @@ services:
 
 networks:
   edagequry-net:
-    driver: bridge
+    # Podman networking notes:
+    # - For rootless Podman: Uses slirp4netns by default (no driver needed)
+    # - For rootful Podman: Can use bridge driver (netavark or CNI)
+    # - Removing explicit driver for better Podman compatibility
+    driver: bridge  # Remove this line if using rootless Podman
 
 volumes:
   mysql-data:

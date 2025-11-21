@@ -1,11 +1,11 @@
 #!/bin/bash
 
 # Port Scanner for Podman Compose
-# Scans docker-compose.yml and finds used/available ports
+# Scans podman-compose.yml and finds used/available ports
 
 set -e
 
-COMPOSE_FILE="${1:-docker-compose.yml}"
+COMPOSE_FILE="${1:-podman-compose.yml}"
 START_PORT="${2:-8000}"
 END_PORT="${3:-9999}"
 
