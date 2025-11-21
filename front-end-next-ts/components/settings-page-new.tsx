@@ -714,7 +714,7 @@ export function SettingsPageNew() {
             <CardHeader>
               <CardTitle>Preferences</CardTitle>
               <CardDescription>
-                Customize your experience with dark mode and language settings
+                Customize your experience with dark mode 
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -733,33 +733,14 @@ export function SettingsPageNew() {
                       </p>
                     </div>
                     <Switch
+                      className="bg-blue-800"
                       id="dark-mode"
                       checked={preferences.darkMode}
                       onCheckedChange={handleDarkModeChange}
                       disabled={isSavingPreferences}
                     />
                   </div>
-
-                  {/* Language Selector */}
-                  <div className="space-y-2">
-                    <Label htmlFor="language">Language</Label>
-                    <Select
-                      value={preferences.language}
-                      onValueChange={handleLanguageChange}
-                      disabled={isSavingPreferences}
-                    >
-                      <SelectTrigger id="language" className="bg-input border-border">
-                        <SelectValue placeholder="Select language" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="en">English</SelectItem>
-                        <SelectItem value="fr">Français (French)</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <p className="text-sm text-muted-foreground">
-                      Selected: {preferences.language === 'en' ? 'English' : 'Français'}
-                    </p>
-                  </div>
+ 
 
                   {/* Save Button */}
                   <Button

@@ -72,7 +72,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser({ userId, email });
 
         toast.success('Login successful!');
-        router.push('/'); // Redirect to dashboard
+        router.push('/dashboard'); // Redirect to dashboard
         return true;
       }
 

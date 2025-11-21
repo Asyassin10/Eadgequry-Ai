@@ -27,9 +27,7 @@ export function Layout({ children, isDark, onToggleTheme }: LayoutProps) {
   const isActive = (path: string) => pathname === path
 
   const notifications = [
-    { id: 1, title: "System Update", message: "Database upgraded to v2.1", time: "2 hours ago" },
-    { id: 2, title: "New Feature", message: "Multi-datasource support now available", time: "1 day ago" },
-    { id: 3, title: "Alert", message: "API rate limit increased", time: "3 days ago" },
+    { id: 2, title: "V1 🚀 Coming Soon", message: "New Feature: Multi-Datasource Support", time: "" },
   ]
 
   const navigationItems = [
@@ -67,8 +65,8 @@ export function Layout({ children, isDark, onToggleTheme }: LayoutProps) {
                 key={item.href}
                 href={item.href}
                 className={`flex items-center gap-3 px-4 py-2 rounded-lg transition-colors ${isActive(item.href)
-                    ? "bg-sidebar-primary text-sidebar-primary-foreground"
-                    : "text-sidebar-foreground hover:bg-sidebar-accent"
+                  ? "bg-sidebar-primary text-sidebar-primary-foreground"
+                  : "text-sidebar-foreground hover:bg-sidebar-accent"
                   }`}
               >
                 <IconComponent className="w-5 h-5 flex-shrink-0" />
@@ -90,8 +88,8 @@ export function Layout({ children, isDark, onToggleTheme }: LayoutProps) {
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Navbar */}
-        <header className="bg-card border-b border-border px-6 py-4 flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-foreground">EadgeQuery</h1>
+        <header className="bg-card  border-border px-6 py-4 flex items-center justify-between">
+          <h1 className="text-2xl font-bold text-foreground"> </h1>
 
           <div className="flex items-center gap-4">
             {/* Notifications */}

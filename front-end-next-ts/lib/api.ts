@@ -135,7 +135,7 @@ async function apiRequest<T>(
         // Still return error so caller can handle if needed
         return {
           error: {
-            message: 'Session expired. Please login again.',
+            message: 'Invalid email or password. Please check your credentials and try again.',
             status: 401,
             error: 'Unauthorized',
           },

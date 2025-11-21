@@ -6,56 +6,6 @@
 version: "3.9"
 
 services:
-  naming-server:
-    build:
-      context: ./naming-server
-    container_name: naming-server
-    ports:
-      - "8761:8761"
-    networks:
-      - edagequry-net
-
-  auth:
-    build:
-      context: ./auth
-    container_name: auth
-    ports:
-      - "8081:8081"
-    # NOTE: podman-compose has limited support for healthcheck conditions
-    # If services fail to start in correct order, add restart: unless-stopped
-    depends_on:
-      mysql:
-        condition: service_healthy
-      naming-server:
-        condition: service_started
-    networks:
-      - edagequry-net
-    environment:
-      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/eadgequry-auth?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
-      - SPRING_DATASOURCE_USERNAME=authuser
-      - SPRING_DATASOURCE_PASSWORD=authpassword
-    restart: unless-stopped
-
-  api-gatway:
-    build:
-      context: ./api-gatway
-    container_name: api-gatway
-    ports:
-      - "8765:8765"
-    depends_on:
-      - naming-server
-      - auth
-    networks:
-      - edagequry-net
-
-  zipkin:
-    image: openzipkin/zipkin
-    container_name: zipkin
-    ports:
-      - "9411:9411"
-    networks:
-      - edagequry-net
-
   mysql:
     image: mysql:8.0
     container_name: mysql-auth
@@ -162,7 +112,11 @@ services:
       - edagequry-net
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:9000/api/system/status | grep -q '\"status\":\"UP\"' || exit 1"]
+      test:
+        [
+          "CMD-SHELL",
+          'wget -qO- http://localhost:9000/api/system/status | grep -q ''"status":"UP"'' || exit 1',
+        ]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -204,10 +158,17 @@ services:
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-      KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'true'
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "kafka-topics", "--bootstrap-server", "localhost:9092", "--list"]
+      test:
+        [
+          "CMD",
+          "kafka-topics",
+          "--bootstrap-server",
+          "localhost:9092",
+          "--list",
+        ]
       interval: 10s
       timeout: 10s
       retries: 5
@@ -243,7 +204,7 @@ services:
       PMA_PASSWORD: datasourcepassword
       MYSQL_ROOT_PASSWORD: rootpassword
     ports:
-      - "8084:80"
+      - "8088:80"
     depends_on:
       - mysql-datasource
     networks:
@@ -280,7 +241,7 @@ services:
       PMA_PASSWORD: chatbot_password
       MYSQL_ROOT_PASSWORD: rootpassword
     ports:
-      - "8085:80"
+      - "8089:80"
     depends_on:
       - mysql-chatbot
     networks:
@@ -312,12 +273,12 @@ services:
     networks:
       - edagequry-net
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8080/jenkins/login || exit 1"]
+      test:
+        ["CMD-SHELL", "curl -f http://localhost:8080/jenkins/login || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 5
       start_period: 90s
-
 
 networks:
   edagequry-net:
@@ -325,7 +286,7 @@ networks:
     # - For rootless Podman: Uses slirp4netns by default (no driver needed)
     # - For rootful Podman: Can use bridge driver (netavark or CNI)
     # - Removing explicit driver for better Podman compatibility
-    driver: bridge  # Remove this line if using rootless Podman
+    driver: bridge # Remove this line if using rootless Podman
 
 volumes:
   mysql-data:
