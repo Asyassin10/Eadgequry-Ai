@@ -1,13 +1,13 @@
 # 📊 Test Coverage & SonarQube Guide
 
-Complete guide for generating test coverage reports and uploading to SonarQube using Docker.
+Complete guide for generating test coverage reports and uploading to SonarQube using Podman.
 
 ## 🚀 Quick Start
 
 ### Prerequisites
 1. **Start SonarQube** (if not already running):
    ```bash
-   docker-compose up -d sonarqube sonarqube-db
+   podman-compose up -d sonarqube sonarqube-db
    ```
 
 2. **Wait for SonarQube to be ready** (takes 1-2 minutes):
@@ -47,35 +47,35 @@ Complete guide for generating test coverage reports and uploading to SonarQube u
 ./run-coverage.sh --coverage-only
 ```
 
-## 🐳 Method 2: Using Docker Compose
+## 🐳 Method 2: Using Podman Compose
 
-### Step 1: Create Docker Network (if not exists)
+### Step 1: Create Podman Network (if not exists)
 ```bash
-docker network create edagequry-net 2>/dev/null || true
+podman network create edagequry-net 2>/dev/null || true
 ```
 
 ### Step 2: Run Scanner for Each Service
 
 #### Auth Service
 ```bash
-docker-compose -f docker-compose.scanner.yml run --rm auth-scanner
+podman-compose -f podman-compose.scanner.yml run --rm auth-scanner
 ```
 
 #### Profile Service
 ```bash
-docker-compose -f docker-compose.scanner.yml run --rm profile-scanner
+podman-compose -f podman-compose.scanner.yml run --rm profile-scanner
 ```
 
 #### Notification Service
 ```bash
-docker-compose -f docker-compose.scanner.yml run --rm notification-scanner
+podman-compose -f podman-compose.scanner.yml run --rm notification-scanner
 ```
 
 ### Run All Services (Sequential)
 ```bash
-docker-compose -f docker-compose.scanner.yml run --rm auth-scanner && \
-docker-compose -f docker-compose.scanner.yml run --rm profile-scanner && \
-docker-compose -f docker-compose.scanner.yml run --rm notification-scanner
+podman-compose -f podman-compose.scanner.yml run --rm auth-scanner && \
+podman-compose -f podman-compose.scanner.yml run --rm profile-scanner && \
+podman-compose -f podman-compose.scanner.yml run --rm notification-scanner
 ```
 
 ## 📦 Method 3: Using Maven Directly
@@ -106,13 +106,13 @@ mvn sonar:sonar
 cd ..
 ```
 
-## 🎯 Method 4: One-Line Docker Command
+## 🎯 Method 4: One-Line Podman Command
 
-Run tests and upload to SonarQube using Docker:
+Run tests and upload to SonarQube using Podman:
 
 ### Auth Service
 ```bash
-docker run --rm \
+podman run --rm \
   --network edagequry-net \
   -v $(pwd)/auth:/workspace \
   -w /workspace \
@@ -122,7 +122,7 @@ docker run --rm \
 
 ### Profile Service
 ```bash
-docker run --rm \
+podman run --rm \
   --network edagequry-net \
   -v $(pwd)/user-profile:/workspace \
   -w /workspace \
@@ -132,7 +132,7 @@ docker run --rm \
 
 ### Notification Service
 ```bash
-docker run --rm \
+podman run --rm \
   --network edagequry-net \
   -v $(pwd)/notification:/workspace \
   -w /workspace \
@@ -189,19 +189,19 @@ You should see 3 projects:
 ### SonarQube Not Starting
 ```bash
 # Check logs
-docker-compose logs sonarqube
+podman-compose logs sonarqube
 
 # Restart services
-docker-compose restart sonarqube sonarqube-db
+podman-compose restart sonarqube sonarqube-db
 ```
 
 ### Network Issues
 ```bash
 # Create network manually
-docker network create edagequry-net
+podman network create edagequry-net
 
 # Verify network exists
-docker network ls | grep edagequry-net
+podman network ls | grep edagequry-net
 ```
 
 ### Maven Dependencies Not Downloading
@@ -209,8 +209,8 @@ docker network ls | grep edagequry-net
 # Clear Maven cache
 rm -rf ~/.m2/repository
 
-# Or use Docker volume
-docker volume rm maven-cache
+# Or use Podman volume
+podman volume rm maven-cache
 ```
 
 ### Tests Failing

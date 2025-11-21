@@ -21,7 +21,7 @@ Scalable microservices architecture with service discovery, API gateway, and dis
 
 - **Java 21**
 - **Maven 3.8+**
-- **Docker & Docker Compose** (optional for production)
+- **Podman & Podman Compose** (optional for production)
 
 ### Development Mode (Recommended)
 
@@ -34,21 +34,21 @@ cd Eadgequry-Ai
 cd naming-server && ./mvnw spring-boot:run
 cd api-gatway && ./mvnw spring-boot:run
 
-# Run Zipkin with Docker
-docker run -d -p 9411:9411 openzipkin/zipkin
+# Run Zipkin with Podman
+podman run -d -p 9411:9411 openzipkin/zipkin
 ```
 
-### Production Mode (Docker)
+### Production Mode (Podman)
 
 ```bash
 # Build and run all services
-docker-compose up --build
+podman-compose up --build
 
 # Run in background
-docker-compose up -d
+podman-compose up -d
 
 # Stop services
-docker-compose down
+podman-compose down
 ```
 
 ## 🔗 Access URLs
@@ -77,7 +77,7 @@ cd <service-name>
   - Netflix Eureka Server
   - Spring Cloud Sleuth
 - **Zipkin**
-- **Docker**
+- **Podman**
 - **Maven**
 
 ## 🤝 Contributing

@@ -4,7 +4,7 @@ This document describes the Jenkins CI/CD setup for the EadgeQuery microservices
 
 ## 🏗️ Architecture
 
-Jenkins is integrated with Docker Compose to manage CI/CD pipelines for each microservice independently:
+Jenkins is integrated with Podman Compose to manage CI/CD pipelines for each microservice independently:
 
 - **Jenkins Web UI**: `http://localhost:8082/jenkins`
 - **Jenkins Agent Port**: `50000`
@@ -25,10 +25,10 @@ Jenkins is integrated with Docker Compose to manage CI/CD pipelines for each mic
 
 ```bash
 # Start Jenkins container
-docker-compose up -d jenkins
+podman-compose up -d jenkins
 
 # View logs
-docker-compose logs -f jenkins
+podman-compose logs -f jenkins
 
 # Wait for Jenkins to be ready (takes about 60-90 seconds)
 ```
@@ -37,7 +37,7 @@ docker-compose logs -f jenkins
 
 ```bash
 # Get the initial admin password
-docker exec jenkins-cicd cat /var/jenkins_home/secrets/initialAdminPassword
+podman exec jenkins-cicd cat /var/jenkins_home/secrets/initialAdminPassword
 ```
 
 Copy this password - you'll need it for first-time setup.
@@ -204,10 +204,10 @@ Use the port scanner to check available ports:
 chmod +x jenkins-init/scan-ports.sh
 
 # Run scanner
-./jenkins-init/scan-ports.sh docker-compose.yml
+./jenkins-init/scan-ports.sh podman-compose.yml
 
 # Scan specific range
-./jenkins-init/scan-ports.sh docker-compose.yml 8000 9000
+./jenkins-init/scan-ports.sh podman-compose.yml 8000 9000
 ```
 
 Output shows:
@@ -235,40 +235,40 @@ This script:
 - Generates job configuration XML files
 - Provides setup instructions
 
-## 🐳 Docker Commands
+## 🐳 Podman Commands
 
 ```bash
 # Start Jenkins
-docker-compose up -d jenkins
+podman-compose up -d jenkins
 
 # Stop Jenkins
-docker-compose stop jenkins
+podman-compose stop jenkins
 
 # Restart Jenkins
-docker-compose restart jenkins
+podman-compose restart jenkins
 
 # View logs
-docker-compose logs -f jenkins
+podman-compose logs -f jenkins
 
 # Remove Jenkins (keeps data)
-docker-compose down jenkins
+podman-compose down jenkins
 
 # Remove Jenkins and data
-docker-compose down -v jenkins
-docker volume rm eadgequry-ai_jenkins-data
+podman-compose down -v jenkins
+podman volume rm eadgequry-ai_jenkins-data
 
 # Execute command in Jenkins container
-docker exec -it jenkins-cicd bash
+podman exec -it jenkins-cicd bash
 
 # Get initial password
-docker exec jenkins-cicd cat /var/jenkins_home/secrets/initialAdminPassword
+podman exec jenkins-cicd cat /var/jenkins_home/secrets/initialAdminPassword
 ```
 
 ## 📁 Directory Structure
 
 ```
 Eadgequry-Ai/
-├── docker-compose.yml          # Jenkins service defined here
+├── podman-compose.yml          # Jenkins service defined here
 ├── JENKINS_README.md            # This file
 ├── jenkins-init/
 │   ├── scan-ports.sh           # Port scanner script
@@ -305,19 +305,19 @@ Eadgequry-Ai/
 
 ```bash
 # Check logs
-docker-compose logs jenkins
+podman-compose logs jenkins
 
 # Check if port is in use
 lsof -i :8082
 
-# Try different port in docker-compose.yml
+# Try different port in podman-compose.yml
 ```
 
 ### Pipeline fails
 
 1. Check console output for errors
 2. Verify Jenkinsfile syntax
-3. Check Docker socket access: `docker ps` inside container
+3. Check Docker socket access: `podman ps` inside container
 4. Verify Maven/Java installation
 5. Check network connectivity to services
 
@@ -325,20 +325,20 @@ lsof -i :8082
 
 ```bash
 # Ensure SonarQube is running
-docker-compose ps sonarqube
+podman-compose ps sonarqube
 
 # Check SonarQube logs
-docker-compose logs sonarqube
+podman-compose logs sonarqube
 
 # Verify network
-docker network inspect eadgequry-net
+podman network inspect eadgequry-net
 ```
 
 ### Build fails with "Permission denied"
 
 ```bash
 # Fix Docker socket permissions
-docker exec -it jenkins-cicd chown root:root /var/run/docker.sock
+podman exec -it jenkins-cicd chown root:root /var/run/docker.sock
 ```
 
 ## 📝 Best Practices
