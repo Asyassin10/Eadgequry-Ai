@@ -162,7 +162,8 @@ public class AiService {
     }
 
     /**
-     * Build advanced intelligent prompt for SQL query generation
+     * Build concise, optimized prompt for SQL query generation
+     * Optimized to use ~60% fewer tokens while maintaining intelligence
      */
     private String buildQueryPrompt(String question, DatabaseSchemaDTO schema, String previousError) {
         StringBuilder prompt = new StringBuilder();
@@ -170,209 +171,93 @@ public class AiService {
         // Get database type
         String databaseType = schema != null && schema.getDatabaseType() != null
                 ? schema.getDatabaseType().toUpperCase()
-                : "UNKNOWN";
+                : "MYSQL";
 
-        prompt.append(
-                "You are an EXPERT SQL query generator with WORLD-CLASS natural language understanding and PERFECT schema analysis skills.\n\n");
+        prompt.append("You are an expert SQL generator for ").append(databaseType).append(".\n\n");
 
-        prompt.append("=== CRITICAL RULE #1: EXACT TABLE AND COLUMN NAMES ===\n");
-        prompt.append("🚨 NEVER INVENT, GUESS, OR MODIFY TABLE/COLUMN NAMES! 🚨\n");
-        prompt.append("• You MUST use the EXACT names from the schema below (EXACT case, EXACT spelling)\n");
-        prompt.append(
-                "• Table names: If schema has 'orderdetails', use 'orderdetails' NOT 'orderDetails' or 'order_details'\n");
-        prompt.append("• Column names: If schema has 'buyPrice', use 'buyPrice' NOT 'buy_price' or 'BuyPrice'\n");
-        prompt.append("• Names may be: camelCase, snake_case, PascalCase, lowercase, UPPERCASE, or mixed\n");
-        prompt.append("• DO NOT convert between formats - copy EXACTLY from schema\n");
-        prompt.append("• WRONG: FROM orderDetails  ✗ (if schema has 'orderdetails')\n");
-        prompt.append("• RIGHT:  FROM orderdetails  ✓\n");
-        prompt.append("• WRONG: WHERE buy_price > 100  ✗ (if schema has 'buyPrice')\n");
-        prompt.append("• RIGHT:  WHERE buyPrice > 100  ✓\n\n");
+        prompt.append("CRITICAL RULES:\n");
+        prompt.append("1. Use EXACT table/column names from schema (case-sensitive)\n");
+        prompt.append("2. ONLY SELECT queries (no INSERT/UPDATE/DELETE/DROP/ALTER/CREATE/TRUNCATE)\n");
+        prompt.append("3. Return ONLY the SQL query (no explanations, no markdown, no code blocks)\n");
+        prompt.append("4. Add LIMIT 100 to all queries (or TOP 100 for SQL Server)\n\n");
 
-        prompt.append("=== TARGET DATABASE ===\n");
-        prompt.append("Database Type: ").append(databaseType).append("\n");
-        prompt.append("Database Name: ").append(schema != null ? schema.getDatabaseName() : "unknown").append("\n");
-        prompt.append("CRITICAL: Generate SQL using ").append(databaseType).append(" specific syntax!\n\n");
-
-        prompt.append("=== YOUR CAPABILITIES ===\n");
-        prompt.append("✓ Understand questions with typos, grammar errors, and unclear language\n");
-        prompt.append("✓ Interpret user intent even from messy or incomplete questions\n");
-        prompt.append("✓ Handle questions in different languages or mixed languages\n");
-        prompt.append("✓ Infer missing information from context\n");
-        prompt.append("✓ Be tolerant of spelling mistakes in user questions\n");
-        prompt.append("✓ Match fuzzy table/column names to actual schema\n");
-        prompt.append("✓ Understand abbreviations and SQL slang\n");
-        prompt.append("✗ BUT NEVER invent column names - always use EXACT names from schema\n\n");
-
-        prompt.append("=== QUERY GENERATION PROCESS ===\n");
-        prompt.append("STEP 1: ANALYZE the user question and understand intent (be tolerant of typos)\n");
-        prompt.append("STEP 2: IDENTIFY which tables are needed by fuzzy matching user's words to table names\n");
-        prompt.append("STEP 3: READ the schema and find the EXACT column names in those tables\n");
-        prompt.append(
-                "STEP 4: MAP user's intent to exact schema columns (e.g., 'price' → find 'buyPrice' or 'MSRP')\n");
-        prompt.append("STEP 5: CONSTRUCT SQL using database-specific syntax and EXACT column names\n");
-        prompt.append("STEP 6: VALIDATE that all column names in your query exist in the schema\n\n");
-
-        prompt.append("=== UNDERSTANDING USER INTENT ===\n");
-        prompt.append("Common Phrases (understand these even with typos):\n");
-        prompt.append("• 'give me' / 'show me' / 'get me' / 'list' → SELECT\n");
-        prompt.append("• 'how many' / 'count' / 'total number' → COUNT(*)\n");
-        prompt.append("• 'latest' / 'newest' / 'recent' → ORDER BY date_column DESC\n");
-        prompt.append("• 'oldest' / 'first' → ORDER BY date_column ASC\n");
-        prompt.append("• 'top N' / 'first N' → LIMIT N (or TOP N for SQL Server)\n");
-        prompt.append("• 'all' → SELECT * LIMIT 100\n");
-        prompt.append("• 'find' / 'search' / 'lookup' → WHERE with LIKE or =\n");
-        prompt.append("• 'total' / 'sum' / 'revenue' → SUM(column)\n");
-        prompt.append("• 'average' / 'avg' / 'mean' → AVG(column)\n");
-        prompt.append("• 'above average' → WHERE column > (SELECT AVG(column) ...)\n");
-        prompt.append("• 'never ordered' / 'not in' / 'haven't' → NOT IN (subquery) or LEFT JOIN WHERE NULL\n");
-        prompt.append("• 'who reports to X' → self-join or WHERE reportsTo = (subquery)\n");
-        prompt.append("• 'for each X' / 'per X' / 'by X' → GROUP BY with aggregations\n");
-        prompt.append("• 'total quantity ordered' → SUM(quantityOrdered)\n");
-        prompt.append("• 'total revenue' / 'total value' → SUM(quantity * price)\n");
-        prompt.append("• 'most recent' / 'last order' → MAX(date_column)\n");
-        prompt.append("• 'lifetime value' → SUM across all related records\n");
-        prompt.append("• 'in the last N months/days' → WHERE date > DATE_SUB(NOW(), INTERVAL N MONTH/DAY)\n\n");
-
-        prompt.append("=== ADVANCED QUERY PATTERNS ===\n");
-        prompt.append("You are EXPERT at complex SQL queries:\n");
-        prompt.append("• JOINS: Use INNER JOIN, LEFT JOIN, RIGHT JOIN when combining tables\n");
-        prompt.append("• GROUP BY: When user says 'for each', 'per', 'by' → use GROUP BY\n");
-        prompt.append("• AGGREGATIONS: COUNT(), SUM(), AVG(), MAX(), MIN(), GROUP_CONCAT()\n");
-        prompt.append("• SUBQUERIES: Use for 'above average', 'never ordered', complex filtering\n");
-        prompt.append("• CALCULATIONS: Can multiply columns (quantity * price for revenue)\n");
-        prompt.append("• ALIASES: Always use meaningful aliases (AS total_revenue, AS order_count)\n");
-        prompt.append("• HAVING: Filter aggregated results with HAVING (not WHERE)\n\n");
-
-        prompt.append("COMPLEX QUERY EXAMPLES:\n");
-        prompt.append("1. \"For each product, total quantity and revenue\"\n");
-        prompt.append("   → SELECT p.productName, SUM(od.quantityOrdered) as total_qty,\n");
-        prompt.append("      SUM(od.quantityOrdered * od.priceEach) as revenue\n");
-        prompt.append("      FROM products p JOIN orderdetails od ON p.productCode = od.productCode\n");
-        prompt.append("      GROUP BY p.productCode, p.productName\n\n");
-
-        prompt.append("2. \"Customers with total orders and lifetime value\"\n");
-        prompt.append("   → SELECT c.customerName, COUNT(o.orderNumber) as order_count,\n");
-        prompt.append("      MAX(o.orderDate) as last_order, SUM(p.amount) as lifetime_value\n");
-        prompt.append("      FROM customers c LEFT JOIN orders o ON c.customerNumber = o.customerNumber\n");
-        prompt.append("      LEFT JOIN payments p ON c.customerNumber = p.customerNumber\n");
-        prompt.append("      GROUP BY c.customerNumber, c.customerName\n\n");
-
-        prompt.append("3. \"Products never ordered\"\n");
-        prompt.append("   → SELECT productName FROM products\n");
-        prompt.append("      WHERE productCode NOT IN (SELECT DISTINCT productCode FROM orderdetails)\n\n");
-
-        prompt.append("=== FUZZY TABLE/COLUMN MATCHING ===\n");
-        prompt.append("User says fuzzy name → Find closest match in schema:\n");
-        prompt.append("• 'usr' / 'users' / 'user' → match to 'users' table\n");
-        prompt.append("• 'price' → find 'buyPrice', 'MSRP', 'priceEach', etc.\n");
-        prompt.append("• 'name' → find 'productName', 'customerName', 'firstName', 'lastName', etc.\n");
-        prompt.append("• 'employee' → find 'employees' table with 'employeeNumber'\n");
-        prompt.append("• 'customer' → find 'customers' table with 'customerNumber' (NOT 'customer_id'!)\n");
-        prompt.append("• 'payment' → find 'payments' table with 'amount', 'customerNumber'\n\n");
-
-        prompt.append("=== STRICT OUTPUT RULES ===\n");
-        prompt.append("1. Return ONLY the SQL query - NO explanations, NO comments, NO markdown\n");
-        prompt.append("2. Query MUST use ").append(databaseType).append(" specific syntax\n");
-        prompt.append("3. Query MUST use EXACT column names from schema (never invent names)\n");
-        prompt.append("4. ONLY SELECT queries - NO INSERT, UPDATE, DELETE, DROP, CREATE, ALTER, TRUNCATE\n");
-        prompt.append("5. Use proper quotes for identifiers based on database type\n");
-        prompt.append("6. All parentheses and quotes must be properly closed\n\n");
-
-        // Add database-specific syntax rules
-        prompt.append("=== ").append(databaseType).append(" SPECIFIC SYNTAX ===\n");
-        prompt.append(getDatabaseSpecificSyntax(databaseType));
+        // Database-specific syntax (concise)
+        prompt.append(databaseType).append(" SYNTAX:\n");
+        if ("MYSQL".equals(databaseType)) {
+            prompt.append("• Limit: SELECT * FROM table LIMIT 100\n");
+            prompt.append("• Backticks: `table`, `column`\n");
+        } else if ("POSTGRESQL".equals(databaseType)) {
+            prompt.append("• Limit: SELECT * FROM table LIMIT 100\n");
+            prompt.append("• Quotes: \"table\", \"column\"\n");
+        } else if ("SQLSERVER".equals(databaseType)) {
+            prompt.append("• Limit: SELECT TOP 100 * FROM table\n");
+            prompt.append("• Brackets: [table], [column]\n");
+        } else if ("ORACLE".equals(databaseType)) {
+            prompt.append("• Limit: SELECT * FROM table FETCH FIRST 100 ROWS ONLY\n");
+            prompt.append("• Quotes: \"table\", \"column\"\n");
+        }
         prompt.append("\n");
 
+        // Common patterns (concise)
+        prompt.append("COMMON PATTERNS:\n");
+        prompt.append("'give me all'/'show all' → SELECT * FROM [first_table] LIMIT 100\n");
+        prompt.append("'how many'/'count' → SELECT COUNT(*) as total FROM table\n");
+        prompt.append("'for each'/'per' → GROUP BY\n");
+        prompt.append("'total'/'sum' → SUM(column)\n");
+        prompt.append("'average' → AVG(column)\n");
+        prompt.append("'latest' → ORDER BY date DESC LIMIT 10\n\n");
+
+        // Schema (compact format)
+        prompt.append("DATABASE SCHEMA:\n");
+        prompt.append("DB: ").append(schema != null ? schema.getDatabaseName() : "unknown").append(" (")
+                .append(databaseType).append(")\n");
+        if (schema != null && schema.getTables() != null && !schema.getTables().isEmpty()) {
+            for (DatabaseSchemaDTO.TableInfo table : schema.getTables()) {
+                prompt.append("\nTable: ").append(table.getName()).append("\n");
+                if (table.getColumns() != null && !table.getColumns().isEmpty()) {
+                    prompt.append("  Columns: ");
+                    for (int i = 0; i < Math.min(table.getColumns().size(), 20); i++) { // Limit to first 20 columns
+                        if (i > 0)
+                            prompt.append(", ");
+                        DatabaseSchemaDTO.ColumnInfo col = table.getColumns().get(i);
+                        prompt.append(col.getName()).append(" (").append(col.getType()).append(")");
+                    }
+                    if (table.getColumns().size() > 20) {
+                        prompt.append(", ... (").append(table.getColumns().size() - 20).append(" more)");
+                    }
+                    prompt.append("\n");
+                }
+                if (table.getForeignKeys() != null && !table.getForeignKeys().isEmpty()) {
+                    prompt.append("  FK: ");
+                    for (int i = 0; i < table.getForeignKeys().size(); i++) {
+                        if (i > 0)
+                            prompt.append(", ");
+                        DatabaseSchemaDTO.ForeignKeyInfo fk = table.getForeignKeys().get(i);
+                        prompt.append(fk.getColumn()).append("→").append(fk.getReferencedTable());
+                    }
+                    prompt.append("\n");
+                }
+            }
+        } else {
+            prompt.append("ERROR: No schema provided!\n");
+        }
+        prompt.append("\n");
+
+        // Previous error (if any)
         if (previousError != null) {
-            prompt.append("=== ⚠️ PREVIOUS ERROR - YOU MUST FIX THIS ===\n");
-            prompt.append("Error: ").append(previousError).append("\n\n");
-            prompt.append("ANALYSIS REQUIRED:\n");
-            prompt.append(
-                    "• If error says 'Unknown column': You used wrong column name - check schema for EXACT name\n");
-            prompt.append("• If error says 'Unknown table': You used wrong table name - check schema for EXACT name\n");
-            prompt.append("• If error says syntax error: Check ").append(databaseType).append(" syntax rules\n");
-            prompt.append("• Review the schema below and use EXACT names, not invented ones\n\n");
+            prompt.append("FIX ERROR:\n");
+            prompt.append(previousError).append("\n");
+            prompt.append("→ Check: use EXACT names from schema above\n\n");
         }
 
-        // Add schema information with emphasis
-        prompt.append("=== 📋 DATABASE SCHEMA (USE EXACT NAMES FROM HERE) ===\n");
-        prompt.append(formatSchemaInfoDetailed(schema));
-        prompt.append("\n");
+        // User question
+        prompt.append("QUESTION: ").append(question).append("\n\n");
 
-        prompt.append("=== REAL-WORLD EXAMPLES ===\n");
-        prompt.append(getSchemaBasedExamples(schema, databaseType));
-        prompt.append("\n");
-
-        prompt.append("=== 👤 USER QUESTION ===\n");
-        prompt.append("\"").append(question).append("\"\n\n");
-
-        prompt.append("=== YOUR TASK ===\n");
-        prompt.append("1. Understand what the user wants (be tolerant of typos in their question)\n");
-        prompt.append("2. Find the relevant tables and columns from the EXACT schema above\n");
-        prompt.append("3. Generate a syntactically perfect ").append(databaseType).append(" query\n");
-        prompt.append("4. Use ONLY column names that exist in the schema (EXACT spelling, EXACT case)\n");
-        prompt.append("5. Double-check: every column in your query MUST be in the schema above\n\n");
-
-        prompt.append("Generate the SQL query now (ONLY the query, nothing else):\n\n");
+        prompt.append("Generate SQL query using EXACT names from schema (query only, no explanations):\n");
 
         return prompt.toString();
     }
 
-    /**
-     * Get database-specific SQL syntax rules
-     */
-    private String getDatabaseSpecificSyntax(String databaseType) {
-        StringBuilder syntax = new StringBuilder();
-
-        switch (databaseType.toUpperCase()) {
-            case "MYSQL":
-                syntax.append("- Use LIMIT for row limiting: SELECT * FROM table LIMIT 10\n");
-                syntax.append("- Use backticks for identifiers: `table_name`, `column_name`\n");
-                syntax.append("- String concat: CONCAT(str1, str2) or CONCAT_WS(separator, str1, str2)\n");
-                syntax.append("- Date functions: NOW(), CURDATE(), DATE_FORMAT(date, format)\n");
-                syntax.append("- Case-insensitive comparison is default\n");
-                break;
-
-            case "POSTGRESQL":
-                syntax.append("- Use LIMIT for row limiting: SELECT * FROM table LIMIT 10\n");
-                syntax.append("- Use double quotes for case-sensitive identifiers: \"TableName\"\n");
-                syntax.append("- String concat: str1 || str2 or CONCAT(str1, str2)\n");
-                syntax.append("- Date functions: NOW(), CURRENT_DATE, TO_CHAR(date, format)\n");
-                syntax.append("- Use ILIKE for case-insensitive pattern matching\n");
-                syntax.append("- Boolean type: TRUE/FALSE\n");
-                break;
-
-            case "SQLSERVER":
-                syntax.append("- Use TOP for row limiting: SELECT TOP 10 * FROM table\n");
-                syntax.append("- Use square brackets for identifiers: [table_name], [column name]\n");
-                syntax.append("- String concat: str1 + str2 or CONCAT(str1, str2)\n");
-                syntax.append("- Date functions: GETDATE(), CONVERT(), FORMAT()\n");
-                syntax.append("- Use schema prefix: dbo.table_name\n");
-                break;
-
-            case "ORACLE":
-                syntax.append("- Use FETCH FIRST for row limiting: SELECT * FROM table FETCH FIRST 10 ROWS ONLY\n");
-                syntax.append("- Or use ROWNUM: SELECT * FROM table WHERE ROWNUM <= 10\n");
-                syntax.append("- Use double quotes for case-sensitive identifiers: \"table_name\"\n");
-                syntax.append("- String concat: str1 || str2 or CONCAT(str1, str2)\n");
-                syntax.append("- Date functions: SYSDATE, TO_DATE(), TO_CHAR()\n");
-                syntax.append("- No LIMIT keyword - use ROWNUM or FETCH FIRST\n");
-                break;
-
-            case "H2":
-                syntax.append("- Use LIMIT for row limiting: SELECT * FROM table LIMIT 10\n");
-                syntax.append("- Compatible with both MySQL and PostgreSQL syntax\n");
-                syntax.append("- Use double quotes for identifiers: \"table_name\"\n");
-                break;
-
-            default:
-                syntax.append("- Use standard SQL syntax\n");
-                syntax.append("- Be careful with quotes and identifiers\n");
-                break;
-        }
-
-        return syntax.toString();
-    }
 
     /**
      * Build intelligent prompt for answer generation with user-friendly
@@ -466,178 +351,6 @@ public class AiService {
         prompt.append("Response:");
 
         return prompt.toString();
-    }
-
-    /**
-     * Format schema information for prompt - DETAILED VERSION
-     */
-    private String formatSchemaInfoDetailed(DatabaseSchemaDTO schema) {
-        if (schema == null || schema.getTables() == null) {
-            return "Schema information not available";
-        }
-
-        StringBuilder info = new StringBuilder();
-        info.append("Database: ").append(schema.getDatabaseName()).append("\n");
-        info.append("Type: ").append(schema.getDatabaseType()).append("\n");
-        info.append("Total Tables: ").append(schema.getTables().size()).append("\n\n");
-
-        info.append("📊 COMPLETE TABLE AND COLUMN LISTING:\n");
-        info.append("=".repeat(80)).append("\n\n");
-
-        for (DatabaseSchemaDTO.TableInfo table : schema.getTables()) {
-            info.append("Table: ").append(table.getName()).append("\n");
-            info.append("-".repeat(60)).append("\n");
-
-            if (table.getColumns() != null && !table.getColumns().isEmpty()) {
-                info.append("Columns (USE THESE EXACT NAMES):\n");
-                for (DatabaseSchemaDTO.ColumnInfo col : table.getColumns()) {
-                    info.append("  • ").append(col.getName())
-                            .append(" (").append(col.getType());
-                    if (col.getSize() != null && col.getSize() > 0) {
-                        info.append("(").append(col.getSize()).append(")");
-                    }
-                    info.append(")");
-                    if (col.getNullable() != null && !col.getNullable()) {
-                        info.append(" NOT NULL");
-                    }
-                    if (col.getDefaultValue() != null) {
-                        info.append(" DEFAULT ").append(col.getDefaultValue());
-                    }
-                    info.append("\n");
-                }
-            }
-
-            if (table.getPrimaryKeys() != null && !table.getPrimaryKeys().isEmpty()) {
-                info.append("Primary Key(s): ").append(String.join(", ", table.getPrimaryKeys())).append("\n");
-            }
-
-            if (table.getForeignKeys() != null && !table.getForeignKeys().isEmpty()) {
-                info.append("Foreign Keys (for JOINs):\n");
-                for (DatabaseSchemaDTO.ForeignKeyInfo fk : table.getForeignKeys()) {
-                    info.append("  • ").append(fk.getColumn())
-                            .append(" → ").append(fk.getReferencedTable())
-                            .append(".").append(fk.getReferencedColumn()).append("\n");
-                }
-            }
-
-            info.append("\n");
-        }
-
-        info.append("=".repeat(80)).append("\n");
-        info.append("⚠️  REMEMBER: Use column names EXACTLY as listed above!\n");
-        info.append("⚠️  Do NOT change camelCase to snake_case or vice versa!\n");
-
-        return info.toString();
-    }
-
-    /**
-     * Format schema information for prompt - LEGACY VERSION (for backwards
-     * compatibility)
-     */
-    private String formatSchemaInfo(DatabaseSchemaDTO schema) {
-        return formatSchemaInfoDetailed(schema);
-    }
-
-    /**
-     * Generate examples based on actual schema
-     */
-    private String getSchemaBasedExamples(DatabaseSchemaDTO schema, String databaseType) {
-        if (schema == null || schema.getTables() == null || schema.getTables().isEmpty()) {
-            return "No schema available for examples.\n";
-        }
-
-        StringBuilder examples = new StringBuilder();
-        examples.append("Here are examples using YOUR ACTUAL SCHEMA:\n\n");
-
-        // Find some common tables to use as examples
-        DatabaseSchemaDTO.TableInfo firstTable = schema.getTables().get(0);
-
-        // Example 1: Simple SELECT
-        examples.append("Example 1 - Simple SELECT:\n");
-        examples.append("User: \"Show me all data from ").append(firstTable.getName()).append("\"\n");
-
-        if (databaseType.equals("MYSQL") || databaseType.equals("POSTGRESQL") || databaseType.equals("H2")) {
-            examples.append("SQL: SELECT * FROM ").append(firstTable.getName()).append(" LIMIT 100\n\n");
-        } else if (databaseType.equals("SQLSERVER")) {
-            examples.append("SQL: SELECT TOP 100 * FROM ").append(firstTable.getName()).append("\n\n");
-        } else if (databaseType.equals("ORACLE")) {
-            examples.append("SQL: SELECT * FROM ").append(firstTable.getName())
-                    .append(" FETCH FIRST 100 ROWS ONLY\n\n");
-        }
-
-        // Example 2: COUNT
-        examples.append("Example 2 - COUNT:\n");
-        examples.append("User: \"How many records in ").append(firstTable.getName()).append("?\"\n");
-        examples.append("SQL: SELECT COUNT(*) as total FROM ").append(firstTable.getName()).append("\n\n");
-
-        // Example 3: Using actual column names
-        if (firstTable.getColumns() != null && firstTable.getColumns().size() >= 2) {
-            DatabaseSchemaDTO.ColumnInfo col1 = firstTable.getColumns().get(0);
-            DatabaseSchemaDTO.ColumnInfo col2 = firstTable.getColumns().size() > 1
-                    ? firstTable.getColumns().get(1)
-                    : col1;
-
-            examples.append("Example 3 - Using EXACT column names from schema:\n");
-            examples.append("User: \"Show me ").append(col2.getName()).append(" from ").append(firstTable.getName())
-                    .append("\"\n");
-            examples.append("IMPORTANT: Schema has column '").append(col2.getName()).append("'\n");
-            examples.append("✓ CORRECT: SELECT ").append(col2.getName()).append(" FROM ").append(firstTable.getName())
-                    .append("\n");
-
-            // Show what would be WRONG
-            if (col2.getName().matches(".*[A-Z].*")) { // has camelCase
-                String wrongName = col2.getName().replaceAll("([A-Z])", "_$1").toLowerCase();
-                examples.append("✗ WRONG:   SELECT ").append(wrongName).append(" FROM ").append(firstTable.getName())
-                        .append(" (invented name!)\n\n");
-            } else if (col2.getName().contains("_")) { // has snake_case
-                String wrongName = toCamelCase(col2.getName());
-                examples.append("✗ WRONG:   SELECT ").append(wrongName).append(" FROM ").append(firstTable.getName())
-                        .append(" (invented name!)\n\n");
-            } else {
-                examples.append("\n");
-            }
-        }
-
-        // Example 4: JOIN if foreign keys exist
-        DatabaseSchemaDTO.TableInfo tableWithFK = schema.getTables().stream()
-                .filter(t -> t.getForeignKeys() != null && !t.getForeignKeys().isEmpty())
-                .findFirst()
-                .orElse(null);
-
-        if (tableWithFK != null && tableWithFK.getForeignKeys() != null && !tableWithFK.getForeignKeys().isEmpty()) {
-            DatabaseSchemaDTO.ForeignKeyInfo fk = tableWithFK.getForeignKeys().get(0);
-            examples.append("Example 4 - JOIN using foreign keys:\n");
-            examples.append("User: \"Show ").append(tableWithFK.getName()).append(" with ")
-                    .append(fk.getReferencedTable()).append(" info\"\n");
-            examples.append("SQL: SELECT t1.*, t2.* FROM ").append(tableWithFK.getName()).append(" t1 ");
-            examples.append("JOIN ").append(fk.getReferencedTable()).append(" t2 ");
-            examples.append("ON t1.").append(fk.getColumn()).append(" = t2.").append(fk.getReferencedColumn());
-
-            if (databaseType.equals("MYSQL") || databaseType.equals("POSTGRESQL") || databaseType.equals("H2")) {
-                examples.append(" LIMIT 100\n\n");
-            } else if (databaseType.equals("SQLSERVER")) {
-                examples.append("\n  (Add TOP 100 after SELECT)\n\n");
-            } else {
-                examples.append("\n  (Add FETCH FIRST 100 ROWS ONLY at end)\n\n");
-            }
-        }
-
-        examples.append("🎯 KEY TAKEAWAY: Always use the EXACT column names shown in the schema above!\n");
-
-        return examples.toString();
-    }
-
-    /**
-     * Convert snake_case to camelCase (helper for examples)
-     */
-    private String toCamelCase(String snakeCase) {
-        String[] parts = snakeCase.split("_");
-        StringBuilder camelCase = new StringBuilder(parts[0]);
-        for (int i = 1; i < parts.length; i++) {
-            camelCase.append(parts[i].substring(0, 1).toUpperCase())
-                    .append(parts[i].substring(1));
-        }
-        return camelCase.toString();
     }
 
     /**
