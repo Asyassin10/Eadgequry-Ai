@@ -6,50 +6,66 @@ echo "🔨 Building all microservices and frontend..."
 echo ""
 
 # ===========================
-# BUILD JAVA MICROSERVICES
+# BUILD JAVA MICROSERVICES IN PARALLEL
 # ===========================
 
-# ===== Naming Server =====
-echo "📦 Building Naming Server..."
-cd naming-server
-./mvnw clean package -DskipTests
-cd ..
+echo "📦 Building all Java services in parallel..."
+echo ""
 
-# ===== API Gateway =====
-echo "📦 Building API Gateway..."
-cd api-gatway
-./mvnw clean package -DskipTests
-cd ..
+# Array of service directories
+SERVICES=(
+    "naming-server"
+    "api-gatway"
+    "auth"
+    "user-profile"
+    "notification"
+    "data-source"
+    "chat-bot-service"
+)
 
-# ===== Auth Service =====
-echo "📦 Building Auth Service..."
-cd auth
-./mvnw clean package -DskipTests
-cd ..
+# Function to build a service
+build_service() {
+    local service=$1
+    echo "  → Building $service..."
+    cd "$service"
+    ./mvnw clean package -DskipTests > "../build-$service.log" 2>&1
+    local exit_code=$?
+    cd ..
+    if [ $exit_code -eq 0 ]; then
+        echo "  ✓ $service built successfully"
+    else
+        echo "  ✗ $service build failed! Check build-$service.log"
+        return 1
+    fi
+}
 
-# ===== User Profile Service =====
-echo "📦 Building User Profile Service..."
-cd user-profile
-./mvnw clean package -DskipTests
-cd ..
+# Build all services in parallel
+for service in "${SERVICES[@]}"; do
+    build_service "$service" &
+done
 
-# ===== Notification Service =====
-echo "📦 Building Notification Service..."
-cd notification
-./mvnw clean package -DskipTests
-cd ..
+# Wait for all background jobs to complete
+echo ""
+echo "⏳ Waiting for all builds to complete..."
+wait
 
-# ===== Data Source Service =====
-echo "📦 Building Data Source Service..."
-cd data-source
-./mvnw clean package -DskipTests
-cd ..
+# Check if all builds succeeded
+failed=0
+for service in "${SERVICES[@]}"; do
+    if [ -f "build-$service.log" ]; then
+        if grep -q "BUILD SUCCESS" "build-$service.log"; then
+            rm "build-$service.log"  # Clean up successful build logs
+        else
+            failed=1
+        fi
+    fi
+done
 
-# ===== Chatbot Service =====
-echo "📦 Building Chatbot Service..."
-cd chat-bot-service
-./mvnw clean package -DskipTests
-cd ..
+if [ $failed -eq 1 ]; then
+    echo ""
+    echo "❌ Some builds failed! Check the build logs."
+    exit 1
+fi
 
 echo ""
 echo "✅ All Java services built successfully!"
@@ -78,10 +94,10 @@ echo "✅ Frontend built successfully!"
 echo ""
 
 # ===========================
-# BUILD PODMAN IMAGES
+# BUILD CONTAINER IMAGES IN PARALLEL
 # ===========================
 
-echo "🐳 Building Podman/Docker images..."
+echo "🐳 Building Podman/Docker images in parallel..."
 echo ""
 
 # Check if podman is available, otherwise use docker
@@ -95,38 +111,53 @@ fi
 
 echo ""
 
-# Build all service images
-echo "📦 Building container image: naming-server..."
-$CONTAINER_CMD build -t naming-server:latest -f naming-server/Containerfile naming-server/
+# Array of images to build (name:context:containerfile)
+declare -A IMAGES=(
+    ["naming-server"]="naming-server:naming-server/Containerfile"
+    ["api-gateway"]="api-gatway:api-gatway/Containerfile"
+    ["auth-service"]="auth:auth/Containerfile"
+    ["user-profile-service"]="user-profile:user-profile/Containerfile"
+    ["notification-service"]="notification:notification/Containerfile"
+    ["data-source-service"]="data-source:data-source/Containerfile"
+    ["chatbot-service"]="chat-bot-service:chat-bot-service/Containerfile"
+    ["frontend"]="front-end-next-ts:front-end-next-ts/Containerfile"
+)
 
-echo "📦 Building container image: api-gateway..."
-$CONTAINER_CMD build -t api-gateway:latest -f api-gatway/Containerfile api-gatway/
+# Function to build container image
+build_image() {
+    local name=$1
+    local context_and_file=$2
+    local context=$(echo $context_and_file | cut -d: -f1)
+    local containerfile=$(echo $context_and_file | cut -d: -f2)
 
-echo "📦 Building container image: auth-service..."
-$CONTAINER_CMD build -t auth-service:latest -f auth/Containerfile auth/
+    echo "  → Building container image: $name..."
+    $CONTAINER_CMD build -t "$name:latest" -f "$containerfile" "$context" > "build-image-$name.log" 2>&1
+    local exit_code=$?
 
-echo "📦 Building container image: user-profile-service..."
-$CONTAINER_CMD build -t user-profile-service:latest -f user-profile/Containerfile user-profile/
+    if [ $exit_code -eq 0 ]; then
+        echo "  ✓ $name image built successfully"
+        rm "build-image-$name.log"
+    else
+        echo "  ✗ $name image build failed! Check build-image-$name.log"
+        return 1
+    fi
+}
 
-echo "📦 Building container image: notification-service..."
-$CONTAINER_CMD build -t notification-service:latest -f notification/Containerfile notification/
+# Build all images in parallel
+for name in "${!IMAGES[@]}"; do
+    build_image "$name" "${IMAGES[$name]}" &
+done
 
-echo "📦 Building container image: data-source-service..."
-$CONTAINER_CMD build -t data-source-service:latest -f data-source/Containerfile data-source/
-
-echo "📦 Building container image: chatbot-service..."
-$CONTAINER_CMD build -t chatbot-service:latest -f chat-bot-service/Containerfile chat-bot-service/
-
-echo "📦 Building container image: frontend..."
-$CONTAINER_CMD build -t frontend:latest -f front-end-next-ts/Containerfile front-end-next-ts/
+echo "⏳ Waiting for all image builds to complete..."
+wait
 
 echo ""
 echo "✅ All container images built successfully!"
 echo ""
 echo "📋 Summary:"
-echo "   ✓ 7 Java microservices compiled"
+echo "   ✓ 7 Java microservices compiled (parallel)"
 echo "   ✓ 1 Next.js frontend built"
-echo "   ✓ 8 container images created"
+echo "   ✓ 8 container images created (parallel)"
 echo ""
 echo "🚀 To start all services, run:"
 echo "   podman-compose up -d"
