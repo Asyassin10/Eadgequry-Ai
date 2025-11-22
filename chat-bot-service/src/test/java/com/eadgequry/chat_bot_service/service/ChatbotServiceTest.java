@@ -63,9 +63,10 @@ class ChatbotServiceTest {
         schemaDTO.setDatabaseConfigId(100L);
         schemaDTO.setSchemaJson("{\"tables\": []}");
 
-        queryResult = new QueryExecutionResponse();
-        queryResult.setSuccess(true);
-        queryResult.setData(List.of(Map.of("id", 1, "name", "Test")));
+        queryResult = QueryExecutionResponse.builder()
+                .success(true)
+                .result(List.of(Map.of("id", 1, "name", "Test")))
+                .build();
     }
 
     @Test
@@ -91,15 +92,23 @@ class ChatbotServiceTest {
         when(aiService.handleNonDatabaseQuestion(anyString())).thenReturn(null);
         when(userAiSettingsService.isUsingDemoMode(1L)).thenReturn(false);
         when(dataSourceClient.getSchemaByConfigId(100L, 1L)).thenReturn(schemaDTO);
-        when(aiService.generateQuery(anyLong(), anyString(), any())).thenReturn("SELECT * FROM users");
+        when(aiService.generateSqlQuery(eq(1L), anyString(), any(DatabaseSchemaDTO.class), isNull()))
+                .thenReturn("SELECT * FROM users");
         when(sqlValidatorService.cleanQuery(anyString())).thenReturn("SELECT * FROM users");
-        when(dataSourceClient.executeQuery(100L, 1L, "SELECT * FROM users")).thenReturn(queryResult);
-        when(aiService.generateAnswer(anyString(), anyString(), anyList(), any())).thenReturn("Found 1 user");
+        when(dataSourceClient.executeQuery(eq(100L), eq(1L), anyString())).thenReturn(queryResult);
+        when(aiService.generateAnswer(eq(1L), anyString(), anyString(), anyList()))
+                .thenReturn("Found 1 user");
 
-        ConversationSession session = new ConversationSession();
-        session.setSessionId(UUID.randomUUID().toString());
-        when(conversationSessionRepository.findByUserIdAndDatabaseConfigIdAndActiveTrue(1L, 100L))
-                .thenReturn(Optional.of(session));
+        List<ConversationSession> sessions = List.of(
+                ConversationSession.builder()
+                        .sessionId(UUID.randomUUID().toString())
+                        .userId(1L)
+                        .databaseConfigId(100L)
+                        .isActive(true)
+                        .build()
+        );
+        when(conversationSessionRepository.findByUserIdAndIsActiveTrueOrderByLastActivityAtDesc(1L))
+                .thenReturn(sessions);
 
         // Act
         ChatResponse response = chatbotService.ask(chatRequest);
@@ -108,7 +117,7 @@ class ChatbotServiceTest {
         assertTrue(response.isSuccess());
         assertNotNull(response.getAnswer());
         assertNotNull(response.getSqlQuery());
-        verify(dataSourceClient).executeQuery(100L, 1L, "SELECT * FROM users");
+        verify(dataSourceClient).executeQuery(eq(100L), eq(1L), anyString());
     }
 
     @Test

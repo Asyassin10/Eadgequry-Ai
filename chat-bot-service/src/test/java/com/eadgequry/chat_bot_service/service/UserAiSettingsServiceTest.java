@@ -1,5 +1,6 @@
 package com.eadgequry.chat_bot_service.service;
 
+import com.eadgequry.chat_bot_service.dto.UpdateAiSettingsRequest;
 import com.eadgequry.chat_bot_service.dto.UserAiSettingsDTO;
 import com.eadgequry.chat_bot_service.model.UserAiSettings;
 import com.eadgequry.chat_bot_service.repository.UserAiSettingsRepository;
@@ -22,6 +23,9 @@ class UserAiSettingsServiceTest {
     @Mock
     private UserAiSettingsRepository userAiSettingsRepository;
 
+    @Mock
+    private EncryptionService encryptionService;
+
     @InjectMocks
     private UserAiSettingsService userAiSettingsService;
 
@@ -29,13 +33,13 @@ class UserAiSettingsServiceTest {
 
     @BeforeEach
     void setUp() {
-        settings = new UserAiSettings();
-        settings.setId(1L);
-        settings.setUserId(1L);
-        settings.setApiKeyEncrypted("encrypted_key");
-        settings.setApiProvider("OPENAI");
-        settings.setAiModel("gpt-4");
-        settings.setUsingDemoMode(false);
+        settings = UserAiSettings.builder()
+                .id(1L)
+                .userId(1L)
+                .apiKeyEncrypted("encrypted_key")
+                .provider(UserAiSettings.AiProvider.OPENAI)
+                .model("gpt-4")
+                .build();
     }
 
     @Test
@@ -50,8 +54,8 @@ class UserAiSettingsServiceTest {
         // Assert
         assertNotNull(result);
         assertEquals(1L, result.getUserId());
-        assertEquals("OPENAI", result.getApiProvider());
-        assertEquals("gpt-4", result.getAiModel());
+        assertEquals("OPENAI", result.getProvider());
+        assertEquals("gpt-4", result.getModel());
         verify(userAiSettingsRepository).findByUserId(1L);
     }
 
@@ -71,7 +75,12 @@ class UserAiSettingsServiceTest {
     @Test
     void isUsingDemoMode_WhenUserExistsWithDemoMode_ShouldReturnTrue() {
         // Arrange
-        settings.setUsingDemoMode(true);
+        settings = UserAiSettings.builder()
+                .id(1L)
+                .userId(1L)
+                .provider(UserAiSettings.AiProvider.DEMO)
+                .build();
+
         when(userAiSettingsRepository.findByUserId(1L))
                 .thenReturn(Optional.of(settings));
 
@@ -85,7 +94,6 @@ class UserAiSettingsServiceTest {
     @Test
     void isUsingDemoMode_WhenUserExistsWithoutDemoMode_ShouldReturnFalse() {
         // Arrange
-        settings.setUsingDemoMode(false);
         when(userAiSettingsRepository.findByUserId(1L))
                 .thenReturn(Optional.of(settings));
 
@@ -97,20 +105,21 @@ class UserAiSettingsServiceTest {
     }
 
     @Test
-    void updateSettings_ShouldSaveAndReturnDTO() {
+    void updateUserSettings_ShouldSaveAndReturnDTO() {
         // Arrange
-        UserAiSettingsDTO dto = new UserAiSettingsDTO();
-        dto.setUserId(1L);
-        dto.setApiProvider("ANTHROPIC");
-        dto.setAiModel("claude-3");
+        UpdateAiSettingsRequest request = new UpdateAiSettingsRequest();
+        request.setProvider("CLAUDE");
+        request.setModel("claude-3");
+        request.setApiKey("test-key");
 
         when(userAiSettingsRepository.findByUserId(1L))
                 .thenReturn(Optional.of(settings));
+        when(encryptionService.encrypt(anyString())).thenReturn("encrypted");
         when(userAiSettingsRepository.save(any(UserAiSettings.class)))
                 .thenReturn(settings);
 
         // Act
-        UserAiSettingsDTO result = userAiSettingsService.updateSettings(dto);
+        UserAiSettingsDTO result = userAiSettingsService.updateUserSettings(1L, request);
 
         // Assert
         assertNotNull(result);
