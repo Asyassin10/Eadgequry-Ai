@@ -29,6 +29,15 @@
 	<properties>
 		<java.version>21</java.version>
 		<spring-cloud.version>2025.0.0</spring-cloud.version>
+
+		<!-- SonarQube Properties -->
+		<sonar.projectKey>eadgequry-data-source</sonar.projectKey>
+		<sonar.projectName>Eadgequry Data Source Service</sonar.projectName>
+		<sonar.host.url>http://localhost:9000</sonar.host.url>
+		<sonar.java.coveragePlugin>jacoco</sonar.java.coveragePlugin>
+		<sonar.coverage.jacoco.xmlReportPaths>${project.build.directory}/site/jacoco/jacoco.xml</sonar.coverage.jacoco.xmlReportPaths>
+		<sonar.exclusions>**/target/**,**/bin/**,**/*.xml,**/*.yml,**/*.properties</sonar.exclusions>
+		<sonar.coverage.exclusions>**/DataSourceServiceApplication.java,**/config/**,**/dto/**,**/model/**,**/repository/**,**/client/**,**/util/**</sonar.coverage.exclusions>
 	</properties>
 	<dependencies>
 		<dependency>
@@ -210,6 +219,13 @@
 						<exclude>**/DataSourceServiceApplication.class</exclude>
 					</excludes>
 				</configuration>
+			</plugin>
+
+			<!-- SonarQube Plugin -->
+			<plugin>
+				<groupId>org.sonarsource.scanner.maven</groupId>
+				<artifactId>sonar-maven-plugin</artifactId>
+				<version>4.0.0.4121</version>
 			</plugin>
 		</plugins>
 	</build>
