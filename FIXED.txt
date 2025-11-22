@@ -1,0 +1,70 @@
+✅ FIXED - Java 21 Container Issues
+
+PROBLEM:
+- UnsupportedClassVersionError: class file version 65.0 (Java 21) vs 61.0 (Java 17)
+- Services compiled with Java 21 but containers had Java 17
+
+SOLUTION:
+=========
+All Containerfiles now use: FROM eclipse-temurin:21-jdk-alpine
+
+STANDARDIZED FORMAT:
+--------------------
+FROM eclipse-temurin:21-jdk-alpine
+WORKDIR /app
+COPY target/[service]-0.0.1-SNAPSHOT.jar app.jar
+EXPOSE [port]
+ENTRYPOINT ["java","-jar","/app/app.jar"]
+
+PORTS (corrected):
+------------------
+naming-server:    8761
+api-gateway:      8765
+auth:             8081
+user-profile:     8082
+notification:     8084
+data-source:      8085
+chatbot:          8089
+
+REBUILD STEPS:
+==============
+
+# Method 1: Use rebuild script (EASIEST)
+./rebuild-services.sh
+
+# Method 2: Manual
+podman-compose down
+./build-all.sh
+podman-compose build
+podman-compose up -d
+
+# Check status
+podman-compose ps
+
+# View logs (check for errors)
+podman-compose logs -f data-source-service
+podman-compose logs -f chatbot-service
+podman-compose logs -f notification-service
+
+# Restart specific service if needed
+podman-compose restart data-source-service
+
+TROUBLESHOOTING:
+================
+
+# If still getting Java errors
+podman-compose down
+podman rmi -f $(podman images -q 'localhost/eadgequry-ai_*')
+./build-all.sh
+podman-compose build --no-cache
+podman-compose up -d
+
+# Check Java version in container
+podman exec data-source-service java -version
+# Should show: openjdk version "21"
+
+# Check logs for specific service
+podman-compose logs --tail=50 data-source-service
+
+# Enter container to debug
+podman exec -it data-source-service sh
