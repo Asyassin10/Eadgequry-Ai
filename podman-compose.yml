@@ -396,39 +396,20 @@ services:
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://naming-server:8761/eureka
 
   # Next.js Frontend
-
-  # Jenkins CI/CD Server
-  # NOTE: For rootless Podman, socket path is: ${XDG_RUNTIME_DIR}/podman/podman.sock (e.g., /run/user/1000/podman/podman.sock)
-  # For rootful Podman, socket path is: /run/podman/podman.sock
-  jenkins:
-    image: jenkins/jenkins:lts-jdk17
-    container_name: jenkins-cicd
-    user: root
-    # Removed 'privileged: true' - not needed in Podman and can cause issues
-    # Podman handles capabilities and security differently than Docker
+  frontend:
+    build:
+      context: ./front-end-next-ts
+      dockerfile: Containerfile
+    container_name: frontend
     ports:
-      - "8982:8080"
-      - "50000:50000"
-    volumes:
-      - jenkins-data:/var/jenkins_home
-      # For rootful Podman (running as root):
-      - /run/podman/podman.sock:/var/run/docker.sock:Z
-      # For rootless Podman (running as regular user), replace above line with:
-      # - ${XDG_RUNTIME_DIR}/podman/podman.sock:/var/run/docker.sock:Z
-      # Or typically: /run/user/1000/podman/podman.sock:/var/run/docker.sock:Z
-      - ./jenkins-jobs:/var/jenkins_jobs:Z
-    environment:
-      - JENKINS_OPTS=--prefix=/jenkins
-      - JAVA_OPTS=-Djenkins.install.runSetupWizard=false
+      - "3000:3000"
+    depends_on:
+      - api-gateway
     networks:
       - edagequry-net
-    healthcheck:
-      test:
-        ["CMD-SHELL", "curl -f http://localhost:8080/jenkins/login || exit 1"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 90s
+    restart: unless-stopped
+    environment:
+      - NEXT_PUBLIC_API_URL=http://api-gateway:8765
 
 networks:
   edagequry-net:
@@ -447,4 +428,3 @@ volumes:
   sonarqube-data:
   sonarqube-extensions:
   sonarqube-logs:
-  jenkins-data:
