@@ -1,0 +1,189 @@
+=================================================================
+SONARQUBE COVERAGE COMPLETE GUIDE
+=================================================================
+
+STEP 1: START SONARQUBE
+========================
+podman-compose up -d sonarqube
+# Wait 60 seconds for startup
+sleep 60
+
+# Access: http://localhost:9000
+# Default login: admin / admin
+# Change password when prompted
+
+
+STEP 2: CREATE PROJECTS IN SONARQUBE
+=====================================
+# Login to http://localhost:9000
+# Click "Create Project" → "Manually"
+# Create these projects:
+
+Project Key          | Project Name
+---------------------|-------------------------
+eadgequry-auth       | Eadgequry Auth Service
+eadgequry-user-profile | Eadgequry User Profile
+eadgequry-notification | Eadgequry Notification
+eadgequry-data-source | Eadgequry Data Source
+eadgequry-chatbot    | Eadgequry Chatbot
+
+
+STEP 3: GENERATE TOKEN
+======================
+# In SonarQube dashboard:
+# 1. Click your avatar (top right)
+# 2. My Account → Security → Generate Tokens
+# 3. Name: "local-analysis"
+# 4. Type: Global Analysis Token
+# 5. Expires: Never (or set date)
+# 6. Click "Generate"
+# 7. COPY THE TOKEN - you won't see it again!
+
+export SONAR_TOKEN="your_token_here"
+
+
+STEP 4: RUN TESTS WITH COVERAGE
+================================
+
+# Option A: All services
+./test-coverage.sh
+
+# Option B: Single service
+cd auth
+./mvnw clean verify jacoco:report
+cd ..
+
+# Coverage reports generated at:
+# - auth/target/site/jacoco/index.html
+# - user-profile/target/site/jacoco/index.html
+# - notification/target/site/jacoco/index.html
+# - data-source/target/site/jacoco/index.html
+# - chat-bot-service/target/site/jacoco/index.html
+
+
+STEP 5: SEND TO SONARQUBE
+==========================
+
+# Option A: All services with script
+export SONAR_TOKEN="your_token_here"
+./sonar-analyze.sh
+
+# Option B: Single service manually
+cd auth
+./mvnw sonar:sonar \
+  -Dsonar.host.url=http://localhost:9000 \
+  -Dsonar.login=$SONAR_TOKEN
+cd ..
+
+
+STEP 6: VIEW IN DASHBOARD
+==========================
+
+# Go to: http://localhost:9000
+# You'll see all projects with:
+# - Coverage percentage
+# - Code smells
+# - Bugs
+# - Security vulnerabilities
+# - Duplications
+# - Technical debt
+
+# Click any project to see detailed report
+
+
+QUICK COMMANDS:
+===============
+
+# Full pipeline (build + test + coverage + sonar)
+./build-test-sonar.sh
+
+# Just coverage reports (view locally)
+./test-coverage.sh
+open auth/target/site/jacoco/index.html
+
+# Just SonarQube analysis
+export SONAR_TOKEN="your_token"
+./sonar-analyze.sh
+
+# View specific service coverage
+podman-compose up -d sonarqube
+cd data-source
+./mvnw clean verify jacoco:report
+./mvnw sonar:sonar -Dsonar.login=$SONAR_TOKEN
+# Then open: http://localhost:9000/dashboard?id=eadgequry-data-source
+
+
+TROUBLESHOOTING:
+================
+
+# SonarQube not starting
+podman-compose logs sonarqube
+# Common issue: needs more memory
+# Add to podman-compose.yml under sonarqube:
+#   environment:
+#     - SONAR_ES_BOOTSTRAP_CHECKS_DISABLE=true
+
+# Token not working
+# Regenerate token in SonarQube UI
+
+# Coverage showing 0%
+# Make sure tests ran first:
+./test-coverage.sh
+# Then run sonar
+
+# Project not showing
+# Check project key matches pom.xml
+grep sonar.projectKey */pom.xml
+
+
+VIEWING COVERAGE:
+=================
+
+# Local HTML reports (offline)
+auth/target/site/jacoco/index.html
+user-profile/target/site/jacoco/index.html
+notification/target/site/jacoco/index.html
+data-source/target/site/jacoco/index.html
+chat-bot-service/target/site/jacoco/index.html
+
+# SonarQube dashboard (online)
+http://localhost:9000/projects
+
+# Specific project
+http://localhost:9000/dashboard?id=eadgequry-auth
+http://localhost:9000/dashboard?id=eadgequry-user-profile
+http://localhost:9000/dashboard?id=eadgequry-notification
+http://localhost:9000/dashboard?id=eadgequry-data-source
+http://localhost:9000/dashboard?id=eadgequry-chatbot
+
+
+COVERAGE METRICS:
+=================
+- Line Coverage: % of code lines executed by tests
+- Branch Coverage: % of if/else branches covered
+- Method Coverage: % of methods tested
+- Class Coverage: % of classes tested
+
+Good targets:
+- 70%+ overall coverage
+- 80%+ for critical services (auth, user-profile)
+- 60%+ for supporting services
+
+
+CONTINUOUS MONITORING:
+======================
+
+# Run after every code change
+./test-coverage.sh && ./sonar-analyze.sh
+
+# Or full pipeline
+./build-test-sonar.sh
+
+# Check quality gate
+# In SonarQube: Administration → Quality Gates
+# Set thresholds for:
+# - Coverage > 70%
+# - Duplications < 3%
+# - Maintainability Rating = A
+# - Reliability Rating = A
+# - Security Rating = A
