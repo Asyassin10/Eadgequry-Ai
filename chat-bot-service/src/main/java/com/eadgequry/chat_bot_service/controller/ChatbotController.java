@@ -35,25 +35,9 @@ public class ChatbotController {
     @Operation(summary = "Ask a question", description = "Ask a natural language question and get SQL query + answer")
     public ResponseEntity<ChatResponse> ask(@Valid @RequestBody ChatRequest request) {
         log.info("Received question: {} from user: {}", request.getQuestion(), request.getUserId());
-
         ChatResponse response = chatbotService.ask(request);
-
         log.info("Response generated successfully");
         return ResponseEntity.ok(response);
-    }
-
-    /**
-     * Ask a question with streaming response (Server-Sent Events)
-     */
-    @PostMapping(value = "/ask/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    @Operation(summary = "Ask a question with streaming", description = "Ask a question and get streaming answer (Server-Sent Events)")
-    public Flux<String> askStreaming(@Valid @RequestBody ChatRequest request) {
-        log.info("Received streaming question: {} from user: {}", request.getQuestion(), request.getUserId());
-
-        return chatbotService.askStreaming(request)
-                .delayElements(Duration.ofMillis(10)) // Small delay for better streaming experience
-                .doOnComplete(() -> log.info("Streaming response completed"))
-                .doOnError(error -> log.error("Streaming error", error));
     }
 
     /**

@@ -75,14 +75,7 @@ export function Layout({ children, isDark, onToggleTheme }: LayoutProps) {
             )
           })}
         </nav>
-
-        {/* Logout Button */}
-        <div className="p-4 border-t border-sidebar-border">
-          <Button variant="ghost" size="sm" className="w-full justify-start gap-2" onClick={handleLogout}>
-            <LogOut className="w-5 h-5" />
-            {sidebarOpen && <span className="text-sm">Logout</span>}
-          </Button>
-        </div>
+ 
       </aside>
 
       {/* Main Content */}

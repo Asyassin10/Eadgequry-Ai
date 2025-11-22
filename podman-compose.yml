@@ -396,20 +396,6 @@ services:
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://naming-server:8761/eureka
 
   # Next.js Frontend
-  frontend:
-    build:
-      context: ./front-end-next-ts
-      dockerfile: Containerfile
-    container_name: frontend
-    ports:
-      - "3000:3000"
-    depends_on:
-      - api-gateway
-    networks:
-      - edagequry-net
-    restart: unless-stopped
-    environment:
-      - NEXT_PUBLIC_API_URL=http://api-gateway:8765
 
   # Jenkins CI/CD Server
   # NOTE: For rootless Podman, socket path is: ${XDG_RUNTIME_DIR}/podman/podman.sock (e.g., /run/user/1000/podman/podman.sock)

@@ -79,20 +79,7 @@ echo "   - data-source/target/*.jar"
 echo "   - chat-bot-service/target/*.jar"
 echo ""
 
-# ===========================
-# BUILD FRONTEND
-# ===========================
-
-echo "📦 Building Next.js Frontend..."
-cd front-end-next-ts
-npm install
-npm run build
-cd ..
-
-echo ""
-echo "✅ Frontend built successfully!"
-echo ""
-
+ 
 # ===========================
 # BUILD CONTAINER IMAGES IN PARALLEL
 # ===========================
@@ -120,8 +107,7 @@ declare -A IMAGES=(
     ["notification-service"]="notification:notification/Containerfile"
     ["data-source-service"]="data-source:data-source/Containerfile"
     ["chatbot-service"]="chat-bot-service:chat-bot-service/Containerfile"
-    ["frontend"]="front-end-next-ts:front-end-next-ts/Containerfile"
-)
+ )
 
 # Function to build container image
 build_image() {
@@ -156,8 +142,7 @@ echo "✅ All container images built successfully!"
 echo ""
 echo "📋 Summary:"
 echo "   ✓ 7 Java microservices compiled (parallel)"
-echo "   ✓ 1 Next.js frontend built"
-echo "   ✓ 8 container images created (parallel)"
+ echo "   ✓ 8 container images created (parallel)"
 echo ""
 echo "🚀 To start all services, run:"
 echo "   podman-compose up -d"

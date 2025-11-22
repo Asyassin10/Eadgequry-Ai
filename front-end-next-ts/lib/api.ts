@@ -48,7 +48,7 @@ function clearAuthData() {
     sessionStorage.removeItem('user');
 
     // Clear cookies
-    deleteCookie('authToken');
+    deleteCookie('authToken');  // Clear authToken cookie
 
     console.log('[Auth] Cleared all authentication data');
   } catch (error) {
@@ -128,14 +128,14 @@ async function apiRequest<T>(
     const data = await response.json().catch(() => ({}));
 
     if (!response.ok) {
-      // CRITICAL: Handle 401 Unauthorized - AUTOMATIC LOGOUT
+      // Handle 401 Unauthorized - Automatic Logout
       if (response.status === 401) {
         handle401Unauthorized(endpoint);
 
-        // Still return error so caller can handle if needed
+        // Return error immediately after handling 401
         return {
           error: {
-            message: 'Invalid email or password. Please check your credentials and try again.',
+            message: 'Your session has expired. Please log in again.',
             status: 401,
             error: 'Unauthorized',
           },

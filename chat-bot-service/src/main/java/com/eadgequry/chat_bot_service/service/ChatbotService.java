@@ -41,7 +41,6 @@ public class ChatbotService {
     private int maxRetries;
 
     /**
-     * Process a chat question (non-streaming)
      * Simple flow: Question → Generate SQL → Validate → Execute → Generate Answer
      */
     @Transactional
@@ -97,7 +96,8 @@ public class ChatbotService {
 
                     // Save conversation with error
                     String sessionId = getOrCreateSession(userId, databaseConfigId);
-                    saveConversation(userId, databaseConfigId, sessionId, question, sqlQuery, null, friendlyError, errorMsg);
+                    saveConversation(userId, databaseConfigId, sessionId, question, sqlQuery, null, friendlyError,
+                            errorMsg);
 
                     // Return error response
                     return ChatResponse.builder()
@@ -254,7 +254,8 @@ public class ChatbotService {
     /**
      * Build a friendly response for table/column not found errors
      */
-    private String buildTableNotFoundResponse(String errorMessage, String question, String sqlQuery, DatabaseSchemaDTO schema) {
+    private String buildTableNotFoundResponse(String errorMessage, String question, String sqlQuery,
+            DatabaseSchemaDTO schema) {
         StringBuilder response = new StringBuilder();
 
         // Extract table or column name from error
@@ -275,7 +276,7 @@ public class ChatbotService {
             for (DatabaseSchemaDTO.TableInfo table : schema.getTables()) {
                 // Skip system tables
                 if (!table.getName().toLowerCase().startsWith("spring_") &&
-                    !table.getName().toLowerCase().equals("flyway_schema_history")) {
+                        !table.getName().toLowerCase().equals("flyway_schema_history")) {
                     response.append("• `").append(table.getName()).append("`\n");
                 }
             }
@@ -388,120 +389,6 @@ public class ChatbotService {
     }
 
     /**
-     * Process a chat question with streaming response
-     */
-    @Transactional
-    public Flux<String> askStreaming(ChatRequest request) {
-        return Flux.defer(() -> {
-            String sqlQuery = null;
-            try {
-                String question = request.getQuestion().trim();
-                Long userId = request.getUserId();
-                Long databaseConfigId = request.getDatabaseConfigId();
-
-                // Check if user is on DEMO mode and has exceeded daily query limit
-                if (userAiSettingsService.isUsingDemoMode(userId)) {
-                    if (demoQueryUsageService.hasExceededDailyLimit(userId)) {
-                        String limitMessage = buildDailyLimitExceededMessage(userId);
-                        log.warn("User {} exceeded daily DEMO query limit (streaming)", userId);
-                        return Flux.just(limitMessage);
-                    }
-                }
-
-                // Get database schema
-                DatabaseSchemaDTO schema = dataSourceClient.getSchemaByConfigId(databaseConfigId, userId);
-
-                // Generate SQL query
-                sqlQuery = generateQueryWithRetries(userId, question, schema);
-
-                // Clean SQL
-                String cleanedQuery = sqlValidatorService.cleanQuery(sqlQuery);
-                final String finalSqlQuery = cleanedQuery;
-
-                // Execute query (datasource will validate for security)
-                QueryExecutionResponse queryResult = dataSourceClient.executeQuery(databaseConfigId, userId,
-                        cleanedQuery);
-
-                if (!queryResult.isSuccess()) {
-                    String errorMsg = queryResult.getError();
-
-                    // Check if it's a table/column not found error
-                    if (isTableOrColumnNotFoundError(errorMsg)) {
-                        log.warn("Table or column not found in streaming: {}", errorMsg);
-                        String friendlyError = buildTableNotFoundResponse(errorMsg, question, finalSqlQuery, schema);
-
-                        // Save conversation with error
-                        String sessionId = getOrCreateSession(userId, databaseConfigId);
-                        saveConversation(userId, databaseConfigId, sessionId, question, finalSqlQuery, null, friendlyError, errorMsg);
-
-                        // Return error as flux
-                        return Flux.just(friendlyError);
-                    }
-
-                    // Check if it's a forbidden keyword error
-                    if (isForbiddenKeywordError(errorMsg)) {
-                        log.warn("Forbidden SQL operation attempted in streaming: {}", finalSqlQuery);
-                        String friendlyError = buildForbiddenOperationResponse(errorMsg, schema.getDatabaseType());
-
-                        // Save conversation with error
-                        String sessionId = getOrCreateSession(userId, databaseConfigId);
-                        saveConversation(userId, databaseConfigId, sessionId, question, finalSqlQuery, null,
-                                friendlyError, errorMsg);
-
-                        // Return error as flux
-                        return Flux.just(friendlyError);
-                    }
-
-                    return Flux.error(new ChatBotException("Query execution failed: " + errorMsg));
-                }
-
-                // Limit results to 50 rows maximum (for display purposes)
-                List<Map<String, Object>> limitedResult = limitResults(queryResult.getResult(), 50);
-
-                // Generate streaming answer
-                String sessionId = getOrCreateSession(userId, databaseConfigId);
-
-                return aiService.generateStreamingAnswer(userId, question, cleanedQuery, limitedResult)
-                        .doOnComplete(() -> {
-                            // Increment query count for DEMO users
-                            if (userAiSettingsService.isUsingDemoMode(userId)) {
-                                demoQueryUsageService.incrementQueryCount(userId);
-                            }
-
-                            // Save conversation after streaming completes
-                            saveConversation(userId, databaseConfigId, sessionId, question, cleanedQuery,
-                                    limitedResult, "[Streaming response]", null);
-                        });
-
-            } catch (Exception e) {
-                log.error("Error processing streaming question", e);
-
-                // Handle timeout errors
-                if (isTimeoutError(e)) {
-                    String timeoutMessage = "⏱️ **The AI took too long to process your question.**\n\n" +
-                            "This usually happens with very complex questions or when the AI service is slow.\n\n" +
-                            "**What you can do:**\n" +
-                            "• Try asking a simpler question\n" +
-                            "• Break your question into smaller parts\n" +
-                            "• Try again in a moment\n" +
-                            "• If this keeps happening, please contact support\n\n" +
-                            "**Your question:** \"" + request.getQuestion() + "\"";
-                    return Flux.just(timeoutMessage);
-                }
-
-                // If we have a SQL query and it's a forbidden keyword error, handle it
-                // gracefully
-                if (sqlQuery != null && isForbiddenKeywordError(e.getMessage())) {
-                    String friendlyError = buildForbiddenOperationResponse(e.getMessage(), "");
-                    return Flux.just(friendlyError);
-                }
-
-                return Flux.error(new ChatBotException("Error: " + e.getMessage(), e));
-            }
-        });
-    }
-
-    /**
      * Generate SQL query with retries
      */
     private String generateQueryWithRetries(Long userId, String question, DatabaseSchemaDTO schema) {
@@ -510,6 +397,7 @@ public class ChatbotService {
         for (int attempt = 0; attempt <= maxRetries; attempt++) {
             try {
                 String query = aiService.generateSqlQuery(userId, question, schema, lastError);
+                log.info("this is query come form ai :" + "  " + query);
                 String cleaned = sqlValidatorService.cleanQuery(query);
                 return cleaned;
             } catch (Exception e) {
@@ -621,7 +509,8 @@ public class ChatbotService {
         StringBuilder message = new StringBuilder();
         message.append("🚫 **Daily Query Limit Reached**\n\n");
         message.append("You're currently using the **DEMO mode** with our platform's free AI service.\n\n");
-        message.append("**Your usage today:** ").append(currentCount).append(" / ").append(limit).append(" queries\n\n");
+        message.append("**Your usage today:** ").append(currentCount).append(" / ").append(limit)
+                .append(" queries\n\n");
         message.append("**Why this limit exists:**\n");
         message.append("• DEMO mode uses our shared AI resources\n");
         message.append("• Helps us provide free service to all users\n");
@@ -639,7 +528,6 @@ public class ChatbotService {
         message.append("• ✅ You only pay for what you use\n\n");
         message.append("**Your limit resets:** Tomorrow at midnight\n");
         message.append("**Queries remaining today:** 0\n");
-
         return message.toString();
     }
 }

@@ -6,15 +6,20 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 import java.util.List;
- 
+
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 @Data
 @NoArgsConstructor
+@JsonIgnoreProperties(ignoreUnknown = true)
 @AllArgsConstructor
 public class DatabaseSchemaDTO {
 
     private Long id;
     private Long databaseConfigId;
     private String schemaJson;
+    @JsonIgnore
     private LocalDateTime extractedAt;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
