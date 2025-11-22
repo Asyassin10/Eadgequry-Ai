@@ -241,11 +241,175 @@ services:
       PMA_PASSWORD: chatbot_password
       MYSQL_ROOT_PASSWORD: rootpassword
     ports:
-      - "8089:80"
+      - "8090:80"
     depends_on:
       - mysql-chatbot
     networks:
       - edagequry-net
+
+  # ===== MICROSERVICES =====
+
+  # Naming Server (Eureka Discovery Service)
+  naming-server:
+    build:
+      context: ./naming-server
+      dockerfile: Containerfile
+    container_name: naming-server
+    ports:
+      - "8761:8761"
+    networks:
+      - edagequry-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8761/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 40s
+
+  # API Gateway
+  api-gateway:
+    build:
+      context: ./api-gatway
+      dockerfile: Containerfile
+    container_name: api-gateway
+    ports:
+      - "8765:8765"
+    depends_on:
+      naming-server:
+        condition: service_healthy
+    networks:
+      - edagequry-net
+    restart: unless-stopped
+    environment:
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://naming-server:8761/eureka
+
+  # Auth Service
+  auth-service:
+    build:
+      context: ./auth
+      dockerfile: Containerfile
+    container_name: auth-service
+    ports:
+      - "8081:8081"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      naming-server:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    networks:
+      - edagequry-net
+    restart: unless-stopped
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/eadgequry-auth
+      - SPRING_DATASOURCE_USERNAME=authuser
+      - SPRING_DATASOURCE_PASSWORD=authpassword
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://naming-server:8761/eureka
+      - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:29092
+
+  # User Profile Service
+  user-profile-service:
+    build:
+      context: ./user-profile
+      dockerfile: Containerfile
+    container_name: user-profile-service
+    ports:
+      - "8082:8082"
+    depends_on:
+      mysql-user-profile:
+        condition: service_healthy
+      naming-server:
+        condition: service_healthy
+    networks:
+      - edagequry-net
+    restart: unless-stopped
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql-user-profile:3306/eadgequry-user-profile
+      - SPRING_DATASOURCE_USERNAME=profileuser
+      - SPRING_DATASOURCE_PASSWORD=profilepassword
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://naming-server:8761/eureka
+
+  # Notification Service
+  notification-service:
+    build:
+      context: ./notification
+      dockerfile: Containerfile
+    container_name: notification-service
+    ports:
+      - "8084:8084"
+    depends_on:
+      naming-server:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    networks:
+      - edagequry-net
+    restart: unless-stopped
+    environment:
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://naming-server:8761/eureka
+      - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:29092
+
+  # Data Source Service
+  data-source-service:
+    build:
+      context: ./data-source
+      dockerfile: Containerfile
+    container_name: data-source-service
+    ports:
+      - "8085:8085"
+    depends_on:
+      mysql-datasource:
+        condition: service_healthy
+      naming-server:
+        condition: service_healthy
+    networks:
+      - edagequry-net
+    restart: unless-stopped
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql-datasource:3306/datasource_db
+      - SPRING_DATASOURCE_USERNAME=datasourceuser
+      - SPRING_DATASOURCE_PASSWORD=datasourcepassword
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://naming-server:8761/eureka
+
+  # Chatbot Service
+  chatbot-service:
+    build:
+      context: ./chat-bot-service
+      dockerfile: Containerfile
+    container_name: chatbot-service
+    ports:
+      - "8089:8089"
+    depends_on:
+      mysql-chatbot:
+        condition: service_healthy
+      naming-server:
+        condition: service_healthy
+    networks:
+      - edagequry-net
+    restart: unless-stopped
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql-chatbot:3306/chatbot_db
+      - SPRING_DATASOURCE_USERNAME=chatbot_user
+      - SPRING_DATASOURCE_PASSWORD=chatbot_password
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://naming-server:8761/eureka
+
+  # Next.js Frontend
+  frontend:
+    build:
+      context: ./front-end-next-ts
+      dockerfile: Containerfile
+    container_name: frontend
+    ports:
+      - "3000:3000"
+    depends_on:
+      - api-gateway
+    networks:
+      - edagequry-net
+    restart: unless-stopped
+    environment:
+      - NEXT_PUBLIC_API_URL=http://api-gateway:8765
 
   # Jenkins CI/CD Server
   # NOTE: For rootless Podman, socket path is: ${XDG_RUNTIME_DIR}/podman/podman.sock (e.g., /run/user/1000/podman/podman.sock)
