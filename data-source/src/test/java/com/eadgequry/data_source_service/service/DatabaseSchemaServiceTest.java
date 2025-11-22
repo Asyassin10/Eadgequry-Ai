@@ -1,8 +1,11 @@
 package com.eadgequry.data_source_service.service;
 
 import com.eadgequry.data_source_service.dto.DatabaseSchemaDTO;
+import com.eadgequry.data_source_service.exception.DatabaseConfigNotFoundException;
 import com.eadgequry.data_source_service.exception.DatabaseSchemaNotFoundException;
+import com.eadgequry.data_source_service.model.DatabaseConfig;
 import com.eadgequry.data_source_service.model.DatabaseSchema;
+import com.eadgequry.data_source_service.repository.DatabaseConfigRepository;
 import com.eadgequry.data_source_service.repository.DatabaseSchemaRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -23,6 +26,9 @@ class DatabaseSchemaServiceTest {
 
     @Mock
     private DatabaseSchemaRepository databaseSchemaRepository;
+
+    @Mock
+    private DatabaseConfigRepository databaseConfigRepository;
 
     @InjectMocks
     private DatabaseSchemaService databaseSchemaService;
@@ -46,11 +52,66 @@ class DatabaseSchemaServiceTest {
     @Test
     void getSchemaByConfigId_WhenExists_ShouldReturnSchema() {
         // Arrange
+        DatabaseConfig config = new DatabaseConfig();
+        config.setId(100L);
+        config.setUserId(1L);
+
+        when(databaseConfigRepository.findByIdAndUserId(100L, 1L))
+                .thenReturn(Optional.of(config));
         when(databaseSchemaRepository.findByDatabaseConfigId(100L))
                 .thenReturn(Optional.of(testSchema));
 
         // Act
-        DatabaseSchemaDTO result = databaseSchemaService.getSchemaByConfigId(100L);
+        DatabaseSchemaDTO result = databaseSchemaService.getSchemaByConfigId(100L, 1L);
+
+        // Assert
+        assertNotNull(result);
+        assertEquals(1L, result.getId());
+        assertEquals(100L, result.getDatabaseConfigId());
+        assertEquals(testSchemaJson, result.getSchemaJson());
+        assertNotNull(result.getExtractedAt());
+        verify(databaseConfigRepository).findByIdAndUserId(100L, 1L);
+        verify(databaseSchemaRepository).findByDatabaseConfigId(100L);
+    }
+
+    @Test
+    void getSchemaByConfigId_WhenConfigNotOwnedByUser_ShouldThrowException() {
+        // Arrange
+        when(databaseConfigRepository.findByIdAndUserId(100L, 1L))
+                .thenReturn(Optional.empty());
+
+        // Act & Assert
+        assertThrows(DatabaseConfigNotFoundException.class, () ->
+                databaseSchemaService.getSchemaByConfigId(100L, 1L));
+        verify(databaseConfigRepository).findByIdAndUserId(100L, 1L);
+    }
+
+    @Test
+    void getSchemaByConfigId_WhenSchemaNotExists_ShouldThrowException() {
+        // Arrange
+        DatabaseConfig config = new DatabaseConfig();
+        config.setId(100L);
+        config.setUserId(1L);
+
+        when(databaseConfigRepository.findByIdAndUserId(100L, 1L))
+                .thenReturn(Optional.of(config));
+        when(databaseSchemaRepository.findByDatabaseConfigId(100L))
+                .thenReturn(Optional.empty());
+
+        // Act & Assert
+        assertThrows(DatabaseSchemaNotFoundException.class, () ->
+                databaseSchemaService.getSchemaByConfigId(100L, 1L));
+        verify(databaseSchemaRepository).findByDatabaseConfigId(100L);
+    }
+
+    @Test
+    void getSchemaByConfigIdInternal_WhenExists_ShouldReturnSchema() {
+        // Arrange
+        when(databaseSchemaRepository.findByDatabaseConfigId(100L))
+                .thenReturn(Optional.of(testSchema));
+
+        // Act
+        DatabaseSchemaDTO result = databaseSchemaService.getSchemaByConfigIdInternal(100L);
 
         // Assert
         assertNotNull(result);
@@ -62,14 +123,14 @@ class DatabaseSchemaServiceTest {
     }
 
     @Test
-    void getSchemaByConfigId_WhenNotExists_ShouldThrowException() {
+    void getSchemaByConfigIdInternal_WhenNotExists_ShouldThrowException() {
         // Arrange
         when(databaseSchemaRepository.findByDatabaseConfigId(100L))
                 .thenReturn(Optional.empty());
 
         // Act & Assert
         assertThrows(DatabaseSchemaNotFoundException.class, () ->
-                databaseSchemaService.getSchemaByConfigId(100L));
+                databaseSchemaService.getSchemaByConfigIdInternal(100L));
         verify(databaseSchemaRepository).findByDatabaseConfigId(100L);
     }
 
@@ -166,7 +227,7 @@ class DatabaseSchemaServiceTest {
                 .thenReturn(Optional.of(testSchema));
 
         // Act
-        DatabaseSchemaDTO result = databaseSchemaService.getSchemaByConfigId(100L);
+        DatabaseSchemaDTO result = databaseSchemaService.getSchemaByConfigIdInternal(100L);
 
         // Assert
         assertNotNull(result);

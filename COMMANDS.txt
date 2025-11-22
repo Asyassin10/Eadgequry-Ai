@@ -1,0 +1,134 @@
+=================================================================
+EADGEQURY-AI - ALL COMMANDS REFERENCE
+=================================================================
+
+BUILD COMMANDS:
+===============
+
+# Build all services (parallel - FASTEST)
+./build-all.sh
+
+# Build with compose (simplest)
+./build-compose.sh
+
+# Verify setup
+./verify-setup.sh
+
+
+TESTING COMMANDS:
+=================
+
+# Run all tests with coverage
+./test-coverage.sh
+
+# Test single service
+cd auth && ./mvnw test jacoco:report
+
+# View coverage report
+open auth/target/site/jacoco/index.html
+
+
+SONARQUBE COMMANDS:
+===================
+
+# Start SonarQube (if not running)
+podman-compose up -d sonarqube
+
+# Run analysis for all services
+export SONAR_TOKEN=your_token_here  # Optional
+./sonar-analyze.sh
+
+# Analyze single service
+cd auth && ./mvnw sonar:sonar -Dsonar.host.url=http://localhost:9000
+
+# View SonarQube dashboard
+open http://localhost:9000
+
+
+COMPLETE PIPELINE:
+==================
+
+# Build + Test + Coverage + SonarQube
+./build-test-sonar.sh
+
+
+CONTAINER COMMANDS:
+===================
+
+# Start all services
+./start-all.sh
+
+# Stop all services
+./stop-all.sh
+
+# View logs (all)
+./logs.sh
+
+# View logs (specific service)
+./logs.sh auth
+./logs.sh frontend
+
+# Restart service
+podman-compose restart auth-service
+
+# View status
+podman-compose ps
+
+
+INDIVIDUAL SERVICE COMMANDS:
+=============================
+
+# Build JAR
+cd auth && ./mvnw clean package -DskipTests
+
+# Run tests
+cd auth && ./mvnw test
+
+# Run with coverage
+cd auth && ./mvnw clean verify jacoco:report
+
+# Run SonarQube
+cd auth && ./mvnw sonar:sonar
+
+# Build container image
+podman build -t auth-service:latest -f auth/Containerfile auth/
+
+
+COVERAGE REPORTS:
+=================
+auth/target/site/jacoco/index.html
+user-profile/target/site/jacoco/index.html
+notification/target/site/jacoco/index.html
+data-source/target/site/jacoco/index.html
+chat-bot-service/target/site/jacoco/index.html
+
+
+SONARQUBE PROJECTS:
+===================
+eadgequry-auth
+eadgequry-user-profile
+eadgequry-notification
+eadgequry-data-source
+eadgequry-chatbot
+
+
+SERVICE PORTS:
+==============
+Frontend:           http://localhost:3000
+API Gateway:        http://localhost:8765
+Eureka:             http://localhost:8761
+Auth:               http://localhost:8081
+User Profile:       http://localhost:8082
+Notification:       http://localhost:8084
+Data Source:        http://localhost:8085
+Chatbot:            http://localhost:8089
+SonarQube:          http://localhost:9000
+Jenkins:            http://localhost:8982/jenkins
+
+
+QUICK START:
+============
+1. ./build-all.sh
+2. ./test-coverage.sh
+3. ./start-all.sh
+4. open http://localhost:3000
