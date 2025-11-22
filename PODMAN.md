@@ -51,9 +51,19 @@ The project consists of:
 ## 🚀 Quick Start
 
 ### 1. Build Everything
+
+**Option A: Parallel Build (FASTEST)**
 ```bash
-# This builds all Java services, frontend, and container images
+# Builds all Java services and container images in parallel
+# 3-5x faster than sequential builds!
 ./build-all.sh
+```
+
+**Option B: Compose Build (SIMPLEST)**
+```bash
+# Uses podman-compose/docker-compose to build everything
+# Simpler, but slightly slower
+./build-compose.sh
 ```
 
 ### 2. Start All Services

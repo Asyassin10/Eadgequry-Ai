@@ -45,7 +45,7 @@ done
 echo ""
 
 echo "🔧 HELPER SCRIPTS:"
-for script in build-all.sh start-all.sh stop-all.sh logs.sh; do
+for script in build-all.sh build-compose.sh start-all.sh stop-all.sh logs.sh; do
     if [ -f "$script" ]; then
         echo "  ✓ $script"
     else
@@ -59,8 +59,9 @@ echo "TOTAL: 19 Services (8 app + 11 infra)"
 echo "=================================="
 echo ""
 echo "🚀 Ready to run with:"
-echo "   ./build-all.sh    # Build everything"
-echo "   ./start-all.sh    # Start all services"
-echo "   ./logs.sh         # View logs"
-echo "   ./stop-all.sh     # Stop all services"
+echo "   ./build-all.sh        # Build everything (PARALLEL - FAST!)"
+echo "   ./build-compose.sh    # Build with compose (SIMPLEST)"
+echo "   ./start-all.sh        # Start all services"
+echo "   ./logs.sh             # View logs"
+echo "   ./stop-all.sh         # Stop all services"
 echo ""
